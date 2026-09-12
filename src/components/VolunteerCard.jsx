@@ -1,51 +1,52 @@
-﻿import { Navigation, Phone } from 'lucide-react';
+import { Phone, MessageSquare } from 'lucide-react';
 
-const statusStyles = {
-  Bertugas: 'bg-amber-100 text-amber-700',
-  Siaga: 'bg-emerald-100 text-emerald-700',
-};
-
-const avatarColors = [
-  'from-blue-400 to-blue-600',
-  'from-emerald-400 to-teal-600',
-  'from-violet-400 to-purple-600',
-  'from-orange-400 to-amber-600',
-];
-
-export default function VolunteerCard({ relawan, index }) {
-  const gradient = avatarColors[index % avatarColors.length];
+export default function VolunteerCard({ relawan }) {
+  const isBertugas = relawan.status === 'Bertugas';
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-all cursor-default">
-      {/* Avatar */}
-      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm`}>
-        {relawan.avatar}
+    <div className="flex items-center justify-between py-2.5 px-1 hover:bg-slate-50/80 rounded-xl transition-colors">
+      {/* Left: Avatar & Info */}
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs ${relawan.avatarBg}`}>
+          {relawan.avatar}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-bold text-slate-900 truncate leading-tight">
+              {relawan.nama}
+            </p>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 leading-none ${
+              isBertugas ? 'bg-[#fffbeb] text-[#d97706]' : 'bg-[#f0fdf4] text-[#16a34a]'
+            }`}>
+              {relawan.status}
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-400 font-medium mt-1 leading-tight">
+            {relawan.jarak} · {relawan.eta}
+          </p>
+        </div>
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm font-semibold text-slate-800 truncate">{relawan.nama}</p>
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusStyles[relawan.status]}`}>
-            {relawan.status}
-          </span>
-        </div>
-        <p className="text-[11px] text-slate-400 truncate">{relawan.peran}</p>
-        <div className="flex items-center gap-1 mt-1">
-          <Navigation size={10} className="text-slate-400" />
-          <span className="text-[11px] text-slate-500 font-medium">{relawan.jarak}</span>
-          <span className="text-slate-300">·</span>
-          <span className="text-[11px] text-slate-400">ETA {relawan.eta}</span>
-        </div>
-      </div>
+      {/* Right: Phone & Message Quick Buttons */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <button
+          onClick={() => alert(`Memanggil ${relawan.nama} (${relawan.kontak})`)}
+          className="w-7 h-7 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          title="Telepon"
+        >
+          <Phone size={12} />
+        </button>
 
-      {/* Action */}
-      <button
-        id={`btn-tugaskan-${relawan.id}`}
-        className="flex-shrink-0 bg-[#062c26] hover:bg-emerald-800 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-      >
-        Tugaskan
-      </button>
+        <button
+          onClick={() => alert(`Kirim pesan ke ${relawan.nama}`)}
+          className="w-7 h-7 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          title="Kirim Pesan"
+        >
+          <MessageSquare size={12} />
+        </button>
+      </div>
     </div>
   );
 }

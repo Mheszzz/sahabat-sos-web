@@ -1,218 +1,282 @@
-﻿import { useState } from 'react';
-import { RefreshCw, Download, Search, Phone, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
-import { sosCases } from '../data/dummyData';
+﻿import { useState, useEffect } from 'react';
+import { Search, RefreshCw, Filter, Eye, Phone, ArrowUpDown, CheckCircle, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { laporanService } from '../services/laporanService';
 
-const statusStyles = {
-  'Sedang Ditangani': { cls: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  'Menunggu Respon':  { cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-  'Teratasi':         { cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+const statusBadgeStyles = {
+  'aktif':   'bg-[#fef2f2] text-[#ef4444] border border-red-200',
+  'proses':  'bg-[#eff6ff] text-[#2563eb] border border-blue-200',
+  'selesai': 'bg-[#f0fdf4] text-[#16a34a] border border-green-200',
+  // Legacy dummy labels (fallback)
+  'SOS Darurat':      'bg-[#fef2f2] text-[#ef4444] border border-red-200',
+  'Sedang Ditangani': 'bg-[#eff6ff] text-[#2563eb] border border-blue-200',
+  'Menunggu Respon':  'bg-[#fffbeb] text-[#d97706] border border-amber-200',
+  'Laporan':          'bg-[#f8fafc] text-[#475569] border border-slate-200',
+  'Teratasi':         'bg-[#f0fdf4] text-[#16a34a] border border-green-200',
 };
 
-const priorityStyles = {
-  'DARURAT SOS':      'bg-red-100 text-red-700 border border-red-200',
-  'LAPORAN PENGGUNA': 'bg-blue-100 text-blue-700 border border-blue-200',
-};
-
-const avatarGradients = [
-  'from-blue-400 to-blue-600',
-  'from-emerald-400 to-teal-600',
-  'from-violet-400 to-purple-600',
-  'from-orange-400 to-amber-600',
-  'from-pink-400 to-rose-600',
-  'from-cyan-400 to-sky-600',
-];
+const statusLabel = { aktif: 'Aktif', proses: 'Sedang Ditangani', selesai: 'Selesai' };
 
 export default function KasusAktifPage({ onOpenDetail }) {
-  const [activeFilter, setActiveFilter] = useState('semua');
+  const [activeTab, setActiveTab] = useState('semua');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('terbaru');
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [pagination, setPagination] = useState(null);
 
-  const filters = [
-    { id: 'semua',   label: 'Semua Kasus',       count: sosCases.length },
-    { id: 'darurat', label: 'Darurat SOS',        count: sosCases.filter(c => c.type === 'darurat').length },
-    { id: 'laporan', label: 'Laporan Pengguna',   count: sosCases.filter(c => c.type === 'laporan').length },
-  ];
+  const fetchLaporan = async (status = null) => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await laporanService.getLaporan(status);
+      if (res && res.data) {
+        // Support both paginated { data: { data: [] } } and flat { data: [] }
+        const items = res.data?.data ?? res.data ?? [];
+        setCases(Array.isArray(items) ? items : []);
+        setPagination(res.data?.last_page ? res.data : null);
+      }
+    } catch (err) {
+      setError('Gagal mengambil data laporan. Pastikan server backend berjalan.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredCases = sosCases.filter(c => {
-    const matchesFilter = activeFilter === 'semua' || c.type === activeFilter;
+  useEffect(() => {
+    const status = activeTab === 'semua' ? null : activeTab;
+    fetchLaporan(status);
+  }, [activeTab]);
+
+  const filterTabs = [
+    { id: 'semua',   label: 'Semua Kasus' },
+    { id: 'aktif',   label: 'Aktif / SOS' },
+    { id: 'proses',  label: 'Sedang Ditangani' },
+    { id: 'selesai', label: 'Selesai' },
+  ].map(tab => ({
+    ...tab,
+    count: tab.id === 'semua' ? cases.length : cases.filter(c => c.status === tab.id).length,
+  }));
+
+  const filteredCases = cases.filter(c => {
+    if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q ||
-      c.id.toLowerCase().includes(q) ||
-      c.pelapor.nama.toLowerCase().includes(q) ||
-      c.category.toLowerCase().includes(q) ||
-      c.lokasi.toLowerCase().includes(q);
-    return matchesFilter && matchesSearch;
+    return (
+      String(c.id).toLowerCase().includes(q) ||
+      (c.kategori_laporan || '').toLowerCase().includes(q) ||
+      (c.pengguna?.name || '').toLowerCase().includes(q) ||
+      (c.lokasi_laporan || '').toLowerCase().includes(q)
+    );
   });
 
   return (
-    <div className="p-6 space-y-5">
-      {/* Page header & Control Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-6 lg:p-8 space-y-6 max-w-[1680px] w-full mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800">Daftar Kasus Tanggap Darurat Aktif</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            <span className="font-semibold text-slate-600">{filteredCases.length} kasus</span> ditemukan
+          <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-tight">
+            Kasus Aktif
+          </h1>
+          <p className="text-[14px] text-slate-500 mt-1 font-medium">
+            Pantau dan kelola kasus yang sedang berlangsung secara real-time.
           </p>
         </div>
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* SINGLE Search Bar in the top control bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
+            disabled={loading}
+            className="btn-base btn-secondary text-[12px] h-9"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Segarkan Data</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Control Bar */}
+      <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Tabs */}
+        <div className="flex items-center gap-1.5 bg-[#f1f5f9] p-1 rounded-xl">
+          {filterTabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                activeTab === tab.id
+                  ? 'bg-[#0a271f] text-white'
+                  : 'bg-slate-200 text-slate-600'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Search & Sort */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-full md:w-72">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Cari ID kasus, pelapor..."
-              className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all w-full md:w-56"
+              placeholder="Cari ID, pelapor, lokasi..."
+              className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-slate-200 rounded-xl text-[13px] font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-600 transition-all"
             />
           </div>
-          <button className="flex items-center gap-1.5 text-slate-600 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap">
-            <RefreshCw size={13} /> Refresh Real-time
-          </button>
-          <button className="flex items-center gap-1.5 bg-[#062c26] hover:bg-emerald-900 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap">
-            <Download size={13} /> Ekspor Laporan
-          </button>
+
+          <div className="flex items-center gap-1.5 bg-[#f8fafc] border border-slate-200 rounded-xl px-3 h-9 text-[12px] font-semibold text-slate-600">
+            <ArrowUpDown size={13} className="text-slate-400" />
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="bg-transparent border-none outline-none cursor-pointer"
+            >
+              <option value="terbaru">Terbaru</option>
+              <option value="prioritas">Prioritas Tertinggi</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        {filters.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setActiveFilter(f.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all cursor-pointer ${
-              activeFilter === f.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {f.label}
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-              activeFilter === f.id
-                ? f.id === 'darurat' ? 'bg-red-100 text-red-600'
-                : f.id === 'laporan' ? 'bg-blue-100 text-blue-600'
-                : 'bg-slate-100 text-slate-600'
-                : 'bg-slate-200 text-slate-500'
-            }`}>{f.count}</span>
-          </button>
-        ))}
-      </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white border border-[#eaedf1] rounded-2xl p-12 flex items-center justify-center gap-3 shadow-xs">
+          <Loader2 size={20} className="animate-spin text-emerald-600" />
+          <span className="text-[14px] font-semibold text-slate-500">Memuat data laporan...</span>
+        </div>
+      )}
 
-      {/* Table card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[960px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                {['ID KASUS & WAKTU','PRIORITAS','PELAPOR & KEBUTUHAN','LOKASI KEJADIAN (TKP)','RELAWAN / PENDAMPING','STATUS RESPON','AKSI'].map(h => (
-                  <th key={h} className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredCases.map((kasus, idx) => {
-                const st = statusStyles[kasus.status] || { cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-                const pt = priorityStyles[kasus.priority] || 'bg-slate-100 text-slate-600';
-                const avatarGrad = avatarGradients[idx % avatarGradients.length];
-                return (
-                  <tr key={kasus.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* ID & Waktu */}
-                    <td className="p-4 align-middle">
-                      <p className="text-sm font-bold text-slate-800">{kasus.id}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{kasus.waktu}</p>
+      {/* Error State */}
+      {!loading && error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-center gap-3">
+          <AlertTriangle size={18} className="text-red-500 flex-shrink-0" />
+          <p className="text-[13px] text-red-700 font-semibold">{error}</p>
+        </div>
+      )}
+
+      {/* Data Table */}
+      {!loading && !error && (
+        <div className="bg-white border border-[#eaedf1] rounded-2xl overflow-hidden shadow-xs">
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Kategori Kasus</th>
+                  <th>Pelapor</th>
+                  <th>Lokasi</th>
+                  <th>Relawan</th>
+                  <th>Waktu</th>
+                  <th className="text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCases.map(kasus => (
+                  <tr key={kasus.id}>
+                    {/* ID */}
+                    <td>
+                      <span className="font-bold text-emerald-600 text-[12px]">
+                        #{kasus.id}
+                      </span>
                     </td>
 
-                    {/* Prioritas */}
-                    <td className="p-4 align-middle">
-                      <div className="flex items-center gap-2">
-                        {kasus.type === 'darurat' && (
-                          <span className="relative flex h-2 w-2 flex-shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                          </span>
-                        )}
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap ${pt}`}>{kasus.priority}</span>
+                    {/* Status */}
+                    <td>
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-block leading-none ${statusBadgeStyles[kasus.status] || 'bg-slate-100 text-slate-600'}`}>
+                        {statusLabel[kasus.status] || kasus.status}
+                      </span>
+                    </td>
+
+                    {/* Kategori */}
+                    <td>
+                      <div className="font-bold text-slate-800 max-w-[220px] truncate text-[13px]">
+                        {kasus.kategori_laporan}
                       </div>
                     </td>
 
                     {/* Pelapor */}
-                    <td className="p-4 align-middle">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0`}>
-                          {kasus.pelapor.nama.split(' ').map(w => w[0]).join('').slice(0,2)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800">{kasus.pelapor.nama}</p>
-                          <p className="text-xs text-slate-400">{kasus.pelapor.disabilitas}</p>
-                          <p className="text-xs text-slate-400">{kasus.pelapor.kontak}</p>
-                        </div>
+                    <td>
+                      <div>
+                        <p className="font-semibold text-slate-800 leading-tight">{kasus.pengguna?.name || '-'}</p>
+                        <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{kasus.pengguna?.kategori_user || 'Pengguna'}</p>
                       </div>
                     </td>
 
                     {/* Lokasi */}
-                    <td className="p-4 align-middle max-w-[200px]">
-                      <p className="text-xs font-medium text-slate-700 leading-snug line-clamp-2">{kasus.lokasiFull}</p>
+                    <td>
+                      <div className="max-w-[200px] truncate text-slate-600 text-[12px]" title={kasus.lokasi_laporan}>
+                        {kasus.lokasi_laporan}
+                      </div>
                     </td>
 
                     {/* Relawan */}
-                    <td className="p-4 align-middle">
-                      {kasus.relawan.nama !== 'Belum Ditugaskan' ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                            {kasus.relawan.avatar}
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-700">{kasus.relawan.nama}</p>
-                            <p className="text-[10px] text-emerald-600 font-medium">{kasus.relawan.badge}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-amber-500 italic font-medium">Menunggu Penugasan</span>
-                      )}
-                    </td>
-
-                    {/* Status */}
-                    <td className="p-4 align-middle">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${st.cls}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.dot}`}></span>
-                        {kasus.status}
+                    <td>
+                      <span className={kasus.relawan?.name ? 'font-semibold text-slate-700 text-[12px]' : 'text-slate-400 italic text-[12px]'}>
+                        {kasus.relawan?.name || 'Belum ditugaskan'}
                       </span>
                     </td>
 
-                    {/* Aksi */}
-                    <td className="p-4 align-middle">
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <button className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer">
-                          <Phone size={11} /> Hubungi
+                    {/* Waktu */}
+                    <td>
+                      <div className="text-[12px] text-slate-500 flex items-center gap-1">
+                        <Clock size={12} className="text-slate-400" />
+                        <span>{kasus.waktu_laporan ? new Date(kasus.waktu_laporan).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'2-digit' }) : '-'}</span>
+                      </div>
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => alert(`Menghubungi kontak untuk laporan #${kasus.id}`)}
+                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
+                          title="Hubungi"
+                        >
+                          <Phone size={12} />
                         </button>
-                        <button onClick={() => onOpenDetail?.(kasus.id)} className="flex items-center gap-1 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer">
-                          <Eye size={11} /> Detail
+                        <button
+                          onClick={() => onOpenDetail?.(kasus.id)}
+                          className="btn-base btn-primary text-[11px] py-1 px-2.5 h-7 rounded-lg"
+                        >
+                          <Eye size={12} />
+                          <span>Detail</span>
                         </button>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-4 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-3">
-          <p className="text-xs text-slate-500">
-            Menampilkan <span className="font-semibold text-slate-700">1&ndash;{filteredCases.length}</span> dari{' '}
-            <span className="font-semibold text-slate-700">{filteredCases.length}</span> kasus tanggap darurat aktif
-          </p>
-          <div className="flex items-center gap-1">
-            <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 cursor-not-allowed">
-              <ChevronLeft size={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#062c26] text-white text-xs font-bold">1</button>
-            <button disabled className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 cursor-not-allowed">
-              <ChevronRight size={14} />
-            </button>
+                ))}
+              </tbody>
+            </table>
           </div>
+
+          {filteredCases.length === 0 && (
+            <div className="p-12 text-center text-slate-400">
+              <p className="font-semibold text-[14px]">Tidak ada kasus yang sesuai dengan filter.</p>
+            </div>
+          )}
+
+          {/* Pagination Info */}
+          {pagination && (
+            <div className="px-5 py-3 border-t border-[#f1f5f9] flex items-center justify-between">
+              <span className="text-[12px] text-slate-400 font-medium">
+                Halaman {pagination.current_page} dari {pagination.last_page} Â· Total {pagination.total} laporan
+              </span>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
