@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Bell, ChevronRight, Menu, Siren, Home, ChevronDown, LogOut, Shield } from 'lucide-react';
+import { Bell, ChevronRight, Menu, Siren, Home, ChevronDown, LogOut } from 'lucide-react';
 
 const breadcrumbMap = {
-  'dashboard':        ['Beranda', 'Dashboard Utama'],
-  'kasus-aktif':      ['Beranda', 'Kasus Aktif'],
-  'riwayat':          ['Beranda', 'Riwayat Kasus'],
-  'peta':             ['Beranda', 'Peta Pemantauan'],
-  'pengaturan':       ['Beranda', 'Pengaturan Sistem'],
-  'detail-kasus':     ['Kasus Aktif', 'Detail Kasus'],
-  'manajemen-admin':  ['Manajemen', 'Manajemen Admin'],
-  'manajemen-user':   ['Manajemen', 'Manajemen User'],
+  dashboard: ['Beranda', 'Dashboard Utama'],
+  'kasus-aktif': ['Beranda', 'Kasus Aktif'],
+  riwayat: ['Beranda', 'Riwayat Kasus'],
+  peta: ['Beranda', 'Peta Pemantauan'],
+  pengaturan: ['Beranda', 'Pengaturan Sistem'],
+  'detail-kasus': ['Kasus Aktif', 'Detail Kasus'],
+  'manajemen-admin': ['Manajemen', 'Manajemen Admin'],
+  'manajemen-user': ['Manajemen', 'Manajemen User'],
 };
 
 function getInitials(name = '') {
@@ -21,72 +21,63 @@ export default function TopHeader({ activePage, onMenuToggle, currentUser, onLog
   const crumbs = breadcrumbMap[activePage] || ['Beranda', 'Dashboard Utama'];
 
   return (
-    <header className="h-[64px] bg-white border-b border-[#eaedf1] px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 flex-shrink-0">
-      {/* Left side: Hamburger & Breadcrumb */}
+    <header className="sticky top-0 z-30 flex h-[72px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/90 px-5 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.35)] backdrop-blur-sm lg:px-8">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 lg:hidden"
           aria-label="Toggle Navigation"
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </button>
 
-        <nav className="flex items-center gap-2 text-[13px]">
+        <nav className="flex items-center gap-2 text-[13px] font-medium">
           <Home size={15} className="text-slate-400" />
-          <span className="text-slate-500 font-medium">{crumbs[0]}</span>
+          <span className="text-slate-500">{crumbs[0]}</span>
           <ChevronRight size={13} className="text-slate-300" />
-          <span className="text-slate-900 font-bold">{crumbs[1]}</span>
+          <span className="font-bold text-slate-900">{crumbs[1]}</span>
         </nav>
       </div>
 
-      {/* Right side: Notifications, Sirene Button & Dynamic Profile */}
-      <div className="flex items-center gap-3.5">
-        {/* Notification Bell */}
+      <div className="flex items-center gap-3">
         <button
-          className="relative w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
+          className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800"
           aria-label="Notifikasi"
         >
           <Bell size={18} />
-          <span className="absolute top-1 right-1 bg-[#ef4444] text-white text-[9px] font-bold rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5">
+          <span className="absolute right-1.5 top-1.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#f04438] px-1 text-[9px] font-bold text-white">
             3
           </span>
         </button>
 
-        {/* Sirene Aktif Button */}
-        <button className="flex items-center gap-2 bg-[#ef4444] hover:bg-[#dc2626] text-white text-[12px] font-bold px-3.5 py-2 rounded-full shadow-sm shadow-red-200 transition-all cursor-pointer">
-          <Siren size={14} className="animate-bounce" />
-          <span className="tracking-wide">Sirene Aktif</span>
+        <button className="flex items-center gap-2 rounded-xl border border-[#dfe9e5] bg-[#f4faf8] px-3 py-2 text-[12px] font-bold text-[#0d5c52] transition-colors hover:bg-[#edf8f6]">
+          <Siren size={14} />
+          <span>Sirene Aktif</span>
         </button>
 
-        <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
+        <div className="hidden h-7 w-px bg-slate-200 sm:block" />
 
-        {/* Authenticated User Menu */}
         {currentUser && (
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(prev => !prev)}
-              className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+              className="flex items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-slate-50"
             >
-              <div className="w-8 h-8 rounded-full bg-[#059669] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0d1f1b] text-xs font-extrabold text-white shadow-sm">
                 {getInitials(currentUser.nama)}
               </div>
-              <div className="hidden md:block text-left leading-none">
-                <p className="text-[13px] font-bold text-slate-800 truncate max-w-[130px]">{currentUser.nama}</p>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{currentUser.role}</p>
+              <div className="hidden text-left md:block">
+                <p className="max-w-[140px] truncate text-[13px] font-extrabold text-slate-800">{currentUser.nama}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-slate-400">{currentUser.role}</p>
               </div>
-              <ChevronDown size={14} className="text-slate-400 hidden md:block" />
+              <ChevronDown size={14} className="hidden text-slate-400 md:block" />
             </button>
 
-            {/* Profile Dropdown */}
             {dropdownOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-[#eaedf1] p-1.5 z-40 animate-fade-in">
-                  <div className="px-3 py-2 border-b border-slate-100">
+                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpen(false)} />
+                <div className="absolute right-0 z-40 mt-2 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-fade-in">
+                  <div className="border-b border-slate-100 px-3 py-2">
                     <p className="text-xs font-bold text-slate-800">{currentUser.nama}</p>
                     <p className="text-[11px] text-slate-400">{currentUser.email || currentUser.role}</p>
                   </div>
@@ -95,7 +86,7 @@ export default function TopHeader({ activePage, onMenuToggle, currentUser, onLog
                       setDropdownOpen(false);
                       onLogout();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer mt-1"
+                    className="mt-1 flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                   >
                     <LogOut size={14} />
                     <span>Keluar dari Akun</span>

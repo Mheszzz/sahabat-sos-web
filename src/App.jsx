@@ -13,7 +13,6 @@ import ManajemenUserPage from './pages/ManajemenUserPage';
 import LoginPage from './pages/LoginPage';
 
 export default function App() {
-  // Ambil data user dari localStorage jika sudah pernah login
   const [currentUser, setCurrentUser] = useState(() => authService.getUser());
   const [activePage, setActivePage] = useState('dashboard');
   const [activeKasusId, setActiveKasusId] = useState(null);
@@ -47,31 +46,40 @@ export default function App() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard':     return <DashboardPage onOpenDetail={handleOpenDetail} />;
-      case 'kasus-aktif':   return <KasusAktifPage onOpenDetail={handleOpenDetail} />;
-      case 'riwayat':       return <RiwayatKasusPage />;
-      case 'peta':          return <PetaPemantauanPage onOpenDetail={handleOpenDetail} />;
-      case 'pengaturan':        return <PengaturanPage />;
-      case 'detail-kasus':      return <DetailKasusPage kasusId={activeKasusId} onBack={() => setActivePage('kasus-aktif')} />;
-      case 'manajemen-admin':   return (
-        <ManajemenAdminPage
-          currentUser={currentUser}
-          onOpenDetail={handleOpenDetail}
-          onBackToDashboard={() => setActivePage('dashboard')}
-        />
-      );
-      case 'manajemen-user':    return (
-        <ManajemenUserPage
-          currentUser={currentUser}
-          onBackToDashboard={() => setActivePage('dashboard')}
-        />
-      );
-      default:                  return <DashboardPage onOpenDetail={handleOpenDetail} />;
+      case 'dashboard':
+        return <DashboardPage onOpenDetail={handleOpenDetail} />;
+      case 'kasus-aktif':
+        return <KasusAktifPage onOpenDetail={handleOpenDetail} />;
+      case 'riwayat':
+        return <RiwayatKasusPage />;
+      case 'peta':
+        return <PetaPemantauanPage onOpenDetail={handleOpenDetail} />;
+      case 'pengaturan':
+        return <PengaturanPage />;
+      case 'detail-kasus':
+        return <DetailKasusPage kasusId={activeKasusId} onBack={() => setActivePage('kasus-aktif')} />;
+      case 'manajemen-admin':
+        return (
+          <ManajemenAdminPage
+            currentUser={currentUser}
+            onOpenDetail={handleOpenDetail}
+            onBackToDashboard={() => setActivePage('dashboard')}
+          />
+        );
+      case 'manajemen-user':
+        return (
+          <ManajemenUserPage
+            currentUser={currentUser}
+            onBackToDashboard={() => setActivePage('dashboard')}
+          />
+        );
+      default:
+        return <DashboardPage onOpenDetail={handleOpenDetail} />;
     }
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F6F8FA]">
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#f2f5f4' }}>
       <Sidebar
         activePage={activePage}
         onPageChange={handlePageChange}
@@ -81,26 +89,34 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col overflow-y-auto min-w-0 bg-[#F6F8FA]">
-        <TopHeader
-          activePage={activePage}
-          onMenuToggle={() => setSidebarOpen(prev => !prev)}
-          currentUser={currentUser}
-          onLogout={handleLogout}
-        />
+      {/* Main content area wrapper */}
+      <div className="flex-1 flex flex-col min-w-0 md:p-5 transition-all">
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-100 md:rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-200/60 relative">
+          <TopHeader
+            activePage={activePage}
+            onMenuToggle={() => setSidebarOpen(prev => !prev)}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
 
-        {renderPage()}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+            <div className="mx-auto w-full min-w-0 max-w-[1600px] px-6 pb-10 pt-6 sm:px-8 lg:px-10">
+              {renderPage()}
+            </div>
 
-        <footer className="h-12 bg-white border-t border-slate-200 flex items-center justify-between px-6 lg:px-8 flex-shrink-0">
-          <p className="text-[12px] text-slate-500 font-medium">
-            &copy; 2026 Sahabat SOS &mdash; Platform Inklusi &amp; Tanggap Darurat Difabel
-          </p>
-          <div className="hidden sm:flex items-center gap-6 text-[12px] text-slate-500 font-medium">
-            <span className="cursor-pointer hover:text-slate-800 transition-colors">Panduan Sistem</span>
-            <span className="cursor-pointer hover:text-slate-800 transition-colors">Dukungan Teknis</span>
+            <footer className="flex min-h-12 flex-shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 bg-white/70 px-6 py-3 lg:px-8">
+              <p className="text-[11.5px] font-medium text-slate-400">
+                &copy; 2025 Sahabat SOS &mdash; Platform Inklusi &amp; Tanggap Darurat Difabel Mandiri. Hak Cipta Dilindungi.
+              </p>
+              <div className="hidden items-center gap-5 text-[11.5px] font-medium text-slate-400 sm:flex">
+                <span className="cursor-pointer transition-colors hover:text-slate-700">Panduan SOP Relawan</span>
+                <span className="cursor-pointer transition-colors hover:text-slate-700">Protokol Keamanan Darurat</span>
+                <span className="cursor-pointer transition-colors hover:text-slate-700">Bantuan Teknis POSRO</span>
+              </div>
+            </footer>
           </div>
-        </footer>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

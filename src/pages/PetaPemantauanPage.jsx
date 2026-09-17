@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Radio, AlertTriangle, Phone, ShieldCheck, Users, Clock, Navigation } from 'lucide-react';
+import { Radio, AlertTriangle, Phone, Users } from 'lucide-react';
 import ModernEmergencyMap, { emergencyMapData } from '../components/ModernEmergencyMap';
+import PageHeader from '../components/PageHeader';
+import Badge from '../components/Badge';
 import { volunteers } from '../data/dummyData';
 
 export default function PetaPemantauanPage({ onOpenDetail }) {
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const sosCount = emergencyMapData.filter(d => d.type === 'sos').length;
   const relawanCount = emergencyMapData.filter(d => d.type === 'relawan').length;
@@ -12,33 +15,20 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
   const laporanCount = emergencyMapData.filter(d => d.type === 'laporan').length;
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1680px] w-full mx-auto">
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
-              Emergency Response GIS Center
-            </span>
+    <div className="page-shell space-y-6 relative">
+      <PageHeader 
+        title="Peta Pemantauan Wilayah"
+        description="Pemantauan geospasial real-time, koordinasi titik SOS, dan pelacakan unit relawan siaga."
+        actions={
+          <div className="flex items-center gap-2 bg-white border border-[#eaedf1] px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 shadow-xs">
+            <Radio size={14} className="text-emerald-600 animate-pulse" />
+            <span className="whitespace-nowrap">Satelit Geospasial GPS Online (Akurasi 3m)</span>
           </div>
-          <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-tight mt-0.5">
-            Peta Pemantauan Wilayah
-          </h1>
-          <p className="text-[14px] text-slate-500 mt-1 font-medium">
-            Pemantauan geospasial real-time, koordinasi titik SOS, dan pelacakan unit relawan siaga.
-          </p>
-        </div>
-
-        {/* Status indicator */}
-        <div className="flex items-center gap-2 bg-white border border-[#eaedf1] px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 shadow-xs">
-          <Radio size={14} className="text-emerald-600 animate-pulse" />
-          <span>Satelit Geospasial GPS Online (Akurasi 3m)</span>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Metric Summary Badges ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[12px] font-bold text-slate-400">🔴 SOS Aktif</span>
@@ -72,6 +62,20 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
         </div>
       </div>
 
+      {/* Mobile Toggle Panel Button */}
+      <div className="xl:hidden">
+        <button 
+          onClick={() => setIsPanelOpen(!isPanelOpen)}
+          className="w-full btn-base btn-secondary justify-between text-[13px] h-12"
+        >
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-emerald-600" />
+            <span className="font-bold">Unit Relawan Siaga Terdekat</span>
+          </div>
+          <Badge variant="Online" isPill>{volunteers.length} Tersedia</Badge>
+        </button>
+      </div>
+
       {/* ── Large Map Canvas with Dispatch Panel Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
         {/* Main Command Center Map */}
@@ -85,12 +89,10 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
         </div>
 
         {/* Right Dispatch & Responders Panel */}
-        <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs space-y-5">
+        <div className={`${isPanelOpen ? 'block' : 'hidden'} xl:block bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs space-y-5`}>
           <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between">
             <h2 className="text-[15px] font-bold text-slate-900">Unit Relawan Siaga Terdekat</h2>
-            <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full">
-              Live GPS
-            </span>
+            <Badge variant="Online" customColor="bg-emerald-50 text-emerald-700" isPill>Live GPS</Badge>
           </div>
 
           {/* Volunteer List */}
@@ -103,7 +105,7 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${vol.avatarBg}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${vol.avatarBg} text-white`}>
                       {vol.avatar}
                     </div>
                     <div>
@@ -111,11 +113,7 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
                       <p className="text-[11px] text-slate-400">{vol.peran}</p>
                     </div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    vol.status === 'Bertugas' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    {vol.status}
-                  </span>
+                  <Badge variant={vol.status === 'Bertugas' ? 'Sedang Bertugas' : 'Online'} isPill />
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">

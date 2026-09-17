@@ -310,76 +310,51 @@ export default function ModernEmergencyMap({
   const countLaporan = emergencyMapData.filter(d => d.type === 'laporan').length;
 
   return (
-    <div className={`relative flex flex-col bg-white border border-[#eaedf1] rounded-2xl overflow-hidden shadow-xs ${className}`}>
+    <div className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#eaedf1] bg-white shadow-xs ${className}`}>
       {/* ── Top Header Controls & Filter Bar ── */}
       {showFilterBar && (
         <div className="p-3.5 border-b border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3 bg-white z-10">
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+          <div className="filter-pills flex-1">
             <button
               onClick={() => setActiveFilter('semua')}
-              className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeFilter === 'semua'
-                  ? 'bg-[#0a271f] text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              className={`filter-pill ${activeFilter === 'semua' ? 'is-active' : ''}`}
             >
               Semua ({emergencyMapData.length})
             </button>
-
             <button
               onClick={() => setActiveFilter('sos')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeFilter === 'sos'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'bg-red-50 text-red-700 hover:bg-red-100'
-              }`}
+              className={`filter-pill tone-danger ${activeFilter === 'sos' ? 'is-active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span>SOS Aktif ({countSos})</span>
+              <span className="status-dot bg-red-500 animate-pulse" />
+              SOS Aktif ({countSos})
             </button>
-
             <button
               onClick={() => setActiveFilter('relawan')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeFilter === 'relawan'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              }`}
+              className={`filter-pill tone-success ${activeFilter === 'relawan' ? 'is-active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Relawan ({countRelawan})</span>
+              <span className="status-dot bg-emerald-500" />
+              Relawan ({countRelawan})
             </button>
-
             <button
               onClick={() => setActiveFilter('posko')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeFilter === 'posko'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-              }`}
+              className={`filter-pill tone-info ${activeFilter === 'posko' ? 'is-active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span>Posko ({countPosko})</span>
+              <span className="status-dot bg-blue-500" />
+              Posko ({countPosko})
             </button>
-
             <button
               onClick={() => setActiveFilter('laporan')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeFilter === 'laporan'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-              }`}
+              className={`filter-pill tone-warning ${activeFilter === 'laporan' ? 'is-active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>Laporan ({countLaporan})</span>
+              <span className="status-dot bg-amber-500" />
+              Laporan ({countLaporan})
             </button>
           </div>
-
-          {/* Real-time Indicator */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex-shrink-0">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex-shrink-0 whitespace-nowrap">
             <Radio size={12} className="animate-pulse" />
-            <span>Command Center GIS Online</span>
+            <span className="hidden sm:inline">Command Center GIS Online</span>
+            <span className="sm:hidden">GIS Online</span>
           </div>
         </div>
       )}

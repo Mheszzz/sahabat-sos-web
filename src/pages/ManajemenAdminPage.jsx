@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users, UserPlus, Search, Filter, ArrowUpDown, Eye, Edit2, UserX,
   UserCheck, Shield, CheckCircle, Clock, Activity, AlertTriangle,
   X, Phone, MessageSquare, ChevronRight, CheckCircle2, Lock, ArrowLeft
 } from 'lucide-react';
 import { initialAdmins, adminActivityLogs, sosCases } from '../data/dummyData';
+import PageHeader from '../components/PageHeader';
+import Badge from '../components/Badge';
+import { adminService } from '../services/adminService';
 
 export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackToDashboard }) {
   // ── Role Authorization Check ──
-  const isSuperAdmin = currentUser?.role === 'Super Admin';
+  const isSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'superadmin';
   if (!isSuperAdmin) {
     return (
       <div className="p-6 lg:p-12 max-w-[800px] mx-auto text-center space-y-5">
@@ -33,7 +36,53 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
   }
 
   // ── State Management ──
-  const [admins, setAdmins] = useState(initialAdmins);
+  const [admins, setAdmins] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
+
+  const fetchAdmins = async () => {
+    try {
+      setIsLoading(true);
+      const res = await adminService.getAdmins();
+      if (res && res.data) {
+        const mappedAdmins = res.data.map((admin, idx) => {
+          const initials = admin.name ? admin.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'AD';
+          const avatarColors = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-500', 'bg-purple-600', 'bg-pink-600'];
+          const bgColor = avatarColors[idx % avatarColors.length];
+          return {
+            id: admin.id.toString(), // ID backend
+            nama: admin.name,
+            email: admin.email,
+            role: admin.role === 'superadmin' ? 'Super Admin' : 'Admin',
+            status: admin.status_verifikasi === 'terverifikasi' ? 'Aktif' : 'Nonaktif',
+            operasional: 'Offline', // Placeholder UI
+            kasusDitangani: 0,
+            kasusSelesai: 0,
+            kasusAktif: 0,
+            avgResponse: '—',
+            kasusMingguIni: 0,
+            terakhirAktif: 'Baru dibuat',
+            lastLogin: 'Belum pernah login',
+            tanggalDibuat: admin.created_at ? new Date(admin.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Baru saja',
+            dibuatOleh: admin.granted_by?.name || 'Superadmin',
+            avatar: initials,
+            avatarBg: bgColor,
+            activeCases: [],
+            permissions: admin.permissions || []
+          };
+        });
+        setAdmins(mappedAdmins);
+      }
+    } catch (error) {
+      console.error('Gagal mengambil data admin:', error);
+      showToast('Gagal memuat data admin dari server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [sortBy, setSortBy] = useState('terbaru');
@@ -53,8 +102,14 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
     role: 'Admin',
   });
 
-  const [editingAdmin, setEditingAdmin] = useState(null);
-  const [deactivatingAdmin, setDeactivatingAdmin] = useState(null);
+  const [managingPermissionsAdmin, setManagingPermissionsAdmin] = useState(null);
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [revokingAdmin, setRevokingAdmin] = useState(null);
+
+  const availablePermissionsList = [
+    { key: 'verifikasi_relawan', label: 'Verifikasi Relawan' },
+    { key: 'kelola_laporan', label: 'Kelola Laporan Darurat' }
+  ];
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg) => {
@@ -72,10 +127,10 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
   const filteredAdmins = admins.filter(a => {
     const matchStatus =
       statusFilter === 'Semua' ? true :
-      statusFilter === 'Aktif' ? a.status === 'Aktif' :
-      statusFilter === 'Sedang Bertugas' ? a.operasional === 'Sedang Bertugas' :
-      statusFilter === 'Offline' ? a.operasional === 'Offline' :
-      statusFilter === 'Nonaktif' ? a.status === 'Nonaktif' : true;
+        statusFilter === 'Aktif' ? a.status === 'Aktif' :
+          statusFilter === 'Sedang Bertugas' ? a.operasional === 'Sedang Bertugas' :
+            statusFilter === 'Offline' ? a.operasional === 'Offline' :
+              statusFilter === 'Nonaktif' ? a.status === 'Nonaktif' : true;
 
     const q = searchQuery.toLowerCase();
     const matchSearch = !q ||
@@ -91,77 +146,65 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
   });
 
   // ── Handler: Create Admin ──
-  const handleCreateAdmin = (e) => {
+  const handleCreateAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdminForm.nama || !newAdminForm.email) return;
+    if (!newAdminForm.nama || !newAdminForm.email || !newAdminForm.password) return;
 
     if (!isAddConfirming) {
       setIsAddConfirming(true);
       return;
     }
 
-    const newId = `ADM-0${admins.length + 1}`;
-    const initials = newAdminForm.nama.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const newEntry = {
-      id: newId,
-      nama: newAdminForm.nama,
-      email: newAdminForm.email,
-      role: 'Admin', // Locked to Admin
-      status: newAdminForm.status,
-      operasional: 'Offline',
-      kasusDitangani: 0,
-      kasusSelesai: 0,
-      kasusAktif: 0,
-      avgResponse: '—',
-      kasusMingguIni: 0,
-      terakhirAktif: 'Baru dibuat',
-      lastLogin: 'Belum pernah login',
-      tanggalDibuat: '10 Sep 2026',
-      dibuatOleh: currentUser.nama,
-      avatar: initials,
-      avatarBg: 'bg-[#2563eb]',
-      activeCases: [],
-    };
+    try {
+      // Panggil API untuk membuat admin
+      await adminService.createAdmin({
+        name: newAdminForm.nama,
+        email: newAdminForm.email,
+        password: newAdminForm.password
+      });
 
-    setAdmins([newEntry, ...admins]);
-    setIsAddModalOpen(false);
-    setIsAddConfirming(false);
-    setNewAdminForm({ nama: '', email: '', password: '', status: 'Aktif', role: 'Admin' });
-    showToast(`Akun Admin "${newEntry.nama}" berhasil dibuat.`);
+      setIsAddModalOpen(false);
+      setIsAddConfirming(false);
+      setNewAdminForm({ nama: '', email: '', password: '', status: 'Aktif', role: 'Admin' });
+      showToast(`Akun Admin "${newAdminForm.nama}" berhasil dibuat.`);
+      
+      // Refresh daftar admin dari server
+      fetchAdmins();
+    } catch (error) {
+      console.error('Gagal membuat admin:', error);
+      showToast(error.response?.data?.message || 'Terjadi kesalahan saat membuat admin.');
+    }
   };
 
-  // ── Handler: Edit Admin ──
-  const handleSaveEdit = (e) => {
+  // ── Handler: Manage Permissions ──
+  const handleSavePermissions = async (e) => {
     e.preventDefault();
-    if (!editingAdmin) return;
+    if (!managingPermissionsAdmin) return;
 
-    setAdmins(admins.map(a => a.id === editingAdmin.id ? { ...a, nama: editingAdmin.nama, email: editingAdmin.email, status: editingAdmin.status } : a));
-    if (selectedAdmin?.id === editingAdmin.id) {
-      setSelectedAdmin({ ...selectedAdmin, ...editingAdmin });
+    try {
+      await adminService.updateAdminPermissions(managingPermissionsAdmin.id, selectedPermissions);
+      setManagingPermissionsAdmin(null);
+      showToast(`Hak akses admin "${managingPermissionsAdmin.nama}" berhasil diperbarui.`);
+      fetchAdmins();
+    } catch (error) {
+      console.error('Gagal update hak akses:', error);
+      showToast(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan hak akses.');
     }
-    setEditingAdmin(null);
-    showToast(`Data Admin "${editingAdmin.nama}" berhasil diperbarui.`);
   };
 
-  // ── Handler: Toggle Nonaktifkan ──
-  const handleConfirmDeactivate = () => {
-    if (!deactivatingAdmin) return;
-    const isNowNonaktif = deactivatingAdmin.status === 'Aktif';
-    const updatedStatus = isNowNonaktif ? 'Nonaktif' : 'Aktif';
-    const updatedOperasional = isNowNonaktif ? 'Tidak Aktif' : 'Offline';
+  // ── Handler: Revoke Permissions ──
+  const handleRevokePermissions = async () => {
+    if (!revokingAdmin) return;
 
-    setAdmins(admins.map(a => a.id === deactivatingAdmin.id ? {
-      ...a,
-      status: updatedStatus,
-      operasional: updatedOperasional
-    } : a));
-
-    if (selectedAdmin?.id === deactivatingAdmin.id) {
-      setSelectedAdmin({ ...selectedAdmin, status: updatedStatus, operasional: updatedOperasional });
+    try {
+      await adminService.revokeAdminPermissions(revokingAdmin.id);
+      setRevokingAdmin(null);
+      showToast(`Seluruh hak akses admin "${revokingAdmin.nama}" berhasil dicabut.`);
+      fetchAdmins();
+    } catch (error) {
+      console.error('Gagal mencabut hak akses:', error);
+      showToast(error.response?.data?.message || 'Terjadi kesalahan saat mencabut hak akses.');
     }
-
-    showToast(`Akun "${deactivatingAdmin.nama}" telah di-${updatedStatus.toLowerCase()}kan.`);
-    setDeactivatingAdmin(null);
   };
 
   return (
@@ -175,23 +218,10 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
       )}
 
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
-              Khusus Super Admin
-            </span>
-          </div>
-          <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-tight mt-1">
-            Manajemen Admin
-          </h1>
-          <p className="text-[14px] text-slate-500 mt-1 font-medium">
-            Kelola akun administrator dan pantau aktivitas operasional mereka secara terpusat.
-          </p>
-        </div>
-
-        {/* Action Button: + Tambah Admin */}
-        <div className="flex items-center gap-2.5">
+      <PageHeader
+        title="Manajemen Admin"
+        description="Kelola akun administrator dan pantau aktivitas operasional mereka secara terpusat."
+        actions={
           <button
             onClick={() => {
               setIsAddModalOpen(true);
@@ -202,11 +232,11 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
             <UserPlus size={15} />
             <span>+ Tambah Admin</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Summary Cards (4 Cards) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-[13px] font-semibold text-slate-500">Total Admin</p>
@@ -253,7 +283,7 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
       </div>
 
       {/* ── Operational Overview Bar ── */}
-      <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between gap-4 text-[12px] text-slate-600 flex-wrap">
+      <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between gap-4 text-[12px] text-slate-600 flex-wrap">
         <div className="flex items-center gap-2">
           <Activity size={15} className="text-emerald-600" />
           <span className="font-bold text-slate-800">Aktivitas Hari Ini:</span>
@@ -274,8 +304,9 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Cari nama, email, ID admin..."
-            className="w-full h-9 pl-9 pr-4 bg-[#f8fafc] border border-slate-200 rounded-xl text-[13px] font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-600 transition-all"
+            placeholder=""
+            className="w-full h-9 pl-12 pr-4 bg-[#f8fafc] border border-slate-200 rounded-xl text-[13px] font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-emerald-600 transition-all"
+            style={{ paddingLeft: '48px' }}
           />
         </div>
 
@@ -338,7 +369,7 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                 return (
                   <tr key={adm.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* Admin Profile */}
-                    <td>
+                    <td className="whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0 shadow-xs ${adm.avatarBg}`}>
                           {adm.avatar}
@@ -347,9 +378,9 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                           <div className="flex items-center gap-1.5">
                             <p className="font-bold text-slate-900 text-[13px] leading-tight">{adm.nama}</p>
                             {adm.role === 'Super Admin' && (
-                              <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-violet-100 text-violet-700">
+                              <Badge variant="default" customColor="bg-violet-100 text-violet-700 border-violet-200" className="uppercase text-[9px]">
                                 Super
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">{adm.email}</p>
@@ -358,51 +389,35 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                     </td>
 
                     {/* Status Operasional */}
-                    <td>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        isBusy ? 'bg-[#eff6ff] text-[#2563eb] border border-blue-200' :
-                        isOnline ? 'bg-[#ecfdf5] text-[#059669] border border-emerald-200' :
-                        isOffline ? 'bg-[#f8fafc] text-slate-500 border border-slate-200' :
-                        'bg-red-50 text-red-600 border border-red-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          isBusy ? 'bg-[#2563eb] animate-pulse' :
-                          isOnline ? 'bg-[#059669]' :
-                          isOffline ? 'bg-slate-400' : 'bg-red-500'
-                        }`} />
-                        <span>{adm.operasional}</span>
-                      </span>
+                    <td className="whitespace-nowrap">
+                      <Badge variant={adm.operasional} showDot isPill />
                     </td>
 
                     {/* Kasus Ditangani */}
-                    <td>
+                    <td className="whitespace-nowrap">
                       <span className="font-bold text-slate-800 text-[13px]">{adm.kasusDitangani}</span>
                     </td>
 
                     {/* Kasus Aktif */}
-                    <td>
+                    <td className="whitespace-nowrap">
                       <span className={`font-black text-[13px] ${adm.kasusAktif > 0 ? 'text-[#ef4444]' : 'text-slate-400'}`}>
                         {adm.kasusAktif}
                       </span>
                     </td>
 
                     {/* Terakhir Aktif */}
-                    <td>
+                    <td className="whitespace-nowrap">
                       <span className="text-slate-500 text-[12px]">{adm.terakhirAktif}</span>
                     </td>
 
                     {/* Last Login */}
-                    <td>
+                    <td className="whitespace-nowrap">
                       <span className="text-slate-400 text-[11px] font-medium">{adm.lastLogin}</span>
                     </td>
 
                     {/* Status Akun */}
-                    <td>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        adm.status === 'Aktif' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        {adm.status}
-                      </span>
+                    <td className="whitespace-nowrap">
+                      <Badge variant={adm.status} />
                     </td>
 
                     {/* Actions */}
@@ -418,24 +433,20 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                         </button>
 
                         <button
-                          onClick={() => setEditingAdmin({ ...adm })}
+                          onClick={() => { setManagingPermissionsAdmin(adm); setSelectedPermissions(adm.permissions || []); }}
                           className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Edit Data Admin"
+                          title="Kelola Hak Akses"
                         >
                           <Edit2 size={12} />
                         </button>
 
                         {adm.role !== 'Super Admin' && (
                           <button
-                            onClick={() => setDeactivatingAdmin(adm)}
-                            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
-                              adm.status === 'Aktif'
-                                ? 'border-red-200 text-red-600 hover:bg-red-50'
-                                : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                            title={adm.status === 'Aktif' ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                            onClick={() => setRevokingAdmin(adm)}
+                            className="w-7 h-7 rounded-lg border flex items-center justify-center transition-colors cursor-pointer border-red-200 text-red-600 hover:bg-red-50"
+                            title="Cabut Hak Akses"
                           >
-                            {adm.status === 'Aktif' ? <UserX size={12} /> : <UserCheck size={12} />}
+                            <UserX size={12} />
                           </button>
                         )}
                       </div>
@@ -461,13 +472,7 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                     <p className="text-[11px] text-slate-400">{adm.email} · {adm.role}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  adm.operasional === 'Sedang Bertugas' ? 'bg-blue-100 text-blue-700' :
-                  adm.operasional === 'Online' ? 'bg-emerald-100 text-emerald-700' :
-                  'bg-slate-200 text-slate-600'
-                }`}>
-                  {adm.operasional}
-                </span>
+                <Badge variant={adm.operasional} isPill showDot />
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-slate-200 text-[12px] text-slate-600">
@@ -493,7 +498,7 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                   <span>Lihat Detail</span>
                 </button>
                 <button
-                  onClick={() => setEditingAdmin({ ...adm })}
+                  onClick={() => { setManagingPermissionsAdmin(adm); setSelectedPermissions(adm.permissions || []); }}
                   className="btn-base btn-secondary text-[12px] py-1.5 px-3"
                 >
                   <Edit2 size={13} />
@@ -660,11 +665,10 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                     <button
                       key={tab}
                       onClick={() => setActivityTab(tab)}
-                      className={`px-2.5 py-1 rounded-lg font-bold capitalize transition-colors whitespace-nowrap cursor-pointer ${
-                        activityTab === tab
+                      className={`px-2.5 py-1 rounded-lg font-bold capitalize transition-colors whitespace-nowrap cursor-pointer ${activityTab === tab
                           ? 'bg-[#0a271f] text-white'
                           : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                      }`}
+                        }`}
                     >
                       {tab}
                     </button>
@@ -710,11 +714,10 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
                   onClick={() => {
                     setDeactivatingAdmin(selectedAdmin);
                   }}
-                  className={`btn-base text-[12px] flex-1 ${
-                    selectedAdmin.status === 'Aktif'
+                  className={`btn-base text-[12px] flex-1 ${selectedAdmin.status === 'Aktif'
                       ? 'btn-danger'
                       : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  }`}
+                    }`}
                 >
                   {selectedAdmin.status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan Kembali'}
                 </button>
@@ -847,70 +850,53 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
         </div>
       )}
 
-      {/* ── 11. EDIT ADMIN MODAL ── */}
-      {editingAdmin && (
+      {/* ── 11. MANAGE PERMISSIONS MODAL ── */}
+      {managingPermissionsAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#eaedf1] space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h2 className="text-[17px] font-bold text-slate-900">Edit Data Administrator</h2>
+              <h2 className="text-[17px] font-bold text-slate-900">Kelola Hak Akses</h2>
               <button
-                onClick={() => setEditingAdmin(null)}
+                onClick={() => setManagingPermissionsAdmin(null)}
                 className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-800"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div>
-                <label className="form-label">Nama Lengkap</label>
-                <input
-                  type="text"
-                  required
-                  value={editingAdmin.nama}
-                  onChange={e => setEditingAdmin({ ...editingAdmin, nama: e.target.value })}
-                  className="form-input"
-                />
+            <form onSubmit={handleSavePermissions} className="space-y-4">
+              <div className="p-3 bg-slate-50 rounded-xl mb-4 text-[12px] text-slate-700">
+                <p><strong>Admin:</strong> {managingPermissionsAdmin.nama}</p>
+                <p><strong>Email:</strong> {managingPermissionsAdmin.email}</p>
               </div>
 
               <div>
-                <label className="form-label">Email Administrator</label>
-                <input
-                  type="email"
-                  required
-                  value={editingAdmin.email}
-                  onChange={e => setEditingAdmin({ ...editingAdmin, email: e.target.value })}
-                  className="form-input"
-                />
+                <label className="form-label mb-2">Pilih Hak Akses</label>
+                <div className="space-y-2">
+                  {availablePermissionsList.map(perm => (
+                    <label key={perm.key} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        checked={selectedPermissions.includes(perm.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPermissions([...selectedPermissions, perm.key]);
+                          } else {
+                            setSelectedPermissions(selectedPermissions.filter(p => p !== perm.key));
+                          }
+                        }}
+                      />
+                      <span className="text-[13px] font-medium text-slate-700">{perm.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
-              <div>
-                <label className="form-label">Status Akun</label>
-                <select
-                  value={editingAdmin.status}
-                  onChange={e => setEditingAdmin({ ...editingAdmin, status: e.target.value })}
-                  className="form-input cursor-pointer"
-                >
-                  <option value="Aktif">Aktif</option>
-                  <option value="Nonaktif">Nonaktif</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label">Role Akses</label>
-                <input
-                  type="text"
-                  value={editingAdmin.role}
-                  disabled
-                  className="form-input bg-slate-100 text-slate-500 cursor-not-allowed"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">Peran Super Admin tidak dapat diubah dari form biasa.</p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingAdmin(null)}
+                  onClick={() => setManagingPermissionsAdmin(null)}
                   className="btn-base btn-secondary"
                 >
                   Batal
@@ -927,8 +913,8 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
         </div>
       )}
 
-      {/* ── 12. NONAKTIFKAN ADMIN CONFIRMATION MODAL ── */}
-      {deactivatingAdmin && (
+      {/* ── 12. REVOKE PERMISSIONS CONFIRMATION MODAL ── */}
+      {revokingAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#eaedf1] space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
@@ -937,35 +923,31 @@ export default function ManajemenAdminPage({ currentUser, onOpenDetail, onBackTo
 
             <div>
               <h2 className="text-[17px] font-black text-slate-900">
-                {deactivatingAdmin.status === 'Aktif'
-                  ? 'Nonaktifkan Akun Admin ini?'
-                  : 'Aktifkan Kembali Akun Admin ini?'}
+                Cabut Hak Akses Admin ini?
               </h2>
               <p className="text-[13px] text-slate-600 mt-2">
-                {deactivatingAdmin.status === 'Aktif'
-                  ? 'Admin tidak akan dapat login atau menangani kasus darurat setelah dinonaktifkan.'
-                  : 'Admin akan kembali dapat login dan menerima penugasan kasus darurat.'}
+                Hak akses admin akan dihapus sepenuhnya. Mereka tidak akan bisa melakukan aksi administratif lagi.
               </p>
               <div className="p-3 bg-slate-50 rounded-xl mt-3 text-[12px] text-slate-700">
-                <p><strong>Admin:</strong> {deactivatingAdmin.nama}</p>
-                <p><strong>Email:</strong> {deactivatingAdmin.email}</p>
+                <p><strong>Admin:</strong> {revokingAdmin.nama}</p>
+                <p><strong>Email:</strong> {revokingAdmin.email}</p>
               </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setDeactivatingAdmin(null)}
+                onClick={() => setRevokingAdmin(null)}
                 className="btn-base btn-secondary"
               >
                 Batal
               </button>
               <button
                 type="button"
-                onClick={handleConfirmDeactivate}
-                className={`btn-base ${deactivatingAdmin.status === 'Aktif' ? 'btn-danger' : 'btn-primary'}`}
+                onClick={handleRevokePermissions}
+                className="btn-base btn-danger bg-red-600 hover:bg-red-700 text-white border-0"
               >
-                {deactivatingAdmin.status === 'Aktif' ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+                Cabut Hak Akses
               </button>
             </div>
           </div>

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -18,20 +19,63 @@ class AuthController extends Controller
     public function loginGoogleMobile(Request $request)
     {
         $request->validate([
-            'token' => 'required|string',
-            'role'  => 'nullable|in:pengguna,relawan',
+            'id_token' => 'nullable|string',
+            'token'    => 'nullable|string',
+            'role'     => 'nullable|in:pengguna,relawan',
         ]);
+
+        $token = $request->input('id_token') ?? $request->input('token');
+
+        if (!$token) {
+            return response()->json([
+                'message' => 'Token Google wajib dikirimkan (gunakan parameter id_token atau token).'
+            ], 422);
+        }
 
         $requestedRole = $request->input('role', 'pengguna');
 
+        $googleId = null;
+        $googleEmail = null;
+        $googleName = null;
+        $googleAvatar = null;
+
+        // 1. Coba verifikasi via Google OAuth2 tokeninfo (cocok untuk id_token JWT dari Flutter Google Sign-In)
         try {
-            // Verifikasi token Google yang dikirim dari Flutter/Postman
-            $googleUser = Socialite::driver('google')->userFromToken($request->token);
+            $googleResponse = Http::get('https://oauth2.googleapis.com/tokeninfo', [
+                'id_token' => $token,
+            ]);
+
+            if ($googleResponse->successful() && isset($googleResponse->json()['sub'])) {
+                $data = $googleResponse->json();
+                $googleId = $data['sub'];
+                $googleEmail = $data['email'] ?? null;
+                $googleName = $data['name'] ?? null;
+                $googleAvatar = $data['picture'] ?? null;
+            }
         } catch (\Exception $e) {
+            // Lanjut ke fallback jika ada exception koneksi
+        }
+
+        // 2. Fallback jika bukan id_token, coba verifikasi sebagai access_token via Laravel Socialite
+        if (!$googleId) {
+            try {
+                $socialiteUser = Socialite::driver('google')->userFromToken($token);
+                $googleId = $socialiteUser->getId();
+                $googleEmail = $socialiteUser->getEmail();
+                $googleName = $socialiteUser->getName();
+                $googleAvatar = $socialiteUser->getAvatar();
+            } catch (\Exception $e) {
+                return response()->json([
+                    'message' => 'Token Google tidak valid atau sudah expired',
+                    'error'   => $e->getMessage()
+                ], 401);
+            }
+        }
+
+        if (!$googleEmail) {
             return response()->json([
-                'message' => 'Token Google tidak valid atau sudah expired',
-                'error'   => $e->getMessage()
-            ], 401);
+                'message' => 'Email dari akun Google tidak ditemukan atau tidak diizinkan.'
+            ], 400);
         }
 
         try {
@@ -39,16 +83,16 @@ class AuthController extends Controller
 
             // 1. Cek apakah akun Google ini sudah ada di tabel accounts
             $account = Account::where('provider', 'google')
-                ->where('provider_id', $googleUser->getId())
+                ->where('provider_id', $googleId)
                 ->first();
 
             if ($account) {
                 $user = $account->user;
 
                 // Proteksi: Tolak jika role bukan pengguna atau relawan
-                if (!in_array($user->role, ['pengguna', 'relawan'])) {
+                if (!in_array($user->role, ['pengguna'])) {
                     return response()->json([
-                        'message' => 'Akses ditolak. Jalur login ini hanya untuk Pengguna dan Relawan.'
+                        'message' => 'Akses ditolak. Jalur login ini hanya untuk Pengguna'
                     ], 403);
                 }
 
@@ -60,7 +104,7 @@ class AuthController extends Controller
                 }
             } else {
                 // 2. Jika belum ada di accounts untuk provider google, cek apakah email sudah ada di tabel accounts
-                $existingAccount = Account::where('email', $googleUser->getEmail())->first();
+                $existingAccount = Account::where('email', $googleEmail)->first();
 
                 if ($existingAccount) {
                     $user = $existingAccount->user;
@@ -79,8 +123,8 @@ class AuthController extends Controller
                 } else {
                     // 3. Buat User baru jika belum terdaftar
                     $user = User::create([
-                        'name'         => $googleUser->getName(),
-                        'foto_profile' => $googleUser->getAvatar(),
+                        'name'         => $googleName ?? 'User Google',
+                        'foto_profile' => $googleAvatar,
                         'role'         => $requestedRole,
                     ]);
                 }
@@ -89,8 +133,8 @@ class AuthController extends Controller
                 Account::create([
                     'user_id'     => $user->id,
                     'provider'    => 'google',
-                    'provider_id' => $googleUser->getId(),
-                    'email'       => $googleUser->getEmail(),
+                    'provider_id' => $googleId,
+                    'email'       => $googleEmail,
                     'password'    => null,
                 ]);
             }
@@ -127,16 +171,16 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (!in_array($user->role, ['pengguna', 'relawan'])) {
+        if (!in_array($user->role, ['pengguna', 'relawan'])) { #query dari table master
             return response()->json([
-                'message' => 'Layanan ini hanya untuk Pengguna dan Relawan.'
+                'message' => 'Layanan ini hanya untuk Pengguna.'
             ], 403);
         }
 
         $validated = $request->validate([
             'alamat'              => 'required|string|max:255',
             'no_telp'             => 'required|string|max:20|unique:users,no_telp,' . $user->id,
-            'kategori_user'       => 'nullable|in:umum,tunarungu,tunanetra,tunawicara',
+            'kategori_user'       => 'nullable|in:umum,tunarungu,tunanetra,tunawicara', 
             'catatan_medis'       => 'nullable|string',
             'getaran'             => 'nullable|boolean',
             'talkback'            => 'nullable|boolean',
@@ -537,10 +581,24 @@ class AuthController extends Controller
 
     /**
      * 7. LOGOUT
+     * Catatan: Jika Admin logout, seluruh hak aksesnya otomatis di-reset menjadi kosong ([]).
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logout berhasil']);
+        $user = $request->user();
+
+        if ($user && $user->role === 'admin') {
+            $user->update([
+                'permissions'            => [],
+                'permissions_granted_at' => null,
+                'permissions_granted_by' => null,
+            ]);
+        }
+
+        $user->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil' . ($user && $user->role === 'admin' ? '. Hak akses Admin telah di-reset.' : '.')
+        ]);
     }
 }

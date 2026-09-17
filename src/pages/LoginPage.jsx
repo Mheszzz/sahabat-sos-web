@@ -118,7 +118,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 id="login-email"
                 type="email"
                 style={{ ...s.input, ...(error ? s.inputErr : {}) }}
-                placeholder="contoh@sahabatsos.id"
+                placeholder="contoh @sahabatsos.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 autoComplete="username"
@@ -183,18 +183,18 @@ export default function LoginPage({ onLoginSuccess }) {
 
           <div style={s.divider}>
             <div style={s.dividerLine} />
-            <span style={s.dividerText}>Info Akses Demo</span>
+            <span style={s.dividerText}></span>
             <div style={s.dividerLine} />
           </div>
 
           <div style={s.demoBox}>
             <div style={s.demoRow}>
               <span style={s.demoKey}>Email</span>
-              <code style={s.demoVal}>superadmin@sahabatsos.id</code>
+              <code style={s.demoVal}>superadmin@sahabatsos.com</code>
             </div>
             <div style={s.demoRow}>
               <span style={s.demoKey}>Sandi</span>
-              <code style={s.demoVal}>Admin@2026</code>
+              <code style={s.demoVal}>password123</code>
             </div>
           </div>
         </div>
@@ -353,7 +353,7 @@ const s = {
   submitBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
     width: '100%', padding: '11px 20px',
-    backgroundColor: '#065f46', border: 'none', borderRadius: '9px',
+    backgroundColor: '#066046ff', border: 'none', borderRadius: '9px',
     color: '#fff', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit',
     cursor: 'pointer', marginTop: '4px', letterSpacing: '0.01em',
   },
