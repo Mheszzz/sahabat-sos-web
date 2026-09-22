@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { RefreshCw, ArrowRight, Users, Phone, FileText, AlertTriangle, ShieldCheck } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import SOSCard from '../components/SOSCard';
