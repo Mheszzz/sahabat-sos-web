@@ -1,102 +1,93 @@
-import { MapPin, User, Shield, Phone, Eye, Clock, Car, HeartPulse } from 'lucide-react';
+// SOSCard.jsx — Case card on dashboard active cases list
+import { MapPin, Clock, Phone, Eye, User } from 'lucide-react';
 
-const iconMap = {
-  ambulance: { icon: Car, bg: 'bg-red-50 text-red-500' },
-  wheelchair: { icon: User, bg: 'bg-blue-50 text-blue-600' },
-  user: { icon: User, bg: 'bg-amber-50 text-amber-600' },
-  medical: { icon: HeartPulse, bg: 'bg-emerald-50 text-emerald-600' },
+const priorityConfig = {
+  'KRITIS': { bar: 'bg-red-500',   text: 'text-red-600',   bg: 'bg-red-50',   label: 'Kritis' },
+  'TINGGI': { bar: 'bg-orange-400', text: 'text-orange-600', bg: 'bg-orange-50', label: 'Tinggi' },
+  'SEDANG': { bar: 'bg-amber-400', text: 'text-amber-600', bg: 'bg-amber-50', label: 'Sedang' },
+  'default': { bar: 'bg-slate-300', text: 'text-slate-500', bg: 'bg-slate-50', label: '' },
 };
 
-const badgeStyleMap = {
-  'Prioritas Tinggi': 'bg-[#fef2f2] text-[#ef4444]',
-  'Sedang Ditangani': 'bg-[#eff6ff] text-[#2563eb]',
-  'Menunggu Respon': 'bg-[#fff7ed] text-[#d97706]',
-  'Prioritas Rendah': 'bg-[#ecfdf5] text-[#15803d]',
+const statusConfig = {
+  'SOS Darurat':      { badge: 'badge badge-red',   label: 'SOS Darurat' },
+  'Sedang Ditangani': { badge: 'badge badge-blue',  label: 'Ditangani' },
+  'Menunggu Respon':  { badge: 'badge badge-amber', label: 'Menunggu' },
+  'default':          { badge: 'badge badge-slate', label: '—' },
 };
 
 export default function SOSCard({ kasus, onOpenDetail }) {
-  const iconData = iconMap[kasus.iconType] || { icon: User, bg: 'bg-slate-100 text-slate-600' };
-  const MainIcon = iconData.icon;
-  const tagStyle = badgeStyleMap[kasus.statusTag] || 'bg-slate-100 text-slate-600';
-  const isDarurat = kasus.tagType === 'DARURAT SOS';
+  const p = priorityConfig[kasus.prioritas] || priorityConfig['default'];
+  const s = statusConfig[kasus.status] || statusConfig['default'];
 
   return (
-    <div className="rounded-xl border border-[#e5e7eb] bg-[#fafbfc] p-3.5 transition-all duration-150 hover:border-slate-300 hover:bg-white hover:shadow-[0_4px_12px_-8px_rgba(15,23,42,0.12)]">
-      {/* Top row - ID, tag, status */}
-      <div className="mb-2.5 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconData.bg} flex-shrink-0`}>
-            <MainIcon size={15} />
+    <div className="flex gap-0 rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-slate-300 hover:shadow-sm transition-all">
+      {/* Priority bar */}
+      <div className={`w-1 flex-shrink-0 ${p.bar}`} />
+
+      {/* Content */}
+      <div className="flex-1 p-4 min-w-0">
+        {/* Top row */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-400 tracking-wide">{kasus.id}</span>
+              <span className={s.badge}>{s.label}</span>
+              {kasus.prioritas && (
+                <span className={`text-[10.5px] font-bold px-1.5 py-0.5 rounded ${p.bg} ${p.text}`}>
+                  {p.label}
+                </span>
+              )}
+            </div>
+            <p className="text-[13.5px] font-semibold text-slate-800 mt-1.5 leading-snug line-clamp-1">
+              {kasus.kategori}
+            </p>
           </div>
-
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-extrabold tracking-[0.04em] text-slate-800">{kasus.id}</span>
-            <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.08em] ${isDarurat ? 'bg-[#fef2f2] text-[#b42318]' : 'bg-[#eaf8f5] text-[#0b6f61]'}`}>
-              {kasus.tagType}
-            </span>
-          </div>
-        </div>
-
-        <span className={`inline-flex flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tagStyle}`}>
-          {kasus.statusTag}
-        </span>
-      </div>
-
-      {/* Category title */}
-      <h3 className="mb-2.5 text-[13px] font-bold leading-snug tracking-[-0.01em] text-slate-900">{kasus.kategori}</h3>
-
-      {/* Info rows */}
-      <div className="space-y-1.5 text-[11px] text-slate-500">
-        <div className="flex items-start gap-1.5">
-          <MapPin size={12} className="mt-0.5 flex-shrink-0 text-slate-400" />
-          <span className="leading-relaxed">{kasus.lokasi}</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <div className="flex items-center gap-1">
-            <User size={12} className="text-slate-400 flex-shrink-0" />
-            <span className="font-semibold text-slate-700">{kasus.pelapor.nama}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Shield size={12} className="text-slate-400 flex-shrink-0" />
-            <span className={kasus.relawan?.nama ? 'font-semibold text-slate-700' : 'italic text-slate-400'}>
-              {kasus.relawan?.nama ? kasus.relawan.nama : 'Belum ditugaskan'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#eef2f7] pt-2.5">
-        <div className="flex items-center gap-2 text-[10px] text-slate-400">
-          <div className="flex items-center gap-1">
+          <span className="text-[11px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5 flex items-center gap-1">
             <Clock size={11} />
-            <span>{kasus.waktu}</span>
-          </div>
+            {kasus.waktu}
+          </span>
+        </div>
+
+        {/* Info row */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-slate-500">
+          {kasus.lokasi && (
+            <span className="flex items-center gap-1 min-w-0">
+              <MapPin size={11} className="flex-shrink-0" />
+              <span className="truncate max-w-[180px]">{kasus.lokasi}</span>
+            </span>
+          )}
+          {kasus.pelapor?.nama && (
+            <span className="flex items-center gap-1">
+              <User size={11} className="flex-shrink-0" />
+              {kasus.pelapor.nama}
+            </span>
+          )}
+          {kasus.relawan?.nama && (
+            <span className="font-medium text-emerald-700 flex items-center gap-1">
+              Relawan: {kasus.relawan.nama}
+            </span>
+          )}
           {kasus.eta && (
-            <>
-              <span>·</span>
-              <span className="font-bold text-[#059669]">{kasus.eta}</span>
-            </>
+            <span className="font-semibold text-blue-600">ETA {kasus.eta}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Action row */}
+        <div className="mt-3 flex items-center gap-2 justify-end">
           <button
-            onClick={() => alert(`Menghubungi relawan untuk kasus ${kasus.id}`)}
-            className="inline-flex items-center gap-1 rounded-lg bg-[#0b6f61] px-2.5 py-1 text-[10px] font-bold text-white transition-colors hover:bg-[#095c52]"
+            onClick={() => alert(`Menghubungi kontak ${kasus.pelapor?.kontak || ''}...`)}
+            className="btn-icon"
+            title="Hubungi"
           >
-            <Phone size={11} />
-            <span>Hubungi</span>
+            <Phone size={13} />
           </button>
-
           <button
             onClick={() => onOpenDetail?.(kasus.id)}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-50"
+            className="btn-base btn-primary"
+            style={{ height: '32px', padding: '0 12px', fontSize: '12px' }}
           >
-            <Eye size={11} />
-            <span>Detail</span>
+            <Eye size={12} />
+            Detail
           </button>
         </div>
       </div>

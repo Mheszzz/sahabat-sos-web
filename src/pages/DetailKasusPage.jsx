@@ -1,207 +1,301 @@
-import { ArrowLeft, Phone, MapPin, User, Shield, Ambulance, Clock, CheckCircle2, AlertTriangle, MessageSquare, Printer, ShieldAlert } from 'lucide-react';
-import { sosCases, volunteers } from '../data/dummyData';
+import { useState, useEffect } from 'react';
+import {
+  ArrowLeft, Phone, MapPin, User, Shield, Ambulance,
+  Clock, CheckCircle2, AlertTriangle, MessageSquare, Printer, ShieldAlert,
+  Loader2
+} from 'lucide-react';
+import { laporanService } from '../services/laporanService';
 
 const timelineSteps = [
   { label: 'Sinyal SOS Diterima', time: '14:27:02', done: true, active: false },
   { label: 'Sistem Menetapkan Relawan', time: '14:27:45', done: true, active: false },
-  { label: 'Relawan Mengonfirmasi (Dwi Riskianto)', time: '14:28:10', done: true, active: false },
-  { label: 'Ambulans TBI Diberangkatkan', time: '14:29:05', done: true, active: false },
-  { label: 'Relawan Menuju Lokasi (ETA 8 Menit)', time: '14:30:12', done: false, active: true },
+  { label: 'Relawan Mengonfirmasi', time: '14:28:10', done: true, active: false },
+  { label: 'Ambulans Diberangkatkan', time: '14:29:05', done: true, active: false },
+  { label: 'Relawan Menuju Lokasi', time: '14:30:12', done: false, active: true },
   { label: 'Kasus Ditutup & Evaluasi Medis', time: '—', done: false, active: false },
 ];
 
+function InfoRow({ label, value, valueColor = 'var(--color-text)' }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-muted)', marginBottom: 4 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: 13.5, fontWeight: 600, color: valueColor }}>{value || '—'}</p>
+    </div>
+  );
+}
+
+function SectionCard({ title, icon: Icon, children }) {
+  return (
+    <div className="card-base overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4" style={{ borderBottom: '1px solid var(--color-border-soft)' }}>
+        {Icon && <Icon size={15} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />}
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>{title}</h2>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
 export default function DetailKasusPage({ kasusId, onBack }) {
-  const kasus = sosCases.find(c => c.id === kasusId) || sosCases[0];
-  const relawan = volunteers[0];
+  const [kasus, setKasus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [resolving, setResolving] = useState(false);
+
+  useEffect(() => {
+    if (!kasusId) { setLoading(false); return; }
+    const fetchDetail = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        // kasusId bisa berformat "#123" atau "123" atau integer
+        const id = String(kasusId).replace(/^#/, '');
+        const res = await laporanService.getDetailLaporan(id);
+        const data = res?.data ?? res;
+        setKasus(data);
+      } catch (err) {
+        console.error('Gagal mengambil detail kasus:', err);
+        setError('Gagal memuat detail kasus. Coba lagi atau periksa koneksi backend.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [kasusId]);
+
+  const handleSelesaikan = async () => {
+    if (!kasus) return;
+    const id = String(kasusId).replace(/^#/, '');
+    if (!window.confirm('Tandai kasus ini sebagai selesai?')) return;
+    try {
+      setResolving(true);
+      await laporanService.updateStatus(id, 'selesai');
+      setKasus(prev => ({ ...prev, status: 'selesai' }));
+      alert('Kasus berhasil diselesaikan.');
+    } catch (err) {
+      alert('Gagal memperbarui status kasus.');
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  // ── Loading ──
+  if (loading) {
+    return (
+      <div className="page-shell flex items-center justify-center" style={{ minHeight: 400 }}>
+        <div className="flex flex-col items-center gap-3 text-slate-400">
+          <Loader2 size={28} className="animate-spin" />
+          <p style={{ fontSize: 13, fontWeight: 500 }}>Memuat detail kasus...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error ──
+  if (error || !kasus) {
+    return (
+      <div className="page-shell space-y-4">
+        <button onClick={onBack} className="btn-base btn-secondary">
+          <ArrowLeft size={14} /> Kembali
+        </button>
+        <div className="card-base p-6 flex items-center gap-3"
+          style={{ border: '1px solid var(--color-danger-border)', background: 'var(--color-danger-light)' }}>
+          <AlertTriangle size={16} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-danger)' }}>
+            {error || 'Data kasus tidak ditemukan.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normalize data dari API ──
+  const pelapor = {
+    nama:       kasus.pengguna?.name        || kasus.pelapor?.nama   || '—',
+    disabilitas:kasus.pengguna?.kategori_user || kasus.pelapor?.disabilitas || '—',
+    kontak:     kasus.pengguna?.no_telp     || kasus.pelapor?.kontak  || '—',
+  };
+  const relawan = {
+    nama:  kasus.relawan?.name   || kasus.relawan?.nama  || null,
+    peran: kasus.relawan?.role_title || 'Relawan',
+    kontak:kasus.relawan?.no_telp || '—',
+  };
+  const kasusId_clean  = `#${String(kasusId).replace(/^#/, '')}`;
+  const kategori       = kasus.kategori_laporan || kasus.kategori || 'Laporan Darurat';
+  const lokasi         = kasus.lokasi_laporan   || kasus.lokasi   || '—';
+  const waktuMasuk     = kasus.waktu_laporan
+    ? new Date(kasus.waktu_laporan).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  const statusLabel = kasus.status === 'aktif' ? 'SOS Aktif'
+    : kasus.status === 'proses'   ? 'Ditangani'
+    : kasus.status === 'selesai'  ? 'Selesai'
+    : kasus.status || 'Aktif';
+
+  const statusCls = kasus.status === 'aktif' || kasus.status === 'SOS Darurat'
+    ? 'badge badge-red'
+    : kasus.status === 'selesai' ? 'badge badge-green'
+    : 'badge badge-blue';
+
+  const isSelesai = kasus.status === 'selesai';
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1680px] w-full mx-auto">
-      {/* Top Bar with Back Button & Case Status */}
+    <div className="page-shell space-y-5">
+
+      {/* ── Top Bar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-            title="Kembali"
-          >
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack} className="btn-icon flex-shrink-0" title="Kembali">
             <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] font-bold text-emerald-600">{kasus.id}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                kasus.type === 'darurat' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
-              }`}>
-                {kasus.tagType || 'DARURAT SOS'}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--color-primary)', letterSpacing: '0.04em' }}>
+                {kasusId_clean}
               </span>
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                {kasus.prioritas}
-              </span>
+              <span className={statusCls}>{statusLabel}</span>
+              {kasus.prioritas && (
+                <span className="badge" style={{ background: 'var(--color-danger-light)', color: 'var(--color-danger)', border: '1px solid var(--color-danger-border)' }}>
+                  {kasus.prioritas}
+                </span>
+              )}
             </div>
-            <h1 className="text-[20px] font-black text-slate-900 mt-1">
-              {kasus.kategori}
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', marginTop: 4, lineHeight: 1.25 }}>
+              {kategori}
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="btn-base btn-secondary text-[12px] h-9"
-          >
-            <Printer size={13} />
-            <span>Cetak Laporan</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => window.print()} className="btn-base btn-secondary">
+            <Printer size={13} /> Cetak
           </button>
-          <button
-            onClick={() => alert('Kasus dinyatakan selesai!')}
-            className="btn-base btn-primary text-[12px] h-9"
-          >
-            <CheckCircle2 size={14} />
-            <span>Selesaikan Kasus</span>
-          </button>
+          {!isSelesai && (
+            <button
+              onClick={handleSelesaikan}
+              disabled={resolving}
+              className="btn-base btn-primary"
+            >
+              {resolving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              Selesaikan Kasus
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Two Column Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6 items-start">
-        {/* LEFT: Incident Data & Timeline */}
-        <div className="space-y-6">
-          {/* Card: Pelapor Details */}
-          <div className="bg-white border border-[#eaedf1] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
-              <User size={16} className="text-slate-400" />
-              <span>Profil Pelapor & Kebutuhan Khusus</span>
-            </h2>
+      {/* ── Two Column Grid ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-5 items-start">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nama Pelapor</p>
-                <p className="text-[14px] font-bold text-slate-800 mt-0.5">{kasus.pelapor.nama}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Disabilitas / Kondisi</p>
-                <p className="text-[14px] font-bold text-emerald-700 mt-0.5">{kasus.pelapor.disabilitas}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kontak Ponsel</p>
-                <p className="text-[14px] font-bold text-slate-800 mt-0.5">{kasus.pelapor.kontak}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Waktu Masuk</p>
-                <p className="text-[14px] font-bold text-slate-800 mt-0.5">{kasus.waktuFull || '2026-09-08 14:27'}</p>
-              </div>
+        {/* LEFT */}
+        <div className="space-y-5">
+          <SectionCard title="Profil Pelapor & Kebutuhan Khusus" icon={User}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <InfoRow label="Nama Pelapor" value={pelapor.nama} />
+              <InfoRow label="Disabilitas / Kondisi" value={pelapor.disabilitas} valueColor="var(--color-primary)" />
+              <InfoRow label="Kontak Ponsel" value={pelapor.kontak} />
+              <InfoRow label="Waktu Masuk" value={waktuMasuk} />
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Card: Lokasi & Aksesibilitas */}
-          <div className="bg-white border border-[#eaedf1] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
-              <MapPin size={16} className="text-slate-400" />
-              <span>Titik Lokasi Kejadian</span>
-            </h2>
-            <p className="text-[13px] text-slate-700 font-medium">
-              {kasus.lokasiFull || kasus.lokasi}
+          <SectionCard title="Titik Lokasi Kejadian" icon={MapPin}>
+            <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-text)', marginBottom: 12 }}>
+              {lokasi}
             </p>
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[12px] text-emerald-800">
-              <span className="font-bold">Panduan Akses Relawan:</span> Halte dilengkapi jalur landai ramp dan tactile paving guide. Area dapat dimasuki kursi roda standar.
-            </div>
-          </div>
+            {kasus.catatan_lokasi && (
+              <div className="rounded-xl p-3" style={{ background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-light)' }}>
+                <p style={{ fontSize: 12, color: 'var(--color-primary-dark)' }}>
+                  <strong>Catatan Akses:</strong> {kasus.catatan_lokasi}
+                </p>
+              </div>
+            )}
+          </SectionCard>
 
-          {/* Card: Timeline Penanganan */}
-          <div className="bg-white border border-[#eaedf1] rounded-2xl p-6 shadow-xs">
-            <h2 className="text-[15px] font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Clock size={16} className="text-slate-400" />
-              <span>Linimasa Tanggap Darurat</span>
-            </h2>
-
-            <div className="space-y-4">
+          {/* Timeline */}
+          <SectionCard title="Linimasa Tanggap Darurat" icon={Clock}>
+            <div className="space-y-0">
               {timelineSteps.map((step, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
-                      step.done
-                        ? 'bg-[#10b981] text-white'
-                        : step.active
-                        ? 'bg-[#2563eb] text-white animate-pulse'
-                        : 'bg-slate-200 text-slate-400'
-                    }`}>
+                <div key={idx} className="flex gap-3">
+                  <div className="flex flex-col items-center" style={{ width: 24, flexShrink: 0 }}>
+                    <div
+                      className="flex items-center justify-center rounded-full text-white font-bold"
+                      style={{
+                        width: 22, height: 22, flexShrink: 0, fontSize: 9,
+                        background: step.done ? 'var(--color-success)' : step.active ? 'var(--color-info)' : 'var(--color-border)',
+                        color: step.done || step.active ? 'white' : 'var(--color-text-muted)',
+                        animation: step.active ? 'pulseSoft 1.5s ease-in-out infinite' : 'none',
+                      }}
+                    >
                       {step.done ? '✓' : idx + 1}
                     </div>
                     {idx < timelineSteps.length - 1 && (
-                      <div className="w-0.5 h-6 bg-slate-200 mt-1" />
+                      <div style={{ width: 1.5, flex: 1, minHeight: 20, margin: '2px 0', background: step.done ? 'var(--color-success-border)' : 'var(--color-border)' }} />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className={`text-[13px] font-bold leading-tight ${step.active ? 'text-blue-700' : 'text-slate-800'}`}>
+                  <div className="pb-4 flex-1 min-w-0">
+                    <p style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: step.active ? 'var(--color-info)' : step.done ? 'var(--color-text)' : 'var(--color-text-muted)',
+                    }}>
                       {step.label}
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{step.time}</p>
+                    <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 2 }}>{step.time}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </SectionCard>
         </div>
 
-        {/* RIGHT: Assigned Volunteer & Quick Actions */}
-        <div className="space-y-6">
-          {/* Relawan Bertugas */}
-          <div className="bg-white border border-[#eaedf1] rounded-2xl p-6 shadow-xs space-y-4">
-            <h2 className="text-[15px] font-bold text-slate-900 flex items-center gap-2">
-              <Shield size={16} className="text-slate-400" />
-              <span>Relawan Terdekat</span>
-            </h2>
-
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-              <div className="w-11 h-11 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
-                DR
+        {/* RIGHT */}
+        <div className="space-y-5">
+          <SectionCard title="Relawan Terdekat" icon={Shield}>
+            {relawan.nama ? (
+              <>
+                <div className="flex items-center gap-3 rounded-xl p-3 mb-4"
+                  style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
+                    style={{ background: 'var(--color-info)' }}>
+                    {relawan.nama.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>{relawan.nama}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{relawan.peran}</p>
+                    <span className="badge badge-green" style={{ marginTop: 6, display: 'inline-flex' }}>
+                      Ditugaskan
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => alert(`Menghubungi ${relawan.nama} (${relawan.kontak})`)} className="btn-base btn-primary w-full" style={{ fontSize: 12.5 }}>
+                    <Phone size={13} /> Telepon
+                  </button>
+                  <button onClick={() => alert(`Membuka chat ${relawan.nama}`)} className="btn-base btn-secondary w-full" style={{ fontSize: 12.5 }}>
+                    <MessageSquare size={13} /> Pesan
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl p-3 text-center" style={{ background: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)' }}>
+                <p style={{ fontSize: 12.5, fontWeight: 600, color: '#92400E' }}>Belum ada relawan yang ditugaskan</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-slate-900">Dwi Riskianto</p>
-                <p className="text-[11px] text-slate-400">Relawan Siaga Difabel #14</p>
-                <span className="inline-block mt-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Status: Menuju Lokasi (ETA 8 mnt)
-                </span>
-              </div>
-            </div>
+            )}
+          </SectionCard>
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <button
-                onClick={() => alert('Menghubungi relawan')}
-                className="btn-base btn-primary text-[12px] h-9 w-full"
-              >
-                <Phone size={13} />
-                <span>Telepon</span>
+          <SectionCard title="Eskalasi Darurat" icon={AlertTriangle}>
+            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', marginBottom: 12 }}>
+              Butuh bantuan medis atau aparat tambahan?
+            </p>
+            <div className="space-y-2">
+              <button onClick={() => alert('Menghubungi Ambulans 118...')} className="btn-base btn-danger w-full" style={{ fontSize: 12.5 }}>
+                <Ambulance size={14} /> Panggil Ambulans (118)
               </button>
-              <button
-                onClick={() => alert('Membuka chat relawan')}
-                className="btn-base btn-secondary text-[12px] h-9 w-full"
-              >
-                <MessageSquare size={13} />
-                <span>Kirim Pesan</span>
+              <button onClick={() => alert('Menghubungi Polisi 110...')} className="btn-base btn-secondary w-full" style={{ fontSize: 12.5 }}>
+                <ShieldAlert size={14} /> Eskalasi ke Polisi (110)
               </button>
             </div>
-          </div>
-
-          {/* Eskalasi Lanjutan */}
-          <div className="bg-white border border-[#eaedf1] rounded-2xl p-6 shadow-xs space-y-3">
-            <h2 className="text-[14px] font-bold text-slate-900">Eskalasi Cepat</h2>
-            <p className="text-[12px] text-slate-400">Butuh bantuan medis darurat atau aparat lalu lintas tambahan?</p>
-            <button
-              onClick={() => alert('Menghubungi Call Center Ambulans 118...')}
-              className="btn-base btn-danger w-full text-[12px] h-9"
-            >
-              <Ambulance size={14} />
-              <span>Panggil Ambulans Tambahan</span>
-            </button>
-            <button
-              onClick={() => alert('Menghubungi Kepolisian 110...')}
-              className="btn-base btn-secondary w-full text-[12px] h-9"
-            >
-              <ShieldAlert size={14} />
-              <span>Eskalasi ke Posko Polisi</span>
-            </button>
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>

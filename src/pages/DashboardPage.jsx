@@ -1,146 +1,274 @@
-﻿import { useState, useEffect } from 'react';
-import { RefreshCw, ArrowRight, Users, Phone, FileText, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  RefreshCw, ArrowRight, AlertTriangle, Activity
+} from 'lucide-react';
 import StatCard from '../components/StatCard';
 import SOSCard from '../components/SOSCard';
 import MapPanel from '../components/MapPanel';
 import VolunteerCard from '../components/VolunteerCard';
 import DonutChart from '../components/DonutChart';
-import { sosCases, volunteers, kategoriLaporan } from '../data/dummyData';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import { kategoriLaporan } from '../data/dummyData';
 import { adminService } from '../services/adminService';
-
-const dashboardCases = sosCases.slice(0, 3);
+import { laporanService } from '../services/laporanService';
+import { relawanService } from '../services/relawanService';
 
 export default function DashboardPage({ onOpenDetail }) {
-  const [stats, setStats] = useState({
-    total_pengguna: 0,
-    total_relawan: 0,
-    total_admin: 0,
-    active_sos: 0,
-    total_laporan: 0,
-  });
+  const [stats, setStats] = useState(null);
+  const [activeCases, setActiveCases] = useState([]);
+  const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const fetchStats = async () => {
+  const fetchAll = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getDashboardStats();
-      if (res && res.stats) setStats(res.stats);
-    } catch (error) {
-      console.error('Gagal mengambil data statistik', error);
+
+      // Fetch stats, kasus aktif, relawan secara paralel
+      const [statsRes, kasusRes, relawanRes] = await Promise.allSettled([
+        adminService.getDashboardStats(),
+        laporanService.getLaporan('aktif'),
+        relawanService.getRelawan(),
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.stats) {
+        setStats(statsRes.value.stats);
+      }
+
+      if (kasusRes.status === 'fulfilled') {
+        const raw = kasusRes.value?.data;
+        const items = raw?.data ?? raw ?? [];
+        setActiveCases(Array.isArray(items) ? items.slice(0, 4) : []);
+      }
+
+      if (relawanRes.status === 'fulfilled') {
+        const raw = relawanRes.value?.data;
+        const items = Array.isArray(raw) ? raw : [];
+        // Normalize API relawan ke format VolunteerCard
+        setVolunteers(
+          items.slice(0, 5).map((r, i) => ({
+            id: r.id,
+            nama: r.name || r.nama || `Relawan #${r.id}`,
+            peran: r.role_title || r.peran || 'Relawan',
+            avatar: (r.name || r.nama || 'R').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+            avatarBg: ['bg-blue-600', 'bg-emerald-600', 'bg-amber-500', 'bg-purple-600', 'bg-pink-600'][i % 5],
+            jarak: r.jarak || null,
+            eta: r.eta || null,
+            status: r.status === 'bertugas' ? 'Bertugas' : 'Online',
+            kontak: r.no_telp || r.kontak || '',
+          }))
+        );
+      }
+
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const dynamicStatCards = [
-    { id: 'total-pengguna', label: 'Total Pengguna', value: stats.total_pengguna, trendLabel: 'Total pengguna terdaftar', icon: 'Phone', iconBg: 'bg-[#ecfdf5]', iconColor: 'text-[#10b981]' },
-    { id: 'jumlah-laporan', label: 'Jumlah Laporan Kasus', value: stats.total_laporan, trendLabel: 'Total laporan masuk', icon: 'FileText', iconBg: 'bg-[#f5f3ff]', iconColor: 'text-[#8b5cf6]' },
-    { id: 'darurat-aktif', label: 'Darurat SOS Aktif', value: stats.active_sos, trendLabel: 'Butuh respon segera', icon: 'AlertTriangle', iconBg: 'bg-[#fef2f2]', iconColor: 'text-[#ef4444]', isAlert: true },
-    { id: 'relawan-aktif', label: 'Relawan Siap Aktif', value: stats.total_relawan, valueSuffix: 'orang', trendLabel: 'Total relawan terdaftar', icon: 'ShieldCheck', iconBg: 'bg-[#f0fdf4]', iconColor: 'text-[#059669]' },
+  // Normalize kasus dari API ke format SOSCard
+  const normalizedCases = activeCases.map(k => ({
+    id: `#${k.id}`,
+    kategori: k.kategori_laporan || 'Laporan Darurat',
+    waktu: k.waktu_laporan
+      ? new Date(k.waktu_laporan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '—',
+    status: k.status === 'aktif' ? 'SOS Darurat' : k.status === 'proses' ? 'Sedang Ditangani' : 'Menunggu Respon',
+    prioritas: k.prioritas || null,
+    lokasi: k.lokasi_laporan || '',
+    pelapor: {
+      nama: k.pengguna?.name || '—',
+      kontak: k.pengguna?.no_telp || '',
+    },
+    relawan: k.relawan ? { nama: k.relawan.name } : null,
+    eta: null,
+  }));
+
+  const statCards = [
+    {
+      id: 'active-sos',
+      label: 'SOS Aktif',
+      value: stats?.active_sos ?? activeCases.length,
+      trendLabel: 'Butuh respons segera',
+      icon: 'AlertTriangle',
+      iconBg: 'bg-red-50',
+      iconColor: 'text-red-500',
+      isAlert: true,
+    },
+    {
+      id: 'total-laporan',
+      label: 'Total Laporan',
+      value: stats?.total_laporan ?? '—',
+      trendLabel: 'Laporan masuk',
+      icon: 'FileText',
+      iconBg: 'bg-violet-50',
+      iconColor: 'text-violet-500',
+    },
+    {
+      id: 'relawan-aktif',
+      label: 'Relawan Terdaftar',
+      value: stats?.total_relawan ?? '—',
+      valueSuffix: 'org',
+      trendLabel: 'Total relawan aktif',
+      icon: 'ShieldCheck',
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+    {
+      id: 'total-pengguna',
+      label: 'Total Pengguna',
+      value: stats?.total_pengguna ?? '—',
+      trendLabel: 'Pengguna terdaftar',
+      icon: 'Phone',
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-500',
+    },
   ];
 
-  return (
-    // gap-5 dipakai konsisten di SEMUA level (antar section, antar card, antar kolom)
-    <div className="space-y-5">
+  const timeStr = lastUpdated
+    ? lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    : '—';
 
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+  return (
+    <div className="page-shell space-y-6">
+
+      {/* ── Page Header ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[22px] font-extrabold tracking-[-0.03em] text-slate-900 sm:text-[26px]">
-            Dashboard Utama
-          </h1>
-          <p className="mt-1 text-[13px] font-medium text-slate-400">
+          <h1 className="page-header-title">Dashboard Utama</h1>
+          <p className="page-header-desc">
             Pantau kondisi SOS, laporan aktif, dan ketersediaan relawan secara real-time.
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[12px] text-slate-500">
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg"
+            style={{ background: 'var(--color-success-light)', border: '1px solid var(--color-success-border)' }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" style={{ animation: 'pulseSoft 1.8s ease-in-out infinite' }} />
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--color-success)' }}>Live</span>
+            {lastUpdated && (
+              <span style={{ fontSize: 11, color: '#6EE7B7' }}>{timeStr}</span>
+            )}
+          </div>
           <button
-            onClick={fetchStats}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:text-slate-700 ${loading ? 'animate-spin' : ''}`}
-            title="Muat Ulang Data"
+            onClick={fetchAll}
+            className="btn-icon"
+            title="Segarkan Data"
+            disabled={loading}
           >
-            <RefreshCw size={13} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <div className="text-right leading-tight">
-            <p className="text-[11px] text-slate-400">Terakhir diperbarui</p>
-            <p className="font-bold text-slate-700">Baru saja</p>
-          </div>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {dynamicStatCards.map(card => <StatCard key={card.id} card={card} />)}
+      {/* ── KPI Stat Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card-base p-5 h-[96px]">
+                <div className="skeleton h-3 w-24 rounded mb-3" />
+                <div className="skeleton h-7 w-16 rounded" />
+              </div>
+            ))
+          : statCards.map(card => <StatCard key={card.id} card={card} />)
+        }
       </div>
 
-      {/* Konten utama — 2 kolom, tiap kolom isinya 2 card ditumpuk (gap-5) */}
-      <div className="mt-6 grid grid-cols-1 items-start gap-5 xl:grid-cols-[1.6fr_1fr]">
+      {/* ── Main Operational Grid ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_1fr] gap-5 items-start">
 
-        {/* ── KOLOM KIRI ── */}
+        {/* LEFT — Kasus Aktif + Donut */}
         <div className="flex flex-col gap-5">
-          {/* Kasus Aktif */}
-          <div className="rounded-2xl border border-[#e4e7eb] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="mb-4 flex items-center justify-between border-b border-[#eef2f7] pb-3.5">
+          <div className="card-base overflow-hidden">
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: '1px solid var(--color-border-soft)' }}
+            >
               <div className="flex items-center gap-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#ef4444] pulse-soft" />
+                <span className="w-2 h-2 rounded-full bg-red-500 pulse-soft" />
                 <div>
-                  <h2 className="text-[15px] font-bold text-slate-900">Kasus Aktif</h2>
-                  <p className="text-[11.5px] font-medium text-slate-400">Daftar laporan SOS yang sedang ditangani</p>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Kasus Aktif</h2>
+                  <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>Laporan SOS yang sedang berlangsung</p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                  {dashboardCases.length} Kasus Aktif
-                </span>
-                <button
-                  onClick={() => onOpenDetail?.('all')}
-                  className="inline-flex items-center gap-1 text-[12px] font-bold text-slate-500 hover:text-slate-800"
-                >
-                  Lihat Semua <ArrowRight size={13} />
-                </button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {dashboardCases.map(kasus => (
-                <SOSCard key={kasus.id} kasus={kasus} onOpenDetail={onOpenDetail} />
-              ))}
-            </div>
-          </div>
-
-          {/* Kategori Kasus (pindah ke kolom kiri, biar sejajar tinggi dengan kolom kanan) */}
-          <div className="rounded-2xl border border-[#e4e7eb] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="mb-4 border-b border-[#eef2f7] pb-3.5">
-              <h2 className="text-[15px] font-bold text-slate-900">Kategori Kasus</h2>
-              <p className="text-[11.5px] font-medium text-slate-400">Distribusi laporan berdasarkan kategori</p>
-            </div>
-            <DonutChart items={kategoriLaporan} total={stats.total_laporan || 15} />
-          </div>
-        </div>
-
-        {/* ── KOLOM KANAN ── */}
-        <div className="flex flex-col gap-5">
-          <MapPanel relawanCount={54} onOpenDetail={onOpenDetail} showLegend={false} />
-
-          <div className="rounded-2xl border border-[#e4e7eb] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="mb-3 flex items-center justify-between border-b border-[#eef2f7] pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Users size={14} className="text-[#059669]" />
-                  <h2 className="text-[15px] font-bold text-slate-900">Relawan Siap Beroperasi</h2>
-                </div>
-                <p className="mt-0.5 text-[11.5px] font-medium text-slate-400">Daftar relawan yang tersedia dan sedang bertugas</p>
-              </div>
-              <button className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold text-slate-500 hover:text-slate-800">
-                Lihat Semua <ArrowRight size={13} />
+              <button
+                onClick={() => onOpenDetail?.('all')}
+                className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors"
+                style={{ fontSize: 12, fontWeight: 600 }}
+              >
+                Semua <ArrowRight size={13} />
               </button>
             </div>
-            <div className="divide-y divide-slate-100">
-              {volunteers.slice(0, 5).map(vol => (
-                <VolunteerCard key={vol.id} relawan={vol} />
-              ))}
+
+            <div className="p-4">
+              {loading ? (
+                <LoadingSpinner text="Memuat kasus aktif..." />
+              ) : normalizedCases.length > 0 ? (
+                <div className="space-y-3">
+                  {normalizedCases.map(kasus => (
+                    <SOSCard key={kasus.id} kasus={kasus} onOpenDetail={onOpenDetail} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={AlertTriangle}
+                  title="Tidak ada kasus aktif"
+                  description="Semua laporan sudah ditangani."
+                />
+              )}
             </div>
+          </div>
+
+          {/* Donut Chart */}
+          <div className="card-base p-5">
+            <div className="mb-4" style={{ borderBottom: '1px solid var(--color-border-soft)', paddingBottom: 12 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Distribusi Kategori</h2>
+              <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 2 }}>Laporan berdasarkan jenis kejadian</p>
+            </div>
+            <DonutChart items={kategoriLaporan} total={stats?.total_laporan || 15} />
+          </div>
+        </div>
+
+        {/* RIGHT — Map + Relawan */}
+        <div className="flex flex-col gap-5">
+          <MapPanel relawanCount={stats?.total_relawan || 0} onOpenDetail={onOpenDetail} showLegend={false} />
+
+          {/* Relawan List */}
+          <div className="card-base overflow-hidden">
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: '1px solid var(--color-border-soft)' }}
+            >
+              <div className="flex items-center gap-2">
+                <Activity size={14} style={{ color: 'var(--color-success)' }} />
+                <div>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Relawan Siap Beroperasi</h2>
+                  <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 2 }}>Tersedia dan sedang bertugas</p>
+                </div>
+              </div>
+              <button
+                className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors"
+                style={{ fontSize: 12, fontWeight: 600 }}
+              >
+                Semua <ArrowRight size={13} />
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="px-4"><LoadingSpinner text="Memuat relawan..." /></div>
+            ) : volunteers.length > 0 ? (
+              <div className="divide-y divide-slate-100 px-4">
+                {volunteers.map(vol => (
+                  <VolunteerCard key={vol.id} relawan={vol} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="Tidak ada relawan tersedia" description="Data relawan belum tersedia." />
+            )}
           </div>
         </div>
       </div>

@@ -1,23 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Search, RefreshCw, Eye, Phone, ArrowUpDown, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  Search, RefreshCw, Eye, Phone, ArrowUpDown,
+  Clock, AlertTriangle, FileText
+} from 'lucide-react';
 import { laporanService } from '../services/laporanService';
+import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 
-const statusBadgeStyles = {
-  aktif: 'bg-[#fef2f2] text-[#ef4444]',
-  proses: 'bg-[#eff6ff] text-[#2563eb]',
-  selesai: 'bg-[#ecfdf5] text-[#15803d]',
-  'SOS Darurat': 'bg-[#fef2f2] text-[#ef4444]',
-  'Sedang Ditangani': 'bg-[#eff6ff] text-[#2563eb]',
-  'Menunggu Respon': 'bg-[#fff7ed] text-[#d97706]',
-  'Laporan': 'bg-[#f8fafc] text-[#475569]',
-  'Teratasi': 'bg-[#ecfdf5] text-[#15803d]',
+const statusMap = {
+  aktif:    { cls: 'badge badge-red',   label: 'SOS Aktif' },
+  proses:   { cls: 'badge badge-blue',  label: 'Ditangani' },
+  selesai:  { cls: 'badge badge-green', label: 'Selesai' },
+  'SOS Darurat':      { cls: 'badge badge-red',   label: 'SOS Darurat' },
+  'Sedang Ditangani': { cls: 'badge badge-blue',  label: 'Ditangani' },
+  'Menunggu Respon':  { cls: 'badge badge-amber', label: 'Menunggu' },
+  'Teratasi':         { cls: 'badge badge-green', label: 'Teratasi' },
 };
 
-const statusLabel = {
-  aktif: 'Aktif',
-  proses: 'Sedang Ditangani',
-  selesai: 'Selesai',
-};
+const filterTabs = [
+  { id: 'semua',   label: 'Semua' },
+  { id: 'aktif',   label: 'SOS Aktif' },
+  { id: 'proses',  label: 'Ditangani' },
+  { id: 'selesai', label: 'Selesai' },
+];
 
 export default function KasusAktifPage({ onOpenDetail }) {
   const [activeTab, setActiveTab] = useState('semua');
@@ -26,7 +32,6 @@ export default function KasusAktifPage({ onOpenDetail }) {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pagination, setPagination] = useState(null);
 
   const fetchLaporan = async (status = null) => {
     try {
@@ -36,10 +41,9 @@ export default function KasusAktifPage({ onOpenDetail }) {
       if (res && res.data) {
         const items = res.data?.data ?? res.data ?? [];
         setCases(Array.isArray(items) ? items : []);
-        setPagination(res.data?.last_page ? res.data : null);
       }
     } catch (err) {
-      setError('Gagal mengambil data laporan. Pastikan server backend berjalan.');
+      setError('Gagal mengambil data. Periksa koneksi ke server backend.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -47,19 +51,8 @@ export default function KasusAktifPage({ onOpenDetail }) {
   };
 
   useEffect(() => {
-    const status = activeTab === 'semua' ? null : activeTab;
-    fetchLaporan(status);
+    fetchLaporan(activeTab === 'semua' ? null : activeTab);
   }, [activeTab]);
-
-  const filterTabs = [
-    { id: 'semua', label: 'Semua Kasus' },
-    { id: 'aktif', label: 'Aktif / SOS' },
-    { id: 'proses', label: 'Sedang Ditangani' },
-    { id: 'selesai', label: 'Selesai' },
-  ].map(tab => ({
-    ...tab,
-    count: tab.id === 'semua' ? cases.length : cases.filter(c => c.status === tab.id).length,
-  }));
 
   const filteredCases = cases.filter(c => {
     if (!searchQuery) return true;
@@ -72,92 +65,123 @@ export default function KasusAktifPage({ onOpenDetail }) {
     );
   });
 
+  const tabCounts = filterTabs.map(t => ({
+    ...t,
+    count: t.id === 'semua' ? cases.length : cases.filter(c => c.status === t.id).length,
+  }));
+
   return (
-    <div className="page-shell space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-[24px] font-extrabold tracking-[-0.04em] text-slate-900">Kasus Aktif</h1>
-          <p className="mt-1 text-[14px] font-medium text-slate-500">
-            Pantau dan kelola kasus yang sedang berlangsung secara real-time.
-          </p>
-        </div>
+    <div className="page-shell space-y-5">
+      <PageHeader
+        title="Kasus Aktif"
+        description="Pantau dan kelola laporan SOS yang sedang berlangsung secara real-time."
+        actions={
+          <button
+            onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
+            disabled={loading}
+            className="btn-base btn-secondary"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            Segarkan
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
-          disabled={loading}
-          className="btn-base btn-secondary text-[12px] h-9"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          <span>Segarkan Data</span>
-        </button>
-      </div>
-
-      <div className="rounded-[22px] border border-[#e2e8f0] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-1.5 rounded-2xl bg-[#f1f5f9] p-1">
-            {filterTabs.map(tab => (
+      {/* ── Filter & Search Bar ── */}
+      <div className="card-base p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* Status Tabs */}
+          <div
+            className="flex items-center gap-1 rounded-xl p-1"
+            style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
+          >
+            {tabCounts.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-xl px-3.5 py-1.5 text-[12px] font-bold transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all cursor-pointer"
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  background: activeTab === tab.id ? 'white' : 'transparent',
+                  color: activeTab === tab.id ? 'var(--color-text)' : 'var(--color-text-muted)',
+                  boxShadow: activeTab === tab.id ? '0 1px 3px rgba(15,23,42,0.08)' : 'none',
+                  border: 'none',
+                }}
               >
-                <span>{tab.label}</span>
-                <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] ${activeTab === tab.id ? 'bg-[#0a271f] text-white' : 'bg-slate-200 text-slate-600'}`}>
+                {tab.label}
+                <span
+                  className="rounded-full px-1.5 py-0.5 font-bold"
+                  style={{
+                    fontSize: 10,
+                    background: activeTab === tab.id ? 'var(--color-primary)' : 'var(--color-border)',
+                    color: activeTab === tab.id ? 'white' : 'var(--color-text-muted)',
+                  }}
+                >
                   {tab.count}
                 </span>
               </button>
             ))}
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-72">
-              <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          {/* Search + Sort */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Cari ID, pelapor, lokasi..."
-                className="form-input h-10 pr-4 bg-[#f8fafc]"
-                style={{ paddingLeft: '40px' }}
+                className="form-input"
+                style={{ paddingLeft: 36, width: 260 }}
               />
             </div>
-
-            <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-[#f8fafc] px-3 text-[12px] font-semibold text-slate-600">
-              <ArrowUpDown size={13} className="text-slate-400" />
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-transparent outline-none">
+            <div
+              className="flex items-center gap-2 rounded-xl px-3"
+              style={{ height: 40, border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-secondary)' }}
+            >
+              <ArrowUpDown size={13} className="text-slate-400 flex-shrink-0" />
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 'inherit', color: 'inherit', cursor: 'pointer' }}>
                 <option value="terbaru">Terbaru</option>
-                <option value="prioritas">Prioritas Tertinggi</option>
+                <option value="prioritas">Prioritas</option>
               </select>
             </div>
           </div>
         </div>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center gap-3 rounded-[22px] border border-[#e2e8f0] bg-white p-12 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <Loader2 size={20} className="animate-spin text-[#0a271f]" />
-          <span className="text-[14px] font-semibold text-slate-500">Memuat data laporan...</span>
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="flex items-center justify-between gap-4 rounded-[22px] border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-500" />
-            <p className="text-[13px] font-semibold">{error}</p>
+      {/* ── Table / States ── */}
+      <div className="card-base overflow-hidden">
+        {loading ? (
+          <LoadingSpinner text="Memuat data laporan..." />
+        ) : error ? (
+          <div className="p-6">
+            <div
+              className="flex items-center justify-between gap-4 rounded-xl p-4"
+              style={{ background: 'var(--color-danger-light)', border: '1px solid var(--color-danger-border)' }}
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle size={16} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-danger)' }}>{error}</p>
+              </div>
+              <button
+                onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
+                className="btn-base btn-danger"
+                style={{ height: 34, fontSize: 12 }}
+              >
+                Coba Lagi
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
-            className="rounded-lg bg-red-600 px-3 py-2 text-[12px] font-bold text-white transition-colors hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <div className="overflow-hidden rounded-[22px] border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-          <div className="table-responsive">
+        ) : filteredCases.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="Tidak ada kasus ditemukan"
+            description={searchQuery ? 'Coba ubah kata kunci pencarian.' : 'Tidak ada laporan sesuai filter yang dipilih.'}
+          />
+        ) : (
+          <div className="table-wrapper">
             <table className="data-table">
               <thead>
                 <tr>
@@ -168,91 +192,92 @@ export default function KasusAktifPage({ onOpenDetail }) {
                   <th>Lokasi</th>
                   <th>Relawan</th>
                   <th>Waktu</th>
-                  <th className="text-right">Aksi</th>
+                  <th style={{ textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCases.map(kasus => (
-                  <tr key={kasus.id}>
-                    <td className="min-w-0 align-middle">
-                      <span className="block text-[12px] font-extrabold tracking-[0.04em] text-[#0a271f] break-words">#{kasus.id}</span>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold break-words ${statusBadgeStyles[kasus.status] || 'bg-slate-100 text-slate-600'}`}>
-                        {statusLabel[kasus.status] || kasus.status}
-                      </span>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <div className="max-w-[220px] truncate text-[13px] font-bold text-slate-800 break-words">{kasus.kategori_laporan}</div>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <div className="max-w-[180px]">
-                        <p className="text-[12px] font-semibold text-slate-800 break-words">{kasus.pengguna?.name || '-'}</p>
-                        <p className="mt-0.5 text-[11px] text-slate-400 break-words">{kasus.pengguna?.kategori_user || 'Pengguna'}</p>
-                      </div>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <div className="max-w-[200px] truncate text-[12px] text-slate-600 break-words" title={kasus.lokasi_laporan}>{kasus.lokasi_laporan}</div>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <span className={kasus.relawan?.name ? 'block text-[12px] font-semibold text-slate-700 break-words' : 'block text-[12px] italic text-slate-400 break-words'}>
-                        {kasus.relawan?.name || 'Belum ditugaskan'}
-                      </span>
-                    </td>
-
-                    <td className="min-w-0 align-middle">
-                      <div className="flex items-center gap-1 text-[12px] text-slate-500">
-                        <Clock size={12} className="text-slate-400 flex-shrink-0" />
-                        <span className="break-words">
-                          {kasus.waktu_laporan ? new Date(kasus.waktu_laporan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                {filteredCases.map(kasus => {
+                  const st = statusMap[kasus.status] || { cls: 'badge badge-slate', label: kasus.status };
+                  return (
+                    <tr key={kasus.id}>
+                      <td>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', letterSpacing: '0.02em' }}>
+                          #{kasus.id}
                         </span>
-                      </div>
-                    </td>
-
-                    <td className="text-right align-middle min-w-0">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => alert(`Menghubungi kontak untuk laporan #${kasus.id}`)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 flex-shrink-0"
-                          title="Hubungi"
+                      </td>
+                      <td>
+                        <span className={st.cls}>{st.label}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
+                          {kasus.kategori_laporan || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-text)' }}>
+                          {kasus.pengguna?.name || '—'}
+                        </p>
+                        <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                          {kasus.pengguna?.kategori_user || 'Pengguna'}
+                        </p>
+                      </td>
+                      <td>
+                        <span
+                          style={{ fontSize: 12, color: 'var(--color-text-secondary)', display: 'block', maxWidth: 200 }}
+                          className="truncate"
+                          title={kasus.lokasi_laporan}
                         >
-                          <Phone size={12} />
-                        </button>
-                        <button
-                          onClick={() => onOpenDetail?.(kasus.id)}
-                          className="btn-base btn-primary text-[11px] h-8 px-2.5 rounded-lg"
+                          {kasus.lokasi_laporan || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: kasus.relawan?.name ? 600 : 400,
+                            color: kasus.relawan?.name ? 'var(--color-text)' : 'var(--color-text-muted)',
+                            fontStyle: kasus.relawan?.name ? 'normal' : 'italic',
+                          }}
                         >
-                          <Eye size={12} />
-                          <span>Detail</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {kasus.relawan?.name || 'Belum ditugaskan'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                          <Clock size={11} className="flex-shrink-0" />
+                          {kasus.waktu_laporan
+                            ? new Date(kasus.waktu_laporan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })
+                            : '—'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => alert(`Menghubungi pelapor kasus #${kasus.id}`)}
+                            className="btn-icon"
+                            style={{ width: 32, height: 32 }}
+                            title="Hubungi Pelapor"
+                          >
+                            <Phone size={12} />
+                          </button>
+                          <button
+                            onClick={() => onOpenDetail?.(kasus.id)}
+                            className="btn-base btn-primary"
+                            style={{ height: 32, padding: '0 10px', fontSize: 12 }}
+                          >
+                            <Eye size={12} />
+                            Detail
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-
-          {filteredCases.length === 0 && (
-            <div className="p-12 text-center text-slate-400">
-              <p className="text-[14px] font-semibold">Tidak ada kasus yang sesuai dengan filter.</p>
-            </div>
-          )}
-
-          {pagination && (
-            <div className="flex items-center justify-between border-t border-[#f1f5f9] px-5 py-3 text-[12px] text-slate-500">
-              <span>
-                Halaman {pagination.current_page} dari {pagination.last_page} • Total {pagination.total} laporan
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

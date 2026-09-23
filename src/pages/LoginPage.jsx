@@ -33,9 +33,36 @@ export default function LoginPage({ onLoginSuccess }) {
       };
       onLoginSuccess(user);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        'Email atau kata sandi tidak valid.';
+      // Bedakan: 401 kredensial salah, 422 validasi, network error, dll
+      const status = err?.response?.status;
+      const backendMsg = err?.response?.data?.message;
+
+      // Laravel validation 422: ambil pesan pertama dari errors
+      const validationMsg =
+        err?.response?.data?.errors
+          ? Object.values(err.response.data.errors).flat()[0]
+          : null;
+
+      let msg = backendMsg || validationMsg;
+
+      if (!err?.response) {
+        // Backend tidak terjangkau / CORS / server mati
+        msg = 'Backend tidak terjangkau (http://localhost:8000). Pastikan Laravel backend sedang running: php artisan serve';
+      } else if (status === 401) {
+        msg = backendMsg || 'Email atau kata sandi salah, atau akun bukan admin/superadmin (provider harus local).';
+      } else if (status === 422) {
+        msg = validationMsg || backendMsg || 'Format email / password tidak valid (cek validasi backend).';
+      } else if (status === 403) {
+        msg = backendMsg || 'Akses ditolak.';
+      } else if (!msg) {
+        msg = `Login gagal (${status || 'unknown'}). Cek console untuk detail.`;
+      }
+
+      // Log detail untuk debug (hanya di dev)
+      if (import.meta.env.DEV) {
+        console.error('[login] gagal:', { status, data: err?.response?.data, message: err?.message });
+      }
+
       setError(msg);
       triggerShake();
     } finally {
@@ -251,12 +278,12 @@ const s = {
     minHeight: '100vh',
     width: '100vw',
     fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F0F4F3',
   },
   leftPanel: {
     width: '400px',
     flexShrink: 0,
-    backgroundColor: '#062c26',
+    backgroundColor: '#052E25',
     display: 'flex',
     flexDirection: 'column',
     padding: '28px 32px',
@@ -313,7 +340,7 @@ const s = {
   rightPanel: {
     flex: 1, display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center',
-    padding: '40px 24px', backgroundColor: '#f1f5f9',
+    padding: '40px 24px', backgroundColor: '#F0F4F3',
   },
   formCard: {
     width: '100%', maxWidth: '400px', backgroundColor: '#fff',
@@ -333,7 +360,7 @@ const s = {
     fontSize: '14px', color: '#111827', fontFamily: 'inherit',
     backgroundColor: '#fff', boxSizing: 'border-box',
   },
-  inputErr: { borderColor: '#f87171' },
+  inputErr: { border: '1.5px solid #f87171' },
   pwWrap: { position: 'relative', display: 'flex', alignItems: 'center' },
   eyeBtn: {
     position: 'absolute', right: '12px', background: 'none',
@@ -353,7 +380,7 @@ const s = {
   submitBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
     width: '100%', padding: '11px 20px',
-    backgroundColor: '#066046ff', border: 'none', borderRadius: '9px',
+    backgroundColor: '#00695C', border: 'none', borderRadius: '9px',
     color: '#fff', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit',
     cursor: 'pointer', marginTop: '4px', letterSpacing: '0.01em',
   },
