@@ -95,8 +95,6 @@ export default function App() {
           <TopHeader
             activePage={activePage}
             onMenuToggle={() => setSidebarOpen(prev => !prev)}
-            currentUser={currentUser}
-            onLogout={handleLogout}
           />
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
