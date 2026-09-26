@@ -6,10 +6,11 @@ import {
 import PageHeader from '../components/PageHeader';
 import { laporanService } from '../services/laporanService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import EmptyState from '../components/EmptyState';
 
 const ITEMS_PER_PAGE = 6;
 
-export default function RiwayatKasusPage() {
+export default function RiwayatKasusPage({ onOpenDetail }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [currentPage, setCurrentPage] = useState(1);
@@ -210,7 +211,7 @@ export default function RiwayatKasusPage() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <button
-                        onClick={() => alert(`Membuka arsip ${row.id}`)}
+                        onClick={() => onOpenDetail?.(row.rawId || row.id)}
                         className="btn-base btn-secondary"
                         style={{ height: 32, padding: '0 10px', fontSize: 12 }}
                       >

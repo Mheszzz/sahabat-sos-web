@@ -59,7 +59,7 @@ export default function App() {
       case 'kasus-aktif':
         return <KasusAktifPage onOpenDetail={handleOpenDetail} />;
       case 'riwayat':
-        return <RiwayatKasusPage />;
+        return <RiwayatKasusPage onOpenDetail={handleOpenDetail} />;
       case 'peta':
         return <PetaPemantauanPage onOpenDetail={handleOpenDetail} />;
       case 'pengaturan':

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+window.Pusher = Pusher;
 import { Radio, AlertTriangle, Phone, Users } from 'lucide-react';
 import ModernEmergencyMap, { emergencyMapData } from '../components/ModernEmergencyMap';
 import PageHeader from '../components/PageHeader';
 import Badge from '../components/Badge';
-import { relawanService } from '../services/relawanService';
+import { adminService } from '../services/adminService';
 
 const metricCards = [
   { key: 'sos',     label: 'SOS Aktif',         colorNum: 'var(--color-danger)',   colorDot: 'bg-red-500',    ping: true },
@@ -16,14 +19,32 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mapData, setMapData] = useState(emergencyMapData);
+  const [counts, setCounts] = useState({ sos: 0, relawan: 0, posko: 0, laporan: 0 });
 
   useEffect(() => {
-    const fetchVols = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const res = await relawanService.getRelawan();
-        if (res && res.data) {
-          const items = Array.isArray(res.data) ? res.data : [];
+        // Ambil data statistik & peta
+        const statsRes = await adminService.getDashboardStats().catch(() => null);
+        if (statsRes && statsRes.data) {
+          setCounts({
+            sos: statsRes.data.sos_aktif ?? counts.sos,
+            relawan: statsRes.data.relawan_aktif ?? counts.relawan,
+            posko: statsRes.data.posko_siaga ?? counts.posko,
+            laporan: statsRes.data.laporan_pending ?? counts.laporan,
+          });
+        }
+
+        const mapRes = await adminService.getPetaKasus().catch(() => null);
+        if (mapRes && mapRes.data && mapRes.data.length > 0) {
+          setMapData(mapRes.data);
+        }
+
+        const volRes = await adminService.getQuickDispatchRelawan().catch(() => null);
+        if (volRes && volRes.data) {
+          const items = Array.isArray(volRes.data) ? volRes.data : [];
           setVolunteers(items.map((r, i) => ({
             id: r.id,
             nama: r.name || r.nama || `Relawan #${r.id}`,
@@ -37,20 +58,39 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
           })));
         }
       } catch (err) {
-        console.error('Failed to fetch relawan', err);
+        console.error('Failed to fetch dashboard data', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchVols();
-  }, []);
+    fetchDashboardData();
 
-  const counts = {
-    sos:     emergencyMapData.filter(d => d.type === 'sos').length,
-    relawan: emergencyMapData.filter(d => d.type === 'relawan').length,
-    posko:   emergencyMapData.filter(d => d.type === 'posko').length,
-    laporan: emergencyMapData.filter(d => d.type === 'laporan').length,
-  };
+    // WebSocket Init (Pusher / Reverb)
+    const echo = new Echo({
+      broadcaster: 'pusher',
+      key: import.meta.env.VITE_PUSHER_APP_KEY || 'sahabat-sos-key',
+      cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
+      wsHost: import.meta.env.VITE_PUSHER_HOST || window.location.hostname,
+      wsPort: import.meta.env.VITE_PUSHER_PORT || 6001,
+      forceTLS: false,
+      disableStats: true,
+    });
+
+    // Listen relawan-channel
+    echo.channel('relawan-channel')
+      .listen('.LokasiDiperbarui', (e) => {
+        console.log('Update Lokasi Realtime:', e);
+        if (e && e.relawan_id) {
+          setMapData(prev => prev.map(m => 
+            (m.type === 'relawan' && m.id === e.relawan_id) ? { ...m, lat: e.lat, lng: e.lng } : m
+          ));
+        }
+      });
+
+    return () => {
+      echo.leaveChannel('relawan-channel');
+    };
+  }, []);
 
   return (
     <div className="page-shell space-y-5">
@@ -112,6 +152,7 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
             onOpenDetail={onOpenDetail}
             showFilterBar={true}
             showLegend={true}
+            mapData={mapData}
           />
         </div>
 
@@ -159,7 +200,7 @@ export default function PetaPemantauanPage({ onOpenDetail }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge variant={vol.status === 'Bertugas' ? 'Sedang Bertugas' : 'Online'} showDot />
                     <button
-                      onClick={e => { e.stopPropagation(); alert(`Menghubungi ${vol.nama} (${vol.kontak})`); }}
+                      onClick={e => { e.stopPropagation(); window.location.href = `tel:${vol.kontak}`; }}
                       className="btn-icon"
                       style={{ width: 30, height: 30 }}
                       title={`Panggil ${vol.nama}`}
