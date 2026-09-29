@@ -41,26 +41,5 @@ export const masterDataService = {
   deletePesanCepat: async (id) => {
     const response = await api.delete(`/admin/pesan-cepat/${id}`);
     return response.data;
-  },
-
-  // KONTAK DARURAT
-  getKontakDarurat: async () => {
-    const response = await api.get('/admin/kontak-darurat');
-    return response.data;
-  },
-  
-  createKontakDarurat: async (data) => {
-    const response = await api.post('/admin/kontak-darurat', data);
-    return response.data;
-  },
-  
-  updateKontakDarurat: async (id, data) => {
-    const response = await api.put(`/admin/kontak-darurat/${id}`, data);
-    return response.data;
-  },
-  
-  deleteKontakDarurat: async (id) => {
-    const response = await api.delete(`/admin/kontak-darurat/${id}`);
-    return response.data;
   }
 };

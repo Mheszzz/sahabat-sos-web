@@ -7,12 +7,7 @@ export const authService = {
    * @returns {Promise} Response dari API
    */
   login: async (credentials) => {
-    // Normalisasi: trim email (backend validasi required|email, case-sensitive di query)
-    const payload = {
-      email: typeof credentials.email === 'string' ? credentials.email.trim() : credentials.email,
-      password: credentials.password,
-    };
-    const response = await api.post('/auth/admin/login', payload);
+    const response = await api.post('/auth/admin/login', credentials);
     if (response.data && response.data.access_token) {
       localStorage.setItem('admin_access_token', response.data.access_token);
       localStorage.setItem('admin_user_data', JSON.stringify(response.data.user));
