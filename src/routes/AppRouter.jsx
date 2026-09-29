@@ -1,7 +1,7 @@
 ﻿import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import LoginPage from '../pages/Login/LoginPage';
-import DashboardPage from '../pages/Dashboard/DashboardPage';
+import DashboardPage from '../pages/dashboard/DashboardPage';
 import KasusAktifPage from '../pages/KasusAktif/KasusAktifPage';
 import RiwayatKasusPage from '../pages/RiwayatKasus/RiwayatKasusPage';
 import PetaPemantauanPage from '../pages/PetaPemantauan/PetaPemantauanPage';
@@ -58,4 +58,3 @@ export const router = createBrowserRouter([
     ]
   }
 ]);
-

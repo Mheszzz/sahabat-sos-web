@@ -1,30 +1,59 @@
-﻿import { statusClassMap, statusDotMap } from '../../utils/theme';
+// Badge.jsx — Unified status badge system
+// Semantic colors follow: RED=emergency, GREEN=active/success, AMBER=pending/warning, BLUE=info, SLATE=neutral
 
-const pulsingStatuses = new Set(['Sedang Bertugas', 'Aktif', 'SOS Darurat', 'Online']);
+const variantMap = {
+  // Status operasional
+  'Online':           { cls: 'badge badge-green',  dot: '#059669',  label: 'Online' },
+  'Offline':          { cls: 'badge badge-slate',  dot: '#94A3B8',  label: 'Offline' },
+  'Sedang Bertugas':  { cls: 'badge badge-blue',   dot: '#2563EB',  label: 'Bertugas' },
+  'Bertugas':         { cls: 'badge badge-blue',   dot: '#2563EB',  label: 'Bertugas' },
+  'Siaga':            { cls: 'badge badge-amber',  dot: '#D97706',  label: 'Siaga' },
+
+  // Status akun / verifikasi
+  'Aktif':            { cls: 'badge badge-green',  dot: '#059669',  label: 'Aktif' },
+  'Nonaktif':         { cls: 'badge badge-slate',  dot: '#94A3B8',  label: 'Nonaktif' },
+  'Terverifikasi':    { cls: 'badge badge-green',  dot: '#059669',  label: 'Terverifikasi' },
+  'Ditolak':          { cls: 'badge badge-red',    dot: '#DC2626',  label: 'Ditolak' },
+  'Pending Verifikasi': { cls: 'badge badge-amber', dot: '#D97706', label: 'Pending' },
+  'Menunggu':         { cls: 'badge badge-amber',  dot: '#D97706',  label: 'Menunggu' },
+
+  // Status laporan / kasus
+  'SOS Darurat':      { cls: 'badge badge-red',    dot: '#DC2626',  label: 'SOS Darurat' },
+  'Sedang Ditangani': { cls: 'badge badge-blue',   dot: '#2563EB',  label: 'Ditangani' },
+  'Menunggu Respon':  { cls: 'badge badge-amber',  dot: '#D97706',  label: 'Menunggu Respon' },
+  'Selesai':          { cls: 'badge badge-green',  dot: '#059669',  label: 'Selesai' },
+  'Dibatalkan':       { cls: 'badge badge-slate',  dot: '#94A3B8',  label: 'Dibatalkan' },
+
+  // Disabilitas types (netral)
+  'default':          { cls: 'badge badge-slate',  dot: null,       label: null },
+};
 
 export default function Badge({
+  variant = 'default',
   children,
-  variant,
+  customColor,
   showDot = false,
-  className = '',
   isPill = false,
-  customColor = null,
+  className = '',
 }) {
-  const baseColor = customColor || statusClassMap[variant] || statusClassMap.default;
-  const dotColor = statusDotMap[variant] || 'bg-slate-400';
-  const radiusClass = isPill ? 'rounded-full' : 'rounded-md';
-  const paddingClass = isPill ? 'px-2.5 py-1' : 'px-2 py-0.5';
-  const shouldPulse = pulsingStatuses.has(variant);
+  const config = variantMap[variant] || variantMap['default'];
+  const label = children || config.label || variant;
+  const cls = customColor
+    ? `badge ${customColor}`
+    : config.cls;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 ${paddingClass} ${radiusClass} text-[11px] font-bold border whitespace-nowrap flex-shrink-0 ${baseColor} ${className}`}
+      className={`${cls} ${isPill ? 'rounded-full' : ''} ${className}`}
+      style={{ fontSize: '11.5px' }}
     >
-      {showDot && (
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor} ${shouldPulse ? 'animate-pulse' : ''}`} />
+      {showDot && config.dot && (
+        <span
+          className="inline-block rounded-full flex-shrink-0"
+          style={{ width: 6, height: 6, background: config.dot }}
+        />
       )}
-      <span className="whitespace-nowrap">{children || variant}</span>
+      {label}
     </span>
   );
 }
-

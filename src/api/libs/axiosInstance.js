@@ -30,11 +30,25 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // If unauthorized, you might want to log the user out or redirect to login
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+
+    // Jangan auto-logout untuk endpoint login — 401 di login = kredensial salah, bukan sesi expired
+    const isLoginRequest = url.includes('/auth/admin/login') || url.includes('/auth/login');
+
+    if (status === 401 && !isLoginRequest) {
+      // Sesi expired / token invalid untuk request terautentikasi
       // localStorage.removeItem('admin_access_token');
       // window.location.href = '/login';
     }
+
+    // Log untuk debugging (hanya di dev)
+    if (import.meta.env.DEV) {
+      if (!error.response) {
+        console.error('[api] Network error — backend tidak terjangkau:', error.message, { url });
+      }
+    }
+
     return Promise.reject(error);
   }
 );

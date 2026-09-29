@@ -11,6 +11,24 @@ export const adminService = {
   },
 
   /**
+   * Mengambil data titik koordinat peta untuk dashboard
+   * @returns {Promise}
+   */
+  getPetaKasus: async () => {
+    const response = await api.get('/admin/dashboard/peta-kasus');
+    return response.data;
+  },
+
+  /**
+   * Mengambil daftar relawan terdekat / quick dispatch
+   * @returns {Promise}
+   */
+  getQuickDispatchRelawan: async () => {
+    const response = await api.get('/admin/dashboard/quick-dispatch');
+    return response.data;
+  },
+
+  /**
    * Mengambil daftar relawan yang menunggu verifikasi
    * @returns {Promise} Response data { data: [...] }
    */

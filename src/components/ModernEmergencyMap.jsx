@@ -165,6 +165,7 @@ export default function ModernEmergencyMap({
   showFilterBar = true,
   showLegend = true,
   className = '',
+  mapData = emergencyMapData,
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -208,7 +209,7 @@ export default function ModernEmergencyMap({
 
     markersLayerRef.current.clearLayers();
 
-    const filtered = emergencyMapData.filter(item => {
+    const filtered = mapData.filter(item => {
       if (activeFilter === 'semua') return true;
       if (activeFilter === 'sos') return item.type === 'sos';
       if (activeFilter === 'relawan') return item.type === 'relawan';
@@ -304,10 +305,10 @@ export default function ModernEmergencyMap({
   };
 
   // Counts for legend & filters
-  const countSos = emergencyMapData.filter(d => d.type === 'sos').length;
-  const countRelawan = emergencyMapData.filter(d => d.type === 'relawan').length;
-  const countPosko = emergencyMapData.filter(d => d.type === 'posko').length;
-  const countLaporan = emergencyMapData.filter(d => d.type === 'laporan').length;
+  const countSos = mapData.filter(d => d.type === 'sos').length;
+  const countRelawan = mapData.filter(d => d.type === 'relawan').length;
+  const countPosko = mapData.filter(d => d.type === 'posko').length;
+  const countLaporan = mapData.filter(d => d.type === 'laporan').length;
 
   return (
     <div className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#eaedf1] bg-white shadow-xs ${className}`}>
@@ -320,7 +321,7 @@ export default function ModernEmergencyMap({
               onClick={() => setActiveFilter('semua')}
               className={`filter-pill ${activeFilter === 'semua' ? 'is-active' : ''}`}
             >
-              Semua ({emergencyMapData.length})
+              Semua ({mapData.length})
             </button>
             <button
               onClick={() => setActiveFilter('sos')}
