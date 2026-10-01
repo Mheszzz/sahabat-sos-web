@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.env.local
+.env.*
+.env.development
+.env.production
+# Kecualikan file example agar tetap ter-push
+!.env.example
