@@ -6,165 +6,13 @@ import {
   AlertTriangle, Shield, HeartPulse, Clock, X, Radio
 } from 'lucide-react';
 
-export const emergencyMapData = [
-  {
-    id: 'SOS-5022',
-    type: 'sos',
-    label: 'SOS-5022',
-    kategori: 'Kecelakaan Lalu Lintas & Bantuan Difabel',
-    prioritas: 'DARURAT',
-    pelapor: 'Ahmad Fauzi (Tunanetra)',
-    lokasi: 'Jl. Sudirman No. 45, Dekat Dukuh Atas',
-    status: 'SOS Darurat',
-    relawan: 'Dwi Riskianto',
-    eta: '4 menit',
-    lat: -6.2008,
-    lng: 106.8230,
-    waktu: '5 menit lalu',
-  },
-  {
-    id: 'SOS-5021',
-    type: 'sos',
-    label: 'SOS-5021',
-    kategori: 'Pendampingan Kursi Roda Halte Transit',
-    prioritas: 'Prioritas Sedang',
-    pelapor: 'Sari Indah (Kursi Roda)',
-    lokasi: 'Halte CSW, Jl. Sisingamangaraja',
-    status: 'Sedang Ditangani',
-    relawan: 'Budi Santoso',
-    eta: '12 menit',
-    lat: -6.2300,
-    lng: 106.8100,
-    waktu: '18 menit lalu',
-  },
-  {
-    id: 'SOS-6020',
-    type: 'laporan',
-    label: 'SOS-6020',
-    kategori: 'Disorientasi / Tersesat di Peron',
-    prioritas: 'Menunggu Respon',
-    pelapor: 'Rizky Pratama (Disabilitas Rungu)',
-    lokasi: 'Stasiun Manggarai, Peron 3',
-    status: 'Laporan Pending',
-    relawan: 'Menunggu Penugasan',
-    eta: '—',
-    lat: -6.2143,
-    lng: 106.8502,
-    waktu: '32 menit lalu',
-  },
-  {
-    id: 'SOS-5019',
-    type: 'laporan',
-    label: 'SOS-5019',
-    kategori: 'Bantuan Medis Darurat',
-    prioritas: 'Prioritas Rendah',
-    pelapor: 'Siti Aminah (Psikososial)',
-    lokasi: 'Jl. Melawai Raya No. 12, Kebayoran Baru',
-    status: 'Laporan Pending',
-    relawan: 'Rama',
-    eta: '15 menit',
-    lat: -6.2420,
-    lng: 106.8020,
-    waktu: '1 jam lalu',
-  },
-  {
-    id: 'REL-014',
-    type: 'relawan',
-    label: 'Dwi Riskianto',
-    kategori: 'Relawan Siaga Difabel',
-    prioritas: 'Bertugas',
-    pelapor: 'Unit #14',
-    lokasi: 'Dukuh Atas (0.8 km dari target)',
-    status: 'Menuju Lokasi',
-    relawan: 'Dwi Riskianto',
-    eta: '4 menit',
-    lat: -6.2050,
-    lng: 106.8260,
-    waktu: 'Real-time GPS',
-  },
-  {
-    id: 'REL-007',
-    type: 'relawan',
-    label: 'Budi Santoso',
-    kategori: 'Relawan Aksesibilitas',
-    prioritas: 'Bertugas',
-    pelapor: 'Unit #07',
-    lokasi: 'Kebayoran Baru (1.2 km)',
-    status: 'Menuju Lokasi',
-    relawan: 'Budi Santoso',
-    eta: '7 menit',
-    lat: -6.2280,
-    lng: 106.8130,
-    waktu: 'Real-time GPS',
-  },
-  {
-    id: 'REL-028',
-    type: 'relawan',
-    label: 'Nia Kurniasih',
-    kategori: 'Relawan Medis Dasar',
-    prioritas: 'Siaga',
-    pelapor: 'Unit #28',
-    lokasi: 'Menteng (2.1 km)',
-    status: 'Siaga di Posko',
-    relawan: 'Nia Kurniasih',
-    eta: '11 menit',
-    lat: -6.2120,
-    lng: 106.8400,
-    waktu: 'Real-time GPS',
-  },
-  {
-    id: 'REL-041',
-    type: 'relawan',
-    label: 'Reza Mahendra',
-    kategori: 'Relawan Transport',
-    prioritas: 'Siaga',
-    pelapor: 'Unit #41',
-    lokasi: 'Thamrin (3.4 km)',
-    status: 'Siaga di Posko',
-    relawan: 'Reza Mahendra',
-    eta: '15 menit',
-    lat: -6.1950,
-    lng: 106.8200,
-    waktu: 'Real-time GPS',
-  },
-  {
-    id: 'POS-01',
-    type: 'posko',
-    label: 'Posko Darurat Utama Dukuh Atas',
-    kategori: 'Posko Pusat & Ambulans 24 Jam',
-    prioritas: 'Operasional Penuh',
-    pelapor: 'Pusat Komando',
-    lokasi: 'Jl. Jend. Sudirman Kav. 21',
-    status: 'Siaga 24 Jam',
-    relawan: '12 Relawan Standby',
-    eta: 'Siaga',
-    lat: -6.2015,
-    lng: 106.8200,
-    waktu: 'Pusat Logistik',
-  },
-  {
-    id: 'POS-02',
-    type: 'posko',
-    label: 'Posko Wilayah Selatan CSW',
-    kategori: 'Posko Transit Disabilitas',
-    prioritas: 'Operasional Penuh',
-    pelapor: 'Pusat Komando',
-    lokasi: 'Simpang CSW, Kebayoran Baru',
-    status: 'Siaga 24 Jam',
-    relawan: '8 Relawan Standby',
-    eta: 'Siaga',
-    lat: -6.2440,
-    lng: 106.8000,
-    waktu: 'Pusat Logistik',
-  },
-];
-
 export default function ModernEmergencyMap({
   height = '300px',
   onOpenDetail,
   showFilterBar = true,
   showLegend = true,
   className = '',
+  mapData = [],
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -172,6 +20,8 @@ export default function ModernEmergencyMap({
 
   const [activeFilter, setActiveFilter] = useState('semua');
   const [selectedItem, setSelectedItem] = useState(null);
+
+  const activeMapData = mapData || [];
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -207,8 +57,10 @@ export default function ModernEmergencyMap({
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
+    
+    const bounds = L.latLngBounds();
 
-    const filtered = emergencyMapData.filter(item => {
+    const filtered = activeMapData.filter(item => {
       if (activeFilter === 'semua') return true;
       if (activeFilter === 'sos') return item.type === 'sos';
       if (activeFilter === 'relawan') return item.type === 'relawan';
@@ -229,7 +81,7 @@ export default function ModernEmergencyMap({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
             <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-[#ef4444] text-white text-[9px] font-bold px-1.5 py-0.2 rounded shadow-xs whitespace-nowrap z-10">
-              ${item.id}
+              ${item.displayId || item.id}
             </div>
           </div>
         `;
@@ -277,8 +129,13 @@ export default function ModernEmergencyMap({
       });
 
       markersLayerRef.current.addLayer(marker);
+      bounds.extend([item.lat, item.lng]);
     });
-  }, [activeFilter]);
+
+    if (filtered.length > 0 && bounds.isValid()) {
+      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+  }, [activeFilter, activeMapData]);
 
   // Map Navigation Functions
   const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
@@ -304,10 +161,9 @@ export default function ModernEmergencyMap({
   };
 
   // Counts for legend & filters
-  const countSos = emergencyMapData.filter(d => d.type === 'sos').length;
-  const countRelawan = emergencyMapData.filter(d => d.type === 'relawan').length;
-  const countPosko = emergencyMapData.filter(d => d.type === 'posko').length;
-  const countLaporan = emergencyMapData.filter(d => d.type === 'laporan').length;
+  const countSos = activeMapData.filter(d => d.type === 'sos').length;
+  const countRelawan = activeMapData.filter(d => d.type === 'relawan').length;
+  const countLaporan = activeMapData.filter(d => d.type === 'laporan').length;
 
   return (
     <div className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#eaedf1] bg-white shadow-xs ${className}`}>
@@ -320,7 +176,7 @@ export default function ModernEmergencyMap({
               onClick={() => setActiveFilter('semua')}
               className={`filter-pill ${activeFilter === 'semua' ? 'is-active' : ''}`}
             >
-              Semua ({emergencyMapData.length})
+              Semua ({activeMapData.length})
             </button>
             <button
               onClick={() => setActiveFilter('sos')}
@@ -335,13 +191,6 @@ export default function ModernEmergencyMap({
             >
               <span className="status-dot bg-emerald-500" />
               Relawan ({countRelawan})
-            </button>
-            <button
-              onClick={() => setActiveFilter('posko')}
-              className={`filter-pill tone-info ${activeFilter === 'posko' ? 'is-active' : ''}`}
-            >
-              <span className="status-dot bg-blue-500" />
-              Posko ({countPosko})
             </button>
             <button
               onClick={() => setActiveFilter('laporan')}
@@ -398,16 +247,15 @@ export default function ModernEmergencyMap({
 
         {/* ── Interactive Popup / Detail Card when marker is clicked ── */}
         {selectedItem && (
-          <div className="absolute left-4 bottom-4 z-30 max-w-[340px] w-[calc(100%-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-fade-in">
+          <div className="absolute left-4 bottom-4 z-[1000] max-w-[340px] w-[calc(100%-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-fade-in">
             {/* Header */}
             <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-[13px] text-slate-900">{selectedItem.id}</span>
+                  <span className="font-black text-[13px] text-slate-900">{selectedItem.displayId || selectedItem.id}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${
                     selectedItem.type === 'sos' ? 'bg-red-500 text-white' :
                     selectedItem.type === 'relawan' ? 'bg-emerald-600 text-white' :
-                    selectedItem.type === 'posko' ? 'bg-blue-600 text-white' :
                     'bg-amber-500 text-white'
                   }`}>
                     {selectedItem.status}
@@ -447,7 +295,7 @@ export default function ModernEmergencyMap({
             <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
               <button
                 onClick={() => {
-                  onOpenDetail?.(selectedItem.id);
+                  onOpenDetail?.(selectedItem.id, selectedItem.type);
                   setSelectedItem(null);
                 }}
                 className="btn-base btn-primary text-[12px] w-full py-1.5 h-8 rounded-lg"
@@ -462,22 +310,24 @@ export default function ModernEmergencyMap({
 
       {/* ── Bottom Legend ── */}
       {showLegend && (
-        <div className="px-5 py-2.5 bg-[#f8fafc] border-t border-[#eaedf1] flex items-center justify-between text-[11px] font-semibold text-slate-600 flex-wrap gap-2.5 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] animate-pulse" />
-            <span>🔴 SOS Aktif ({countSos})</span>
+        <div className="px-5 py-3 bg-[#f8fafc] border-t border-[#eaedf1] flex items-center justify-center text-[11px] font-semibold text-slate-600 flex-wrap gap-6 z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#ef4444] border border-white shadow-sm flex items-center justify-center text-white">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <span>SOS Aktif ({countSos})</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
-            <span>🟢 Relawan Aktif ({countRelawan})</span>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-sm flex items-center justify-center text-white">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <span>Relawan Aktif ({countRelawan})</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2563eb]" />
-            <span>🔵 Posko ({countPosko})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-            <span>🟠 Laporan Pending ({countLaporan})</span>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#f97316] border border-white shadow-sm flex items-center justify-center text-white">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <span>Laporan Pending ({countLaporan})</span>
           </div>
         </div>
       )}

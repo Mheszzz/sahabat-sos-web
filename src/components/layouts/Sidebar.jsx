@@ -1,13 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   Home, AlertTriangle, Clock, MapPin, Settings,
   Siren, LogOut, UserCog, Users, ChevronRight
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
+import { adminService } from '../../api/services/adminService';
 
-const navItems = [
+const initialNavItems = [
   { id: 'dashboard', label: 'Dashboard Utama', icon: Home },
-  { id: 'kasus-aktif', label: 'Kasus Aktif', icon: AlertTriangle, badge: 6 },
+  { id: 'kasus-aktif', label: 'Kasus Aktif', icon: AlertTriangle, badge: 0 },
   { id: 'riwayat', label: 'Riwayat Kasus', icon: Clock },
   { id: 'peta', label: 'Peta Pemantauan', icon: MapPin },
   { id: 'pengaturan', label: 'Pengaturan Sistem', icon: Settings },
@@ -38,7 +40,7 @@ function NavButton({ id, label, icon: Icon, badge, isActive }) {
         <Icon size={15} />
       </span>
       <span className="flex-1 truncate">{label}</span>
-      {badge && (
+      {badge > 0 && (
         <span className="bg-[#ef4444] text-white text-[10px] font-bold rounded-full min-w-[19px] h-[19px] flex items-center justify-center flex-shrink-0 px-1">
           {badge}
         </span>
@@ -54,6 +56,28 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
   const location = useLocation();
   // derive activePage from pathname roughly
   const activePage = location.pathname === '/' ? 'dashboard' : location.pathname.substring(1);
+  const [navItems, setNavItems] = useState(initialNavItems);
+
+  useEffect(() => {
+    const fetchActiveCount = async () => {
+      try {
+        const res = await adminService.getPetaKasus();
+        if (res?.data) {
+          const totalActive = (res.data.titik_darurat_sos?.length || 0) + (res.data.titik_laporan_aktif?.length || 0);
+          setNavItems(prev => prev.map(item => 
+            item.id === 'kasus-aktif' ? { ...item, badge: totalActive } : item
+          ));
+        }
+      } catch (err) {
+        console.error('Failed to fetch sidebar active cases count', err);
+      }
+    };
+    fetchActiveCount();
+    
+    // Opsional: fetch periodic (e.g. every 60s)
+    const interval = setInterval(fetchActiveCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <>
       {/* Mobile overlay */}
@@ -69,7 +93,7 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
 
       {/* Sidebar */}
       <aside
-        style={{ backgroundColor: '#0a271f' }}
+        style={{ backgroundColor: '#062c26' }}
         className={`
           fixed inset-y-0 left-0 w-[256px] flex flex-col z-50
           transition-transform duration-300 ease-in-out

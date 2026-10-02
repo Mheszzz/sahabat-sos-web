@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import LoginPage from '../pages/Login/LoginPage';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
@@ -54,6 +54,14 @@ export const router = createBrowserRouter([
       {
         path: 'detail-kasus/:id',
         element: <DetailKasusPage />
+      },
+      {
+        path: 'detail-relawan/:id',
+        element: <div className="p-10"><h1 className="text-2xl font-bold">Halaman Detail Relawan (Belum Dibuat)</h1><p className="mt-2 text-slate-500">Routing berhasil! Silakan buat komponen halamannya nanti.</p></div>
+      },
+      {
+        path: 'detail-laporan/:id',
+        element: <div className="p-10"><h1 className="text-2xl font-bold">Halaman Detail Laporan (Belum Dibuat)</h1><p className="mt-2 text-slate-500">Routing berhasil! Silakan buat komponen halamannya nanti.</p></div>
       }
     ]
   }
