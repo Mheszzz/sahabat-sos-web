@@ -1,4 +1,4 @@
-﻿import { Lock, ArrowLeft, UserPlus } from 'lucide-react';
+import { Lock, ArrowLeft, UserPlus } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
 import PageHeader from '../../components/global/PageHeader';
 import { useUsers } from '../../hooks/manajemen-user/useUsers';
@@ -14,7 +14,7 @@ export default function ManajemenUserPage() {
     return (
       <div className="p-6 lg:p-12 max-w-[800px] mx-auto text-center space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto"><Lock size={30} /></div>
-        <h1 className="text-[24px] font-black text-slate-900">403 â€” Akses Ditolak</h1>
+        <h1 className="text-[24px] font-black text-slate-900">403 — Akses Ditolak</h1>
         <Link to="/" className="btn-base btn-primary text-[13px] h-10 px-5 inline-flex"><ArrowLeft size={14} /><span>Kembali ke Dashboard</span></Link>
       </div>
     );
