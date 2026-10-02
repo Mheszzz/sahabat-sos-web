@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, RefreshCw, Eye, ArrowUpDown, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import Badge from '../../components/global/Badge';
 import { laporanService } from '../../api/services/laporanService';
@@ -16,11 +16,11 @@ export default function KasusAktifPage() {
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState(null);
 
-  const fetchLaporan = async (status = null) => {
+  const fetchLaporan = async () => {
     try {
       setLoading(true);
       setError('');
-      const res = await laporanService.getLaporan(status);
+      const res = await laporanService.getLaporan(); // Fetch all cases without status param
       if (res && res.data) {
         const items = res.data?.data ?? res.data ?? [];
         setCases(Array.isArray(items) ? items : []);
@@ -34,10 +34,10 @@ export default function KasusAktifPage() {
     }
   };
 
+  // Run only once on mount instead of re-fetching on tab change
   useEffect(() => {
-    const status = activeTab === 'semua' ? null : activeTab;
-    fetchLaporan(status);
-  }, [activeTab]);
+    fetchLaporan();
+  }, []);
 
   const filterTabs = [
     { id: 'semua', label: 'Semua' },
@@ -50,6 +50,8 @@ export default function KasusAktifPage() {
   }));
 
   const filteredCases = cases.filter(c => {
+    if (activeTab !== 'semua' && c.status !== activeTab) return false;
+    
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -70,7 +72,7 @@ export default function KasusAktifPage() {
           </p>
         </div>
         <button
-          onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
+          onClick={() => fetchLaporan()}
           disabled={loading}
           className="btn-base btn-secondary text-[12px] h-9"
         >
@@ -89,7 +91,7 @@ export default function KasusAktifPage() {
               className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               {tab.label}
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === tab.id ? 'bg-[#0a271f] text-white' : 'bg-slate-200 text-slate-600'}`}>
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === tab.id ? 'bg-[#006D77] text-white' : 'bg-slate-200 text-slate-600'}`}>
                 {tab.count}
               </span>
             </button>
@@ -135,7 +137,7 @@ export default function KasusAktifPage() {
             <p className="text-[13px] font-semibold">{error}</p>
           </div>
           <button
-            onClick={() => fetchLaporan(activeTab === 'semua' ? null : activeTab)}
+            onClick={() => fetchLaporan()}
             className="btn-base btn-danger text-[12px] h-8"
           >
             Coba Lagi
@@ -143,7 +145,7 @@ export default function KasusAktifPage() {
         </div>
       )}
 
-      {/* Table â€” reduced from 8 to 6 columns */}
+      {/* Table — reduced from 8 to 6 columns */}
       {!loading && !error && (
         <div className="card overflow-hidden">
           <div className="table-responsive">
@@ -155,7 +157,7 @@ export default function KasusAktifPage() {
                   <th>Kategori</th>
                   <th style={{width: '160px'}}>Pelapor</th>
                   <th style={{width: '110px'}}>Waktu</th>
-                  <th style={{width: '80px'}} className="text-right">Aksi</th>
+                  <th style={{width: '120px'}} className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,7 +207,7 @@ export default function KasusAktifPage() {
           {pagination && (
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500">
               <span>
-                Halaman {pagination.current_page} dari {pagination.last_page} â€¢ {pagination.total} laporan
+                Halaman {pagination.current_page} dari {pagination.last_page} • {pagination.total} laporan
               </span>
             </div>
           )}

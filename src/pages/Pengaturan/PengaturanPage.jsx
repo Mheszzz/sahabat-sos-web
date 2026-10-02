@@ -122,7 +122,7 @@ export default function PengaturanPage() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-bold transition-all ${isActive ? 'bg-[#0a271f] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-bold transition-all ${isActive ? 'bg-[#006D77] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                 >
                   <Icon size={16} className={isActive ? 'text-[#7ae7c3]' : 'text-slate-400'} />
                   <span>{item.label}</span>
@@ -185,7 +185,7 @@ export default function PengaturanPage() {
                       max="15"
                       value={sosRadius}
                       onChange={e => setSosRadius(Number(e.target.value))}
-                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#d5eee8] accent-[#0a271f]"
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-[#d5eee8] accent-[#006D77]"
                     />
 
                     <div className="mt-2 flex justify-between text-[11px] text-slate-400">
@@ -201,7 +201,7 @@ export default function PengaturanPage() {
                     </div>
                     <label className="relative inline-flex cursor-pointer items-center flex-shrink-0">
                       <input type="checkbox" checked={autoDispatch} onChange={e => setAutoDispatch(e.target.checked)} className="sr-only peer" />
-                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#0a271f] transition-colors" />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#006D77] transition-colors" />
                       <div className="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
                     </label>
                   </div>
@@ -213,7 +213,7 @@ export default function PengaturanPage() {
                     </div>
                     <label className="relative inline-flex cursor-pointer items-center flex-shrink-0">
                       <input type="checkbox" checked={soundAlert} onChange={e => setSoundAlert(e.target.checked)} className="sr-only peer" />
-                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#0a271f] transition-colors" />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#006D77] transition-colors" />
                       <div className="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
                     </label>
                   </div>
@@ -235,7 +235,7 @@ export default function PengaturanPage() {
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center flex-shrink-0">
                     <input type="checkbox" checked={autoSms} onChange={e => setAutoSms(e.target.checked)} className="sr-only peer" />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#0a271f] transition-colors" />
+                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-[#006D77] transition-colors" />
                     <div className="absolute left-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
                   </label>
                 </div>

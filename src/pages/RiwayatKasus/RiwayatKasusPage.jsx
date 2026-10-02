@@ -379,7 +379,7 @@ export default function RiwayatKasusPage() {
 								key={i + 1}
 								onClick={() => setCurrentPage(i + 1)}
 								className={`flex h-8 w-8 items-center justify-center rounded-lg font-bold cursor-pointer ${
-									currentPage === i + 1 ? 'bg-[#0a271f] text-white' : 'border border-slate-200 text-slate-500 hover:bg-slate-50'
+									currentPage === i + 1 ? 'bg-[#006D77] text-white' : 'border border-slate-200 text-slate-500 hover:bg-slate-50'
 								}`}
 							>
 								{i + 1}

@@ -6,7 +6,7 @@ export default function UserTabs({ activeTab, setActiveTab, pendingCount }) {
       <button
         onClick={() => setActiveTab('pengguna')}
         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
-          activeTab === 'pengguna' ? 'bg-[#0a271f] text-white' : 'text-slate-500 hover:text-slate-900'
+          activeTab === 'pengguna' ? 'bg-[#006D77] text-white' : 'text-slate-500 hover:text-slate-900'
         }`}
       >
         <Users size={15} />
@@ -15,7 +15,7 @@ export default function UserTabs({ activeTab, setActiveTab, pendingCount }) {
       <button
         onClick={() => setActiveTab('relawan')}
         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
-          activeTab === 'relawan' ? 'bg-[#0a271f] text-white' : 'text-slate-500 hover:text-slate-900'
+          activeTab === 'relawan' ? 'bg-[#006D77] text-white' : 'text-slate-500 hover:text-slate-900'
         }`}
       >
         <HeartHandshake size={15} />

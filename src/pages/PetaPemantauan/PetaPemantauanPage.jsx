@@ -8,7 +8,11 @@ import { useNavigate } from 'react-router-dom';
 
 export default function PetaPemantauanPage() {
   const navigate = useNavigate();
-  const onOpenDetail = (id) => navigate('/detail-kasus/' + id);
+  const onOpenDetail = (id, type) => {
+    if (type === 'relawan') navigate('/detail-relawan/' + id);
+    else if (type === 'laporan') navigate('/detail-laporan/' + id);
+    else navigate('/detail-kasus/' + id);
+  };
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [mapData, setMapData] = useState([]);
@@ -19,14 +23,87 @@ export default function PetaPemantauanPage() {
     const fetchMapData = async () => {
       try {
         const res = await adminService.getPetaKasus();
-        setMapData(res?.data?.mapData || []);
-        setVolunteers(res?.data?.volunteers || []);
+        if (res && res.data) {
+          const d = res.data;
+          const mappedData = [];
+
+          (d.titik_darurat_sos || []).forEach(t => {
+            mappedData.push({
+              id: t.id,
+              displayId: t.id_kasus,
+              type: 'sos',
+              label: t.id_kasus,
+              kategori: 'Darurat SOS (' + t.jenis_disabilitas + ')',
+              prioritas: t.status === 'aktif' ? 'DARURAT' : 'Ditangani',
+              pelapor: t.korban,
+              lokasi: 'Lokasi Darurat',
+              status: t.status,
+              relawan: t.relawan_penangan || 'Menunggu Penugasan',
+              eta: '—',
+              lat: t.latitude,
+              lng: t.longitude,
+              waktu: t.waktu_sos || 'Baru saja'
+            });
+          });
+
+          (d.titik_laporan_aktif || []).forEach(l => {
+            mappedData.push({
+              id: l.id,
+              displayId: l.id_laporan,
+              type: 'laporan',
+              label: l.id_laporan,
+              kategori: l.kategori || 'Laporan Pengguna',
+              prioritas: l.urgensi === 'sedang' ? 'Prioritas Sedang' : 'Rendah',
+              pelapor: l.pelapor,
+              lokasi: 'Lokasi Laporan',
+              status: l.status,
+              relawan: l.relawan_penangan || 'Menunggu Penugasan',
+              eta: '—',
+              lat: l.latitude,
+              lng: l.longitude,
+              waktu: l.waktu_laporan || 'Baru saja'
+            });
+          });
+
+          const volList = d.posisi_relawan || [];
+          volList.forEach(r => {
+            mappedData.push({
+              id: 'REL-' + r.id,
+              type: 'relawan',
+              label: r.nama,
+              kategori: r.kompetensi || 'Relawan Siaga',
+              prioritas: r.status === 'sedang_bertugas' ? 'Bertugas' : 'Siaga',
+              pelapor: 'Unit Relawan',
+              lokasi: r.lokasi_user || 'Area Terdekat',
+              status: r.status === 'sedang_bertugas' ? 'Menuju Lokasi' : 'Siaga',
+              relawan: r.nama,
+              eta: '-',
+              lat: r.latitude,
+              lng: r.longitude,
+              waktu: 'Real-time GPS'
+            });
+          });
+
+          setMapData(mappedData);
+
+          const colors = ['bg-[#0ea5e9]', 'bg-[#10b981]', 'bg-[#f59e0b]'];
+          setVolunteers(volList.map((v, i) => ({
+            id: v.id,
+            nama: v.nama,
+            peran: v.kompetensi,
+            status: v.status === 'siaga' ? 'Online' : 'Bertugas',
+            avatar: v.nama.substring(0, 2).toUpperCase(),
+            avatarBg: colors[i % colors.length],
+            jarak: 'GPS Aktif',
+            eta: 'Tersedia',
+            kontak: v.no_telp
+          })));
+        }
       } catch (err) {
         console.error('Gagal mengambil data peta:', err);
       }
     };
     fetchMapData();
-    // Bisa tambahkan polling di sini jika diperlukan
   }, []);
 
   const handleSirene = async () => {
@@ -43,7 +120,6 @@ export default function PetaPemantauanPage() {
 
   const sosCount = mapData.filter(d => d.type === 'sos').length;
   const relawanCount = mapData.filter(d => d.type === 'relawan').length;
-  const poskoCount = mapData.filter(d => d.type === 'posko').length;
   const laporanCount = mapData.filter(d => d.type === 'laporan').length;
 
 
@@ -61,7 +137,7 @@ export default function PetaPemantauanPage() {
       />
 
       {/* â”€â”€ Metric Summary Badges â”€â”€ */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[12px] font-bold text-slate-400">SOS Aktif</span>
@@ -76,14 +152,6 @@ export default function PetaPemantauanPage() {
             <p className="text-[24px] font-black text-emerald-600 mt-1">{relawanCount}</p>
           </div>
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-        </div>
-
-        <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[12px] font-bold text-slate-400">Posko Siaga</span>
-            <p className="text-[24px] font-black text-blue-600 mt-1">{poskoCount}</p>
-          </div>
-          <span className="w-2 h-2 rounded-full bg-blue-500" />
         </div>
 
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
@@ -118,7 +186,7 @@ export default function PetaPemantauanPage() {
             onOpenDetail={onOpenDetail}
             showFilterBar={true}
             showLegend={true}
-            data={mapData}
+            mapData={mapData}
           />
         </div>
 
@@ -151,7 +219,7 @@ export default function PetaPemantauanPage() {
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Jarak: <strong>{vol.jarak}</strong> &middot; {vol.eta}</span>
+                  <span><strong>{vol.jarak}</strong> &middot; {vol.eta}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
