@@ -1,4 +1,4 @@
-﻿import { statusClassMap, statusDotMap } from '../../utils/theme';
+import { statusClassMap, statusDotMap } from '../../utils/theme';
 
 const pulsingStatuses = new Set(['Sedang Bertugas', 'Aktif', 'SOS Darurat', 'Online']);
 

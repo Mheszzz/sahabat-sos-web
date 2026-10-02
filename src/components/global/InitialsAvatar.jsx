@@ -1,4 +1,4 @@
-﻿import { getInitials } from '../../utils/theme';
+import { getInitials } from '../../utils/theme';
 
 export default function InitialsAvatar({
   name,

@@ -1,7 +1,7 @@
 import { Users } from 'lucide-react';
 import ModernEmergencyMap from './ModernEmergencyMap';
 
-export default function MapPanel({ relawanCount = 54, onOpenDetail }) {
+export default function MapPanel({ relawanCount = 54, onOpenDetail, mapData = [] }) {
   return (
     <div className="overflow-hidden rounded-[20px] border border-[#e2e8f0] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
@@ -24,6 +24,7 @@ export default function MapPanel({ relawanCount = 54, onOpenDetail }) {
         onOpenDetail={onOpenDetail}
         showFilterBar={true}
         showLegend={true}
+        mapData={mapData}
       />
     </div>
   );

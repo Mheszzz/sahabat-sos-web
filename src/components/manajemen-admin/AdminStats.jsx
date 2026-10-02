@@ -1,44 +1,61 @@
-import { Users, UserCheck, Activity, Clock } from 'lucide-react';
+import { Users, Shield, CheckCircle2, Calendar } from 'lucide-react';
 
-export default function AdminStats({ totalAdmin, adminAktif, sedangBertugas, offlineCount }) {
+/**
+ * AdminStats — Card statistik ringkas.
+ * Hanya menampilkan data yang BENAR-BENAR tersedia dari endpoint GET /superadmin/admins:
+ *   - total admin
+ *   - admin yang sudah punya minimal 1 permission
+ *   - admin yang belum punya permission sama sekali
+ *   - admin terdaftar bulan ini (berdasarkan created_at)
+ */
+export default function AdminStats({ totalAdmin, adminDenganAkses, adminTanpaAkses, adminBaru }) {
+  const stats = [
+    {
+      label: 'Total Admin',
+      value: totalAdmin,
+      icon: Users,
+      iconBg: 'bg-slate-50',
+      iconColor: 'text-slate-600',
+    },
+    {
+      label: 'Punya Hak Akses',
+      value: adminDenganAkses,
+      icon: Shield,
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+    },
+    {
+      label: 'Belum Ada Akses',
+      value: adminTanpaAkses,
+      icon: CheckCircle2,
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+    },
+    {
+      label: 'Daftar Bulan Ini',
+      value: adminBaru,
+      icon: Calendar,
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-      <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between">
-        <div>
-          <p className="text-[13px] font-semibold text-slate-500">Total Admin</p>
-          <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{totalAdmin}</p>
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      {stats.map((s) => (
+        <div
+          key={s.label}
+          className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between"
+        >
+          <div>
+            <p className="text-[12px] font-semibold text-slate-500 leading-none">{s.label}</p>
+            <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{s.value ?? '—'}</p>
+          </div>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconBg}`}>
+            <s.icon size={22} className={s.iconColor} />
+          </div>
         </div>
-        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600">
-          <Users size={22} />
-        </div>
-      </div>
-      <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between">
-        <div>
-          <p className="text-[13px] font-semibold text-slate-500">Admin Aktif</p>
-          <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{adminAktif}</p>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-[#ecfdf5] flex items-center justify-center text-[#10b981]">
-          <UserCheck size={22} />
-        </div>
-      </div>
-      <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between">
-        <div>
-          <p className="text-[13px] font-semibold text-slate-500">Sedang Bertugas</p>
-          <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{sedangBertugas}</p>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-[#eff6ff] flex items-center justify-center text-[#3b82f6]">
-          <Activity size={22} />
-        </div>
-      </div>
-      <div className="bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs flex items-center justify-between">
-        <div>
-          <p className="text-[13px] font-semibold text-slate-500">Offline</p>
-          <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{offlineCount}</p>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-          <Clock size={22} />
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
