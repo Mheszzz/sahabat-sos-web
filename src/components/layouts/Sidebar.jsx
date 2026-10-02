@@ -1,4 +1,4 @@
-﻿import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Home, AlertTriangle, Clock, MapPin, Settings,
   Siren, LogOut, UserCog, Users, ChevronRight
@@ -79,9 +79,7 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
       >
         {/* Brand Header */}
         <div className="h-[64px] px-5 flex items-center gap-3 flex-shrink-0 border-b border-white/[0.07]">
-          <div className="w-9 h-9 rounded-xl bg-[#ef4444] flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-950/50">
-            <Siren size={17} className="text-white" />
-          </div>
+          <img src="/logo.png" alt="Sahabat SOS Logo" className="h-8 w-auto object-contain rounded-md bg-white p-0.5" />
           <div className="min-w-0">
             <h1 className="text-white font-extrabold text-[15px] tracking-tight leading-none">Sahabat SOS</h1>
             <p className="text-[#34d399] text-[10px] font-bold uppercase tracking-[0.12em] mt-[3px] leading-none opacity-80">

@@ -23,10 +23,10 @@ export const s = {
   },
   logoWrap: { display: 'flex', alignItems: 'center', gap: '10px' },
   logoBox: {
-    width: '36px', height: '36px', borderRadius: '10px',
-    backgroundColor: '#ef4444', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(239,68,68,0.35)',
+    width: '38px', height: '38px', borderRadius: '8px',
+    backgroundColor: '#ffffff', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', flexShrink: 0, padding: '2px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
   },
   brandName: { color: '#fff', fontWeight: '700', fontSize: '14px', lineHeight: '1.2', margin: 0 },
   brandSub: {

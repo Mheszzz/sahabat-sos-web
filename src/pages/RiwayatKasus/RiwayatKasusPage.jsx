@@ -1,7 +1,17 @@
-import { useState } from 'react';
-import { Search, Download, Calendar, Filter, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Download, Calendar, Filter, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { laporanService } from '../../api/services/laporanService';
+import { adminService } from '../../api/services/adminService';
 
-const riwayatData = [
+const ITEMS_PER_PAGE = 8;
+
+function formatDateRow(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const placeholder_riwayatData = [
 	{
 		id: 'SOS-5016',
 		tanggal: '06 Sep 2026, 22:14',
@@ -93,9 +103,47 @@ const riwayatData = [
 ];
 
 export default function RiwayatKasusPage() {
+	const navigate = useNavigate();
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('Semua');
 	const [currentPage, setCurrentPage] = useState(1);
+	const [riwayatData, setRiwayatData] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
+
+	useEffect(() => {
+		const fetchRiwayat = async () => {
+			try {
+				setLoading(true);
+				setError('');
+				const res = await laporanService.getLaporan();
+				if (res && res.data) {
+					const items = res.data?.data ?? res.data ?? [];
+					const raw = Array.isArray(items) ? items : [];
+					setRiwayatData(raw.map((k) => ({
+						id: String(k.id),
+						rawId: k.id,
+						tanggal: formatDateRow(k.waktu_laporan),
+						kategori: k.kategori_laporan || 'Laporan Darurat',
+						pelapor: k.pengguna?.name || '—',
+						disabilitas: k.pengguna?.kategori_user || '—',
+						lokasi: k.lokasi_laporan || '—',
+						relawan: k.relawan?.name || '—',
+						durasi: '—',
+						status: k.status === 'selesai' ? 'Selesai' : k.status === 'batal' ? 'Dibatalkan' : (k.status || '—'),
+					})));
+				}
+			} catch (err) {
+				setError('Gagal memuat riwayat kasus. Pastikan backend berjalan.');
+				console.error(err);
+				// Fallback ke dummy data agar UI tetap bisa digunakan
+				setRiwayatData(placeholder_riwayatData);
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchRiwayat();
+	}, []);
 
 	const filtered = riwayatData.filter((r) => {
 		const matchStatus = statusFilter === 'Semua' || r.status === statusFilter;
@@ -110,6 +158,25 @@ export default function RiwayatKasusPage() {
 		return matchStatus && matchSearch;
 	});
 
+	const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+	const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+	const handleExport = async () => {
+		try {
+			const blob = await adminService.exportLaporanCsv();
+			const url = window.URL.createObjectURL(new Blob([blob]));
+			const link = document.createElement('a');
+			link.href = url;
+			link.setAttribute('download', `Rekap_Laporan_Sahabat_SOS_${new Date().toISOString().slice(0, 10)}.csv`);
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+		} catch (err) {
+			console.error('Gagal export CSV:', err);
+			alert('Gagal mengekspor laporan. Silakan coba lagi.');
+		}
+	};
+
 	return (
 		<div className="page-shell space-y-6">
 			<div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -123,7 +190,7 @@ export default function RiwayatKasusPage() {
 				</div>
 
 				<button
-					onClick={() => alert('Mengekspor data riwayat ke CSV...')}
+					onClick={handleExport}
 					className="btn-base btn-secondary text-[12px] h-9"
 				>
 					<Download size={13} />
@@ -191,7 +258,27 @@ export default function RiwayatKasusPage() {
 							</tr>
 						</thead>
 						<tbody>
-							{filtered.map((row) => (
+							{loading && (
+								<tr>
+									<td colSpan={9} className="text-center py-12">
+										<div className="flex items-center justify-center gap-2 text-slate-500">
+											<Loader2 size={16} className="animate-spin text-[#0b6f61]" />
+											<span className="text-[13px] font-semibold">Memuat riwayat...</span>
+										</div>
+									</td>
+								</tr>
+							)}
+							{!loading && error && (
+								<tr>
+									<td colSpan={9} className="text-center py-8">
+										<div className="flex items-center justify-center gap-2 text-amber-600 text-[12px] font-semibold">
+											<AlertTriangle size={14} />
+											<span>{error} (Menampilkan data contoh)</span>
+										</div>
+									</td>
+								</tr>
+							)}
+							{!loading && paginated.map((row) => (
 								<tr key={row.id}>
 									<td className="min-w-0">
 										<span className="block text-[12px] font-extrabold text-slate-900 break-words">
@@ -262,11 +349,11 @@ export default function RiwayatKasusPage() {
 
 									<td className="text-right min-w-0">
 										<button
-											onClick={() => alert(`Membuka arsip ${row.id}`)}
+											onClick={() => navigate(`/detail-kasus/${row.rawId || row.id}`)}
 											className="btn-base btn-secondary h-8 rounded-lg px-2.5 text-[11px]"
 										>
 											<Eye size={12} />
-											<span>Arsip</span>
+											<span>Detail</span>
 										</button>
 									</td>
 								</tr>
@@ -277,16 +364,32 @@ export default function RiwayatKasusPage() {
 
 				<div className="flex items-center justify-between border-t border-[#f1f5f9] px-6 py-4 text-[12px] text-slate-500">
 					<span>
-						Menampilkan 1-8 dari {filtered.length} riwayat
+						Menampilkan {paginated.length} dari {filtered.length} riwayat
 					</span>
 					<div className="flex items-center gap-1.5">
-						<button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40">
+						<button
+							onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+							disabled={currentPage === 1}
+							className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 cursor-pointer"
+						>
 							<ChevronLeft size={14} />
 						</button>
-						<button className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a271f] font-bold text-white">
-							1
-						</button>
-						<button className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-700">
+						{Array.from({ length: totalPages }, (_, i) => (
+							<button
+								key={i + 1}
+								onClick={() => setCurrentPage(i + 1)}
+								className={`flex h-8 w-8 items-center justify-center rounded-lg font-bold cursor-pointer ${
+									currentPage === i + 1 ? 'bg-[#0a271f] text-white' : 'border border-slate-200 text-slate-500 hover:bg-slate-50'
+								}`}
+							>
+								{i + 1}
+							</button>
+						))}
+						<button
+							onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+							disabled={currentPage === totalPages}
+							className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 cursor-pointer"
+						>
 							<ChevronRight size={14} />
 						</button>
 					</div>

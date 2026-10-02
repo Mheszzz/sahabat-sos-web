@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { RefreshCw, ArrowRight, Users } from 'lucide-react';
 import StatCard from '../../components/global/StatCard';
 import SOSCard from '../../components/global/SOSCard';
@@ -25,7 +25,7 @@ export default function DashboardPage() {
     active_sos: 0,
     total_laporan: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -63,11 +63,11 @@ export default function DashboardPage() {
         </div>
         <button
           onClick={fetchStats}
-          className={`btn-base btn-secondary h-9 px-3 text-[12px] ${loading ? 'animate-spin' : ''}`}
-          title="Muat Ulang Data"
+          disabled={loading}
+          className="btn-base btn-secondary text-[12px] h-9"
         >
-          <RefreshCw size={14} />
-          <span className="hidden sm:inline">Refresh</span>
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          <span>Refresh</span>
         </button>
       </div>
 

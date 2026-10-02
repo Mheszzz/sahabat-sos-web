@@ -187,10 +187,10 @@ export default function ModernEmergencyMap({
       scrollWheelZoom: true,
     });
 
-    // High-end clean muted emergency basemap: CartoDB Positron / Voyager
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Esri World Street Map — Desain Modern & Cocok untuk Command Center
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
-      subdomains: 'abcd',
+      attribution: 'Tiles &copy; Esri',
     }).addTo(map);
 
     markersLayerRef.current = L.layerGroup().addTo(map);

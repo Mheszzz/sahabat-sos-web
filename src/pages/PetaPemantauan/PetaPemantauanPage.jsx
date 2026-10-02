@@ -1,10 +1,9 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Radio, AlertTriangle, Phone, Users } from 'lucide-react';
-import ModernEmergencyMap, { emergencyMapData } from '../../components/ModernEmergencyMap';
+import ModernEmergencyMap from '../../components/ModernEmergencyMap';
 import PageHeader from '../../components/global/PageHeader';
 import Badge from '../../components/global/Badge';
-import { volunteers } from '../../utils/dummyData';
-
+import { adminService } from '../../api/services/adminService';
 import { useNavigate } from 'react-router-dom';
 
 export default function PetaPemantauanPage() {
@@ -12,11 +11,41 @@ export default function PetaPemantauanPage() {
   const onOpenDetail = (id) => navigate('/detail-kasus/' + id);
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [mapData, setMapData] = useState([]);
+  const [volunteers, setVolunteers] = useState([]);
+  const [sireneLoading, setSireneLoading] = useState(false);
 
-  const sosCount = emergencyMapData.filter(d => d.type === 'sos').length;
-  const relawanCount = emergencyMapData.filter(d => d.type === 'relawan').length;
-  const poskoCount = emergencyMapData.filter(d => d.type === 'posko').length;
-  const laporanCount = emergencyMapData.filter(d => d.type === 'laporan').length;
+  useEffect(() => {
+    const fetchMapData = async () => {
+      try {
+        const res = await adminService.getPetaKasus();
+        setMapData(res?.data?.mapData || []);
+        setVolunteers(res?.data?.volunteers || []);
+      } catch (err) {
+        console.error('Gagal mengambil data peta:', err);
+      }
+    };
+    fetchMapData();
+    // Bisa tambahkan polling di sini jika diperlukan
+  }, []);
+
+  const handleSirene = async () => {
+    try {
+      setSireneLoading(true);
+      await adminService.triggerSirenePosko();
+      alert('Sirene berhasil dibunyikan di seluruh posko!');
+    } catch (err) {
+      alert('Gagal membunyikan sirene.');
+    } finally {
+      setSireneLoading(false);
+    }
+  };
+
+  const sosCount = mapData.filter(d => d.type === 'sos').length;
+  const relawanCount = mapData.filter(d => d.type === 'relawan').length;
+  const poskoCount = mapData.filter(d => d.type === 'posko').length;
+  const laporanCount = mapData.filter(d => d.type === 'laporan').length;
+
 
   return (
     <div className="page-shell space-y-6 relative">
@@ -35,7 +64,7 @@ export default function PetaPemantauanPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[12px] font-bold text-slate-400">ðŸ”´ SOS Aktif</span>
+            <span className="text-[12px] font-bold text-slate-400">SOS Aktif</span>
             <p className="text-[24px] font-black text-red-600 mt-1">{sosCount}</p>
           </div>
           <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
@@ -43,7 +72,7 @@ export default function PetaPemantauanPage() {
 
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[12px] font-bold text-slate-400">ðŸŸ¢ Relawan Aktif</span>
+            <span className="text-[12px] font-bold text-slate-400">Relawan Aktif</span>
             <p className="text-[24px] font-black text-emerald-600 mt-1">{relawanCount}</p>
           </div>
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -51,7 +80,7 @@ export default function PetaPemantauanPage() {
 
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[12px] font-bold text-slate-400">ðŸ”µ Posko Siaga</span>
+            <span className="text-[12px] font-bold text-slate-400">Posko Siaga</span>
             <p className="text-[24px] font-black text-blue-600 mt-1">{poskoCount}</p>
           </div>
           <span className="w-2 h-2 rounded-full bg-blue-500" />
@@ -59,7 +88,7 @@ export default function PetaPemantauanPage() {
 
         <div className="bg-white border border-[#eaedf1] rounded-2xl p-4 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-[12px] font-bold text-slate-400">ðŸŸ  Laporan Pending</span>
+            <span className="text-[12px] font-bold text-slate-400">Laporan Pending</span>
             <p className="text-[24px] font-black text-amber-600 mt-1">{laporanCount}</p>
           </div>
           <span className="w-2 h-2 rounded-full bg-amber-500" />
@@ -89,6 +118,7 @@ export default function PetaPemantauanPage() {
             onOpenDetail={onOpenDetail}
             showFilterBar={true}
             showLegend={true}
+            data={mapData}
           />
         </div>
 
@@ -121,7 +151,7 @@ export default function PetaPemantauanPage() {
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Jarak: <strong>{vol.jarak}</strong> Â· {vol.eta}</span>
+                  <span>Jarak: <strong>{vol.jarak}</strong> &middot; {vol.eta}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -140,11 +170,12 @@ export default function PetaPemantauanPage() {
           {/* Broadcast Alert Button */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <button
-              onClick={() => alert('Sirene darurat dibunyikan di seluruh Posko Jabodetabek')}
-              className="btn-base btn-primary w-full text-[12px] h-10"
+              onClick={handleSirene}
+              disabled={sireneLoading}
+              className="btn-base btn-primary w-full text-[12px] h-10 disabled:opacity-50"
             >
               <AlertTriangle size={14} />
-              <span>Bunyikan Sirene di Seluruh Posko</span>
+              <span>{sireneLoading ? 'Membunyikan Sirene...' : 'Bunyikan Sirene di Seluruh Posko'}</span>
             </button>
           </div>
         </div>

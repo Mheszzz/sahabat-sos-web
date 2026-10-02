@@ -1,4 +1,4 @@
-﻿import {  useState  } from 'react';
+import {  useState  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Siren, AlertCircle, Loader2, ShieldCheck, Activity } from 'lucide-react';
 import { useAuthForm } from '../../hooks/login/useAuthForm';
@@ -16,7 +16,7 @@ export default function LoginPage() {
         <div style={s.leftTop}>
           <div style={s.logoWrap}>
             <div style={s.logoBox}>
-              <Siren size={20} color="#fff" />
+              <img src="/logo.png" alt="Sahabat SOS Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div>
               <p style={s.brandName}>Sahabat SOS</p>
