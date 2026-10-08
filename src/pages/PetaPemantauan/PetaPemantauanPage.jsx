@@ -128,12 +128,7 @@ export default function PetaPemantauanPage() {
       <PageHeader 
         title="Peta Pemantauan Wilayah"
         description="Pemantauan geospasial real-time, koordinasi titik SOS, dan pelacakan unit relawan siaga."
-        actions={
-          <div className="flex items-center gap-2 bg-white border border-[#eaedf1] px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 shadow-xs">
-            <Radio size={14} className="text-emerald-600 animate-pulse" />
-            <span className="whitespace-nowrap">Satelit Geospasial GPS Online (Akurasi 3m)</span>
-          </div>
-        }
+        actions={null}
       />
 
       {/* â”€â”€ Metric Summary Badges â”€â”€ */}
@@ -194,7 +189,6 @@ export default function PetaPemantauanPage() {
         <div className={`${isPanelOpen ? 'block' : 'hidden'} xl:block bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs space-y-5`}>
           <div className="border-b border-slate-100 pb-3.5 flex items-center justify-between">
             <h2 className="text-[15px] font-bold text-slate-900">Unit Relawan Siaga Terdekat</h2>
-            <Badge variant="Online" customColor="bg-emerald-50 text-emerald-700" isPill>Live GPS</Badge>
           </div>
 
           {/* Volunteer List */}

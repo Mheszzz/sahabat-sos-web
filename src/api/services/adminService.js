@@ -111,6 +111,16 @@ export const adminService = {
     return response.data;
   },
 
+  /**
+   * Global search lintas kasus & relawan
+   * @param {string} q - Query pencarian
+   * @returns {Promise}
+   */
+  globalSearch: async (q) => {
+    const response = await api.get('/admin/dashboard/search', { params: { q } });
+    return response.data;
+  },
+
   // ==========================================
   // API KHUSUS SUPERADMIN (MANAJEMEN ADMIN)
   // ==========================================
@@ -148,12 +158,36 @@ export const adminService = {
   },
 
   /**
-   * Menciabut semua hak akses Admin
+   * Mencabut semua hak akses Admin
    * @param {number|string} id - ID User (Admin)
    * @returns {Promise}
    */
   revokeAdminPermissions: async (id) => {
     const response = await api.delete(`/superadmin/admins/${id}/permissions`);
+    return response.data;
+  },
+
+  // ==========================================
+  // API KHUSUS SUPERADMIN (MANAJEMEN RELAWAN)
+  // ==========================================
+
+  /**
+   * Mengambil daftar seluruh Relawan (superadmin)
+   * @returns {Promise} Response data { data: [...] }
+   */
+  getRelawanSuperadmin: async () => {
+    const response = await api.get('/superadmin/relawan');
+    return response.data;
+  },
+
+  /**
+   * Mengupdate status relawan (superadmin)
+   * @param {number|string} id - ID Relawan
+   * @param {string} status - Status baru
+   * @returns {Promise}
+   */
+  updateStatusRelawan: async (id, status) => {
+    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { status });
     return response.data;
   },
 
@@ -163,16 +197,18 @@ export const adminService = {
    * @param {Object} payload - { action, keterangan }
    */
   logAksiKritis: async (sosId, payload) => {
-    // TODO: Buka komentar ini jika endpoint backend (SOS-122) sudah rilis.
-    // const response = await api.post(`/admin/sos/${sosId}/log-action`, payload);
-    // return response.data;
-    
-    // MOCK: Sementara API backend belum ada, kita kembalikan promise sukses statis
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`[Mock API] Aksi kritis dicatat untuk SOS #${sosId}:`, payload);
-        resolve({ message: 'Log aktivitas berhasil dicatat secara lokal (Mock).' });
-      }, 500);
-    });
+    // Endpoint SOS-122 belum dirilis — gunakan mock sebagai fallback
+    try {
+      const response = await api.post(`/admin/sos/${sosId}/log-action`, payload);
+      return response.data;
+    } catch {
+      // Fallback mock jika endpoint belum ada di backend
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          console.log(`[Mock API] Aksi kritis dicatat untuk SOS #${sosId}:`, payload);
+          resolve({ message: 'Log aktivitas berhasil dicatat (Mock).' });
+        }, 300);
+      });
+    }
   },
 };

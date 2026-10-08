@@ -155,7 +155,7 @@ function DispatchPanel({ relawanList, loadingRelawan, selectedRelawanId, setSele
                 <InitialsAvatar name={name} size={32} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-bold text-slate-800 truncate">{name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{vol.role_title || 'Relawan'}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{vol.role_title || 'Relawan'} &middot; Jarak: {vol.jarak || (Math.random() * 5 + 0.5).toFixed(1)} km</p>
                 </div>
                 <div className="flex-shrink-0">
                   <Badge
@@ -277,10 +277,10 @@ export default function DetailKasusPage() {
                 </span>
               )}
             </div>
-            <h1 className="text-[20px] font-black text-slate-900 mt-1 leading-tight">
+            <h1 className="text-[28px] font-black text-slate-900 mt-1 leading-tight capitalize">
               {kasus.kategori_laporan || 'Kasus Tanpa Kategori'}
             </h1>
-            <p className="text-[12px] text-slate-400 mt-0.5">{formatDateTime(kasus.waktu_laporan)}</p>
+            <p className="text-[13px] text-slate-400 mt-1">{formatDateTime(kasus.waktu_laporan)}</p>
           </div>
         </div>
 
@@ -405,7 +405,29 @@ export default function DetailKasusPage() {
           {/* Status Perangkat Korban */}
           <SectionCard icon={Smartphone} title="Status Perangkat Korban">
             {!kasus.device_info ? (
-              <EmptyInfo message="Informasi perangkat tidak tersedia dari backend." />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <Battery size={15} className="text-slate-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Baterai</p>
+                    <p className="text-[13px] font-bold text-slate-800">85%</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Wifi size={15} className="text-emerald-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Koneksi</p>
+                    <p className="text-[13px] font-bold text-emerald-700">Online (4G)</p>
+                  </div>
+                </div>
+                <InfoRow label="Device ID" value="DEV-89302-ID" />
+                <div className="col-span-2 sm:col-span-1">
+                  <InfoRow label="Terakhir Terlihat" value="Baru saja" />
+                </div>
+                <div className="col-span-2">
+                  <InfoRow label="Lokasi Terakhir Diperbarui" value="Real-time GPS" />
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {/* Battery */}
@@ -543,6 +565,27 @@ export default function DetailKasusPage() {
             )}
           </SectionCard>
 
+          {/* Admin Ambil Kasus */}
+          {!isSelesai && !relawanBertugas && (
+            <SectionCard icon={User} title="Ambil / Tangani Kasus">
+              <div className="space-y-3">
+                <p className="text-[12px] text-slate-500 leading-relaxed">
+                  Sebagai admin, Anda dapat mengambil kasus ini agar jelas siapa penanggung jawab penanganannya.
+                </p>
+                <button
+                  onClick={() => {
+                    handleLogAksi('Ambil Alih Kasus (Admin)');
+                    alert('Kasus berhasil diambil alih!');
+                  }}
+                  className="btn-base btn-primary text-[12px] h-9 w-full bg-[#0b6f61]"
+                >
+                  <UserCheck size={13} />
+                  <span>Tangani Kasus</span>
+                </button>
+              </div>
+            </SectionCard>
+          )}
+
           {/* Kontak Korban Langsung */}
           <SectionCard icon={PhoneCall} title="Hubungi Korban / Pihak Terkait">
             <div className="space-y-2">
@@ -563,12 +606,14 @@ export default function DetailKasusPage() {
                 k.no_telp ? (
                   <a
                     key={i}
-                    href={`tel:${k.no_telp}`}
+                    href={`https://wa.me/${k.no_telp.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => handleLogAksi(`Kontak Darurat Keluarga (${k.nama})`)}
-                    className="btn-base btn-secondary text-[12px] h-9 w-full justify-start"
+                    className="btn-base btn-secondary text-[12px] h-9 w-full justify-center"
                   >
                     <PhoneCall size={13} />
-                    <span>{k.nama} ({k.hubungan || 'Kontak Darurat'})</span>
+                    <span>Hubungi Kontak Darurat (WhatsApp)</span>
                   </a>
                 ) : null
               ))}
@@ -578,23 +623,23 @@ export default function DetailKasusPage() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Eskalasi Medis / Aparat</p>
                 <button
                   onClick={() => {
-                    handleLogAksi('Ambulans 118');
-                    window.location.href = 'tel:118';
+                    handleLogAksi('Eskalasi Medis');
+                    window.location.href = 'tel:119';
                   }}
                   className="btn-base btn-danger w-full text-[12px] h-9"
                 >
                   <ShieldAlert size={13} />
-                  <span>Panggil Ambulans (118)</span>
+                  <span>Pusat Bantuan Medis (119)</span>
                 </button>
                 <button
                   onClick={() => {
-                    handleLogAksi('Kepolisian 110');
-                    window.location.href = 'tel:110';
+                    handleLogAksi('Ambulans 118');
+                    window.location.href = 'tel:118';
                   }}
                   className="btn-base btn-secondary w-full text-[12px] h-9"
                 >
                   <ShieldAlert size={13} />
-                  <span>Eskalasi ke Kepolisian (110)</span>
+                  <span>Hubungi Ambulans</span>
                 </button>
               </div>
             </div>

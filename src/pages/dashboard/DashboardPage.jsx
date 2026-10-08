@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, ArrowRight, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { RefreshCw, ArrowRight, Users, Search, X } from 'lucide-react';
 import StatCard from '../../components/global/StatCard';
 import SOSCard from '../../components/global/SOSCard';
 import MapPanel from '../../components/MapPanel';
@@ -30,6 +30,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [relawanCount, setRelawanCount] = useState(0);
   const [mapData, setMapData] = useState([]);
+
+  // Global Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef(null);
+  const searchTimerRef = useRef(null);
 
   const fetchStats = async () => {
     try {
@@ -144,6 +151,26 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchStats(); }, []);
 
+  // ─── Global Search ────────────────────────────────────────────────────
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    clearTimeout(searchTimerRef.current);
+    if (!val.trim()) { setSearchResults(null); return; }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const res = await adminService.globalSearch(val);
+        setSearchResults(res?.data ?? res ?? null);
+      } catch {
+        setSearchResults(null);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
+  };
+
+  const clearSearch = () => { setSearchQuery(''); setSearchResults(null); };
+
   const dynamicStatCards = [
     { id: 'panggilan-sos', label: 'SOS Hari Ini', value: stats.panggilan_sos_hari_ini, trendLabel: 'Panggilan SOS hari ini', icon: 'Phone', iconBg: 'bg-[#ecfdf5]', iconColor: 'text-[#10b981]' },
     { id: 'jumlah-laporan', label: 'Jumlah Laporan', value: stats.jumlah_laporan_hari_ini, trendLabel: 'Total laporan hari ini', icon: 'FileText', iconBg: 'bg-[#f5f3ff]', iconColor: 'text-[#8b5cf6]' },
@@ -164,14 +191,61 @@ export default function DashboardPage() {
             Pantau kondisi SOS, laporan aktif, dan ketersediaan relawan.
           </p>
         </div>
-        <button
-          onClick={fetchStats}
-          disabled={loading}
-          className="btn-base btn-secondary text-[12px] h-9"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          <span>Refresh</span>
-        </button>
+
+        {/* Global Search */}
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={searchRef}>
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => handleSearchChange(e.target.value)}
+              placeholder="Cari kasus, relawan..."
+              className="form-input h-9 pr-8 text-[12px] w-52"
+              style={{ paddingLeft: '32px' }}
+            />
+            {searchQuery && (
+              <button onClick={clearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                <X size={12} />
+              </button>
+            )}
+            {/* Search Results Dropdown */}
+            {(searchResults || searchLoading) && searchQuery && (
+              <div className="absolute top-full mt-2 right-0 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
+                {searchLoading ? (
+                  <div className="p-4 text-[12px] text-slate-500 text-center">Mencari...</div>
+                ) : (
+                  <div className="max-h-72 overflow-y-auto">
+                    {Array.isArray(searchResults) && searchResults.length > 0 ? (
+                      searchResults.map((item, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { navigate(`/detail-kasus/${item.raw_id ?? item.id}`); clearSearch(); }}
+                          className="w-full flex flex-col gap-0.5 px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-0"
+                        >
+                          <span className="text-[12px] font-bold text-[#0b6f61]">{item.id_kasus ?? `#${item.id}`}</span>
+                          <span className="text-[11px] text-slate-700 line-clamp-1">{item.judul_insiden ?? item.kategori_laporan ?? '—'}</span>
+                          <span className="text-[10px] text-slate-400">{item.tipe_kasus ?? 'Kasus'} · {item.status ?? '—'}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-4 text-[12px] text-slate-400 text-center">Tidak ada hasil ditemukan.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={fetchStats}
+            disabled={loading}
+            className="btn-base btn-secondary text-[12px] h-9"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Stat Cards */}

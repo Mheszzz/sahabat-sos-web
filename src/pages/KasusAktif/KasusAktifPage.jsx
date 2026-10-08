@@ -1,64 +1,124 @@
 import { useState, useEffect } from 'react';
-import { Search, RefreshCw, Eye, ArrowUpDown, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, Eye, ArrowUpDown, Clock, Loader2, AlertTriangle, Filter } from 'lucide-react';
 import Badge from '../../components/global/Badge';
-import { laporanService } from '../../api/services/laporanService';
-
+import { kasusAktifService } from '../../api/services/kasusAktifService';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * KasusAktifPage
+ * Menampilkan semua tugas aktif (SOS + Laporan) dari endpoint GET /tugas-aktif.
+ *
+ * Response shape: { data: { laporan: { data: [...] }, sos: { data: [...] } } }
+ * Setiap item memiliki: { id, status, status_raw, kategori ('SOS'|'Laporan'),
+ *   jenis_laporan, pelapor, relawan, lokasi, waktu }
+ */
 export default function KasusAktifPage() {
   const navigate = useNavigate();
-  const onOpenDetail = (id) => navigate('/detail-kasus/' + id);
+
+  // Navigate ke detail dengan query tipe agar hook tahu endpoint yang dipakai
+  const onOpenDetail = (id, tipeKategori) => {
+    const tipe = tipeKategori === 'SOS' ? 'sos' : 'laporan';
+    navigate(`/detail-kasus/${id}?tipe=${tipe}`);
+  };
+
   const [activeTab, setActiveTab] = useState('semua');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('terbaru');
-  const [cases, setCases] = useState([]);
+  const [filterKategori, setFilterKategori] = useState('');
+  const [cases, setCases] = useState([]);     // merged flat array dari laporan + sos
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pagination, setPagination] = useState(null);
 
-  const fetchLaporan = async () => {
+  const fetchTugasAktif = async () => {
     try {
       setLoading(true);
       setError('');
-      const res = await laporanService.getLaporan(); // Fetch all cases without status param
-      if (res && res.data) {
-        const items = res.data?.data ?? res.data ?? [];
-        setCases(Array.isArray(items) ? items : []);
-        setPagination(res.data?.last_page ? res.data : null);
-      }
+      const res = await kasusAktifService.getAll();
+      // Response: { data: { laporan: { data: [...] }, sos: { data: [...] } } }
+      const d = res?.data ?? {};
+
+      const laporanItems = d.laporan?.data ?? (Array.isArray(d.laporan) ? d.laporan : []);
+      const sosItems     = d.sos?.data     ?? (Array.isArray(d.sos)     ? d.sos     : []);
+
+      // Gabungkan dan tandai tipe
+      const merged = [
+        ...sosItems.map(i => ({ ...i, _tipeKategori: 'SOS' })),
+        ...laporanItems.map(i => ({ ...i, _tipeKategori: 'Laporan' })),
+      ];
+
+      setCases(merged);
     } catch (err) {
-      setError('Gagal mengambil data laporan. Pastikan server backend berjalan.');
+      setError('Gagal mengambil data tugas aktif. Pastikan server backend berjalan.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Run only once on mount instead of re-fetching on tab change
   useEffect(() => {
-    fetchLaporan();
+    fetchTugasAktif();
   }, []);
 
+  // Helper: ambil nama pelapor dari berbagai format field
+  const getPelapor = (c) =>
+    c.pelapor?.name ?? c.pengguna?.name ?? c.korban ?? '—';
+
+  // Helper: ambil label waktu
+  const getWaktu = (c) => {
+    const raw = c.waktu ?? c.waktu_laporan ?? c.waktu_sos ?? c.created_at;
+    if (!raw) return '—';
+    if (typeof raw === 'string' && raw.includes('lalu')) return raw; // waktu relatif
+    try {
+      return new Date(raw).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    } catch { return raw; }
+  };
+
+  // Helper: ambil status raw (aktif/proses/selesai)
+  const getStatusRaw = (c) => c.status_raw ?? c.status ?? '';
+
+  // Helper: label tampilan kategori/insiden
+  const getKategori = (c) =>
+    c.jenis_laporan ?? c.sub_judul ?? c.kategori_laporan ?? (c._tipeKategori === 'SOS' ? 'Darurat SOS' : 'Laporan');
+
+  // Filter tabs
   const filterTabs = [
-    { id: 'semua', label: 'Semua' },
-    { id: 'aktif', label: 'Aktif' },
-    { id: 'proses', label: 'Proses' },
-    { id: 'selesai', label: 'Selesai' },
+    { id: 'semua',    label: 'Semua' },
+    { id: 'sos',      label: 'SOS' },
+    { id: 'laporan',  label: 'Laporan' },
+    { id: 'aktif',    label: 'Aktif' },
+    { id: 'proses',   label: 'Proses' },
   ].map(tab => ({
     ...tab,
-    count: tab.id === 'semua' ? cases.length : cases.filter(c => c.status === tab.id).length,
+    count:
+      tab.id === 'semua'   ? cases.length
+      : tab.id === 'sos'   ? cases.filter(c => c._tipeKategori === 'SOS').length
+      : tab.id === 'laporan' ? cases.filter(c => c._tipeKategori !== 'SOS').length
+      : cases.filter(c => getStatusRaw(c) === tab.id).length,
   }));
 
   const filteredCases = cases.filter(c => {
-    if (activeTab !== 'semua' && c.status !== activeTab) return false;
+    if (activeTab === 'sos'     && c._tipeKategori !== 'SOS')    return false;
+    if (activeTab === 'laporan' && c._tipeKategori === 'SOS')    return false;
+    if (activeTab === 'aktif'   && getStatusRaw(c) !== 'aktif')  return false;
+    if (activeTab === 'proses'  && getStatusRaw(c) !== 'proses') return false;
     
+    if (filterKategori && getKategori(c).toLowerCase() !== filterKategori.toLowerCase()) return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
       String(c.id).toLowerCase().includes(q) ||
-      (c.kategori_laporan || '').toLowerCase().includes(q) ||
-      (c.pengguna?.name || '').toLowerCase().includes(q)
+      getKategori(c).toLowerCase().includes(q) ||
+      getPelapor(c).toLowerCase().includes(q)
     );
+  });
+
+  const sorted = [...filteredCases].sort((a, b) => {
+    if (sortBy === 'prioritas') {
+      if (a._tipeKategori === 'SOS' && b._tipeKategori !== 'SOS') return -1;
+      if (a._tipeKategori !== 'SOS' && b._tipeKategori === 'SOS') return  1;
+    }
+    return 0;
   });
 
   return (
@@ -68,11 +128,11 @@ export default function KasusAktifPage() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Kasus Aktif</h1>
           <p className="mt-1 text-[13px] text-slate-400">
-            Pantau dan kelola kasus yang sedang berlangsung.
+            Pantau dan kelola kasus SOS & laporan yang sedang berlangsung.
           </p>
         </div>
         <button
-          onClick={() => fetchLaporan()}
+          onClick={fetchTugasAktif}
           disabled={loading}
           className="btn-base btn-secondary text-[12px] h-9"
         >
@@ -83,15 +143,19 @@ export default function KasusAktifPage() {
 
       {/* Filters */}
       <div className="card p-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-1.5 rounded-xl bg-[#f1f5f9] p-1">
+        <div className="flex items-center gap-1.5 rounded-xl bg-[#f1f5f9] p-1 flex-wrap">
           {filterTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all ${
+                activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
               {tab.label}
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === tab.id ? 'bg-[#006D77] text-white' : 'bg-slate-200 text-slate-600'}`}>
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
+                activeTab === tab.id ? 'bg-[#006D77] text-white' : 'bg-slate-200 text-slate-600'
+              }`}>
                 {tab.count}
               </span>
             </button>
@@ -105,17 +169,26 @@ export default function KasusAktifPage() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Cari ID, pelapor..."
+              placeholder="Cari ID, pelapor, kategori..."
               className="form-input h-9 pr-4 bg-[#f8fafc]"
               style={{ paddingLeft: '36px' }}
             />
           </div>
-
+          <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-[#f8fafc] px-3 text-[12px] font-semibold text-slate-600">
+            <Filter size={13} className="text-slate-400" />
+            <select value={filterKategori} onChange={e => setFilterKategori(e.target.value)} className="bg-transparent outline-none max-w-[120px] truncate">
+              <option value="">Semua Kategori</option>
+              <option value="Darurat SOS">Darurat SOS</option>
+              <option value="tersesat">Tersesat</option>
+              <option value="butuh_pendamping">Butuh Pendamping</option>
+              <option value="aksesibilitas_rusak">Aksesibilitas Rusak</option>
+            </select>
+          </div>
           <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-[#f8fafc] px-3 text-[12px] font-semibold text-slate-600">
             <ArrowUpDown size={13} className="text-slate-400" />
             <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-transparent outline-none">
               <option value="terbaru">Terbaru</option>
-              <option value="prioritas">Prioritas</option>
+              <option value="prioritas">Prioritas (SOS duluan)</option>
             </select>
           </div>
         </div>
@@ -125,7 +198,7 @@ export default function KasusAktifPage() {
       {loading && (
         <div className="card flex items-center justify-center gap-3 p-12">
           <Loader2 size={20} className="animate-spin text-[#0b6f61]" />
-          <span className="text-[14px] font-semibold text-slate-500">Memuat data...</span>
+          <span className="text-[14px] font-semibold text-slate-500">Memuat data kasus aktif...</span>
         </div>
       )}
 
@@ -136,16 +209,11 @@ export default function KasusAktifPage() {
             <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-red-500" />
             <p className="text-[13px] font-semibold">{error}</p>
           </div>
-          <button
-            onClick={() => fetchLaporan()}
-            className="btn-base btn-danger text-[12px] h-8"
-          >
-            Coba Lagi
-          </button>
+          <button onClick={fetchTugasAktif} className="btn-base btn-danger text-[12px] h-8">Coba Lagi</button>
         </div>
       )}
 
-      {/* Table — reduced from 8 to 6 columns */}
+      {/* Table */}
       {!loading && !error && (
         <div className="card overflow-hidden">
           <div className="table-responsive">
@@ -153,39 +221,53 @@ export default function KasusAktifPage() {
               <thead>
                 <tr>
                   <th style={{width: '80px'}}>ID</th>
-                  <th style={{width: '120px'}}>Status</th>
-                  <th>Kategori</th>
+                  <th style={{width: '80px'}}>Tipe</th>
+                  <th style={{width: '130px'}}>Status</th>
+                  <th>Kategori / Insiden</th>
                   <th style={{width: '160px'}}>Pelapor</th>
                   <th style={{width: '110px'}}>Waktu</th>
-                  <th style={{width: '120px'}} className="text-right">Aksi</th>
+                  <th style={{width: '110px'}} className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCases.map(kasus => (
-                  <tr key={kasus.id} className="cursor-pointer" onClick={() => onOpenDetail?.(kasus.id)}>
+                {sorted.map(kasus => (
+                  <tr
+                    key={`${kasus._tipeKategori}-${kasus.id}`}
+                    className="cursor-pointer"
+                    onClick={() => onOpenDetail(kasus.id, kasus._tipeKategori)}
+                  >
                     <td>
                       <span className="text-[12px] font-bold text-[#0b6f61]">#{kasus.id}</span>
                     </td>
                     <td>
-                      <Badge variant={kasus.status} className="text-[11px]" />
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        kasus._tipeKategori === 'SOS'
+                          ? 'bg-red-50 text-red-700 border border-red-200'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        {kasus._tipeKategori}
+                      </span>
                     </td>
                     <td>
-                      <span className="text-[13px] font-semibold text-slate-800 line-clamp-1">{kasus.kategori_laporan}</span>
+                      <Badge variant={getStatusRaw(kasus)} className="text-[11px]" />
                     </td>
                     <td>
-                      <p className="text-[12px] font-semibold text-slate-700 truncate">{kasus.pengguna?.name || '-'}</p>
+                      <span className="text-[13px] font-semibold text-slate-800 line-clamp-1">
+                        {getKategori(kasus)}
+                      </span>
+                    </td>
+                    <td>
+                      <p className="text-[12px] font-semibold text-slate-700 truncate">{getPelapor(kasus)}</p>
                     </td>
                     <td>
                       <div className="flex items-center gap-1 text-[12px] text-slate-500">
                         <Clock size={12} className="text-slate-400 flex-shrink-0" />
-                        <span>
-                          {kasus.waktu_laporan ? new Date(kasus.waktu_laporan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '-'}
-                        </span>
+                        <span>{getWaktu(kasus)}</span>
                       </div>
                     </td>
                     <td className="text-right">
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOpenDetail?.(kasus.id); }}
+                        onClick={e => { e.stopPropagation(); onOpenDetail(kasus.id, kasus._tipeKategori); }}
                         className="btn-base btn-primary text-[11px] h-7 px-2.5"
                       >
                         <Eye size={12} />
@@ -198,19 +280,15 @@ export default function KasusAktifPage() {
             </table>
           </div>
 
-          {filteredCases.length === 0 && (
+          {sorted.length === 0 && (
             <div className="p-12 text-center text-slate-400">
-              <p className="text-[14px] font-semibold">Tidak ada kasus yang sesuai.</p>
+              <p className="text-[14px] font-semibold">Tidak ada kasus yang sesuai dengan filter.</p>
             </div>
           )}
 
-          {pagination && (
-            <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500">
-              <span>
-                Halaman {pagination.current_page} dari {pagination.last_page} • {pagination.total} laporan
-              </span>
-            </div>
-          )}
+          <div className="border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500">
+            <span>Menampilkan {sorted.length} dari {cases.length} kasus aktif</span>
+          </div>
         </div>
       )}
     </div>
