@@ -220,13 +220,13 @@ export default function KasusAktifPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{width: '80px'}}>ID</th>
-                  <th style={{width: '80px'}}>Tipe</th>
-                  <th style={{width: '130px'}}>Status</th>
-                  <th>Kategori / Insiden</th>
-                  <th style={{width: '160px'}}>Pelapor</th>
-                  <th style={{width: '110px'}}>Waktu</th>
-                  <th style={{width: '110px'}} className="text-right">Aksi</th>
+                  <th style={{minWidth: '90px'}}>ID</th>
+                  <th style={{minWidth: '100px'}}>Tipe</th>
+                  <th style={{minWidth: '140px'}}>Status</th>
+                  <th style={{minWidth: '180px'}}>Kategori / Insiden</th>
+                  <th style={{minWidth: '180px'}}>Pelapor</th>
+                  <th style={{minWidth: '130px'}}>Waktu</th>
+                  <th style={{minWidth: '120px'}} className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,7 +240,7 @@ export default function KasusAktifPage() {
                       <span className="text-[12px] font-bold text-[#0b6f61]">#{kasus.id}</span>
                     </td>
                     <td>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold ${
                         kasus._tipeKategori === 'SOS'
                           ? 'bg-red-50 text-red-700 border border-red-200'
                           : 'bg-blue-50 text-blue-700 border border-blue-200'

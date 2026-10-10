@@ -23,9 +23,9 @@ export default function ManajemenUserPage() {
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1680px] w-full mx-auto">
       <PageHeader 
-        title="Manajemen User"
-        description="Kelola data akun pengguna difabel dan pendaftaran relawan di platform Sahabat SOS."
-        actions={<button onClick={() => alert('Fitur tambah relawan / pengguna baru')} className="btn-base btn-primary text-[13px] h-10 px-4"><UserPlus size={15} /><span>+ Tambah Akun</span></button>}
+        title="Manajemen Relawan"
+        description="Kelola data relawan dan verifikasi pendaftaran relawan baru di platform Sahabat SOS."
+        actions={<button onClick={() => alert('Fitur tambah relawan baru')} className="btn-base btn-primary text-[13px] h-10 px-4"><UserPlus size={15} /><span>+ Tambah Relawan</span></button>}
       />
       <UserTabs activeTab={activeTab} setActiveTab={setActiveTab} pendingCount={pendingRelawans.length} />
       <UserTable activeTab={activeTab} search={search} setSearch={setSearch} data={filteredData} onVerify={handleVerify} />

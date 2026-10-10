@@ -229,17 +229,7 @@ export default function PetaPemantauanPage() {
             ))}
           </div>
 
-          {/* Broadcast Alert Button */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            <button
-              onClick={handleSirene}
-              disabled={sireneLoading}
-              className="btn-base btn-primary w-full text-[12px] h-10 disabled:opacity-50"
-            >
-              <AlertTriangle size={14} />
-              <span>{sireneLoading ? 'Membunyikan Sirene...' : 'Bunyikan Sirene di Seluruh Posko'}</span>
-            </button>
-          </div>
+
         </div>
       </div>
     </div>

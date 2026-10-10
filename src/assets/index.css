@@ -262,11 +262,11 @@ button, input, select { font: inherit; }
 .data-table thead th {
   padding: 12px 16px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: left;
-  color: var(--color-muted);
+  color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border-soft);
 }
 .data-table tbody tr {

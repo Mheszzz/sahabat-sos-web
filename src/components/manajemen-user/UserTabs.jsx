@@ -1,17 +1,8 @@
-import { Users, HeartHandshake, ShieldCheck } from 'lucide-react';
+﻿import { HeartHandshake, ShieldCheck } from 'lucide-react';
 
 export default function UserTabs({ activeTab, setActiveTab, pendingCount }) {
   return (
     <div className="flex flex-wrap items-center gap-2 bg-white border border-[#eaedf1] p-1.5 rounded-2xl w-fit shadow-xs">
-      <button
-        onClick={() => setActiveTab('pengguna')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
-          activeTab === 'pengguna' ? 'bg-[#006D77] text-white' : 'text-slate-500 hover:text-slate-900'
-        }`}
-      >
-        <Users size={15} />
-        <span>Pengguna Difabel</span>
-      </button>
       <button
         onClick={() => setActiveTab('relawan')}
         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
