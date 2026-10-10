@@ -45,7 +45,6 @@ export default function RiwayatKasusPage() {
 					disabilitas: k.pelapor?.kategori_user ?? k.pengguna?.kategori_user ?? '—',
 					lokasi: k.lokasi?.alamat ?? k.lokasi_laporan ?? '—',
 					relawan: k.relawan?.name ?? '—',
-					durasi: '—',
 					status:
 						(k.status_raw ?? k.status) === 'selesai' ? 'Selesai'
 						: (k.status_raw ?? k.status) === 'batal'   ? 'Dibatalkan'
@@ -169,21 +168,20 @@ export default function RiwayatKasusPage() {
 					<table className="data-table">
 						<thead>
 							<tr>
-								<th>ID Kasus</th>
-								<th>Tanggal & Waktu</th>
-								<th>Kategori</th>
-								<th>Pelapor</th>
-								<th>Lokasi</th>
-								<th>Relawan</th>
-								<th>Status</th>
-								<th>Durasi Respon</th>
-								<th className="text-right">Aksi</th>
+								<th style={{width: '60px', minWidth: '60px'}}>ID</th>
+								<th style={{minWidth: '130px'}}>Tanggal & Waktu</th>
+								<th style={{minWidth: '140px'}}>Kategori</th>
+								<th style={{minWidth: '160px'}}>Pelapor</th>
+								<th style={{minWidth: '200px'}}>Lokasi</th>
+								<th style={{minWidth: '140px'}}>Relawan</th>
+								<th style={{minWidth: '130px'}}>Status</th>
+								<th style={{width: '100px', minWidth: '100px'}} className="text-right">Aksi</th>
 							</tr>
 						</thead>
 						<tbody>
 							{loading && (
 								<tr>
-									<td colSpan={9} className="text-center py-12">
+									<td colSpan={8} className="text-center py-12">
 										<div className="flex items-center justify-center gap-2 text-slate-500">
 											<Loader2 size={16} className="animate-spin text-[#0b6f61]" />
 											<span className="text-[13px] font-semibold">Memuat riwayat...</span>
@@ -193,7 +191,7 @@ export default function RiwayatKasusPage() {
 							)}
 							{!loading && error && (
 								<tr>
-									<td colSpan={9} className="text-center py-8">
+									<td colSpan={8} className="text-center py-8">
 										<div className="flex items-center justify-center gap-2 text-amber-600 text-[12px] font-semibold">
 											<AlertTriangle size={14} />
 											<span>{error} (Menampilkan data contoh)</span>
@@ -249,10 +247,10 @@ export default function RiwayatKasusPage() {
 
 									<td className="min-w-0">
 										<span
-											className={`inline-flex max-w-[140px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold break-words ${
+											className={`inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-1.5 text-[11px] font-bold whitespace-nowrap ${
 												row.status === 'Selesai'
-													? 'bg-[#ecfdf5] text-[#15803d]'
-													: 'bg-[#fef2f2] text-[#dc2626]'
+													? 'bg-[#ecfdf5] text-[#15803d] border border-[#d1fae5]'
+													: 'bg-[#fef2f2] text-[#dc2626] border border-[#fee2e2]'
 											}`}
 										>
 											{row.status === 'Selesai' ? (
@@ -261,12 +259,6 @@ export default function RiwayatKasusPage() {
 												<XCircle size={12} />
 											)}
 											<span>{row.status}</span>
-										</span>
-									</td>
-
-									<td className="min-w-0">
-										<span className="block text-[12px] font-semibold text-slate-700 break-words">
-											{row.durasi}
 										</span>
 									</td>
 

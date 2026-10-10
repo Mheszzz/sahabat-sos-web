@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   Home, AlertTriangle, Clock, MapPin, Settings,
-  Siren, LogOut, UserCog, Users, ChevronRight
+  Siren, LogOut, UserCog, Users, ChevronRight, Database
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 import { adminService } from '../../api/services/adminService';
@@ -12,12 +12,13 @@ const initialNavItems = [
   { id: 'kasus-aktif', label: 'Kasus Aktif', icon: AlertTriangle, badge: 0 },
   { id: 'riwayat', label: 'Riwayat Kasus', icon: Clock },
   { id: 'peta', label: 'Peta Pemantauan', icon: MapPin },
-  { id: 'pengaturan', label: 'Pengaturan Sistem', icon: Settings },
+  { id: 'pengaturan', label: 'Profil', icon: Settings },
 ];
 
 const manajemenItems = [
   { id: 'manajemen-admin', label: 'Kelola Admin', icon: UserCog },
   { id: 'manajemen-user', label: 'Kelola Relawan', icon: Users },
+  { id: 'master-data', label: 'Master Data Laporan', icon: Database },
 ];
 
 function NavButton({ id, label, icon: Icon, badge, isActive }) {

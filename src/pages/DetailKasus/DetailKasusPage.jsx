@@ -278,7 +278,7 @@ export default function DetailKasusPage() {
               )}
             </div>
             <h1 className="text-[28px] font-black text-slate-900 mt-1 leading-tight capitalize">
-              {kasus.kategori_laporan || 'Kasus Tanpa Kategori'}
+              {kasus.pengguna?.name || kasus.kategori_laporan || 'Kasus Tanpa Kategori'}
             </h1>
             <p className="text-[13px] text-slate-400 mt-1">{formatDateTime(kasus.waktu_laporan)}</p>
           </div>
@@ -306,22 +306,6 @@ export default function DetailKasusPage() {
 
         {/* ─── KOLOM KIRI ───────────────────────────────────────────────── */}
         <div className="space-y-5">
-
-          {/* Informasi Utama Kasus */}
-          <SectionCard icon={MapPin} title="Informasi Utama Kasus">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow label="Lokasi Kejadian" value={kasus.lokasi_laporan} />
-              <InfoRow label="Kategori" value={kasus.kategori_laporan} />
-              <InfoRow label="Status" value={kasus.status} highlight />
-              <InfoRow label="Waktu Laporan" value={formatDateTime(kasus.waktu_laporan)} />
-              {kasus.deskripsi && (
-                <div className="sm:col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deskripsi</p>
-                  <p className="text-[13px] text-slate-700 mt-0.5 leading-relaxed">{kasus.deskripsi}</p>
-                </div>
-              )}
-            </div>
-          </SectionCard>
 
           {/* Profil Korban */}
           <SectionCard icon={User} title="Profil Korban">
@@ -400,6 +384,22 @@ export default function DetailKasusPage() {
                 </div>
               </div>
             )}
+          </SectionCard>
+
+          {/* Informasi Utama Kasus */}
+          <SectionCard icon={MapPin} title="Informasi Utama Kasus">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InfoRow label="Lokasi Kejadian" value={kasus.lokasi_laporan} />
+              <InfoRow label="Kategori" value={kasus.kategori_laporan} />
+              <InfoRow label="Status" value={kasus.status} highlight />
+              <InfoRow label="Waktu Laporan" value={formatDateTime(kasus.waktu_laporan)} />
+              {kasus.deskripsi && (
+                <div className="sm:col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deskripsi</p>
+                  <p className="text-[13px] text-slate-700 mt-0.5 leading-relaxed">{kasus.deskripsi}</p>
+                </div>
+              )}
+            </div>
           </SectionCard>
 
           {/* Status Perangkat Korban */}

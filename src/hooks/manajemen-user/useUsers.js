@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminService } from '../../api/services/adminService';
 
 export function useUsers() {
-  const [activeTab, setActiveTab] = useState('pengguna');
+  const [activeTab, setActiveTab] = useState('relawan');
   const [search, setSearch] = useState('');
 
   // Data state
@@ -20,8 +20,17 @@ export function useUsers() {
     setIsLoadingRelawan(true);
     try {
       const res = await adminService.getRelawanSuperadmin();
-      const list = res?.data ?? [];
-      setRelawan(Array.isArray(list) ? list : []);
+      const list = res?.data?.data || res?.data || [];
+      // Normalize field names: API may return name or nama
+      const normalized = (Array.isArray(list) ? list : []).map(r => ({
+        ...r,
+        nama: r.nama ?? r.name ?? '',
+        kontak: r.kontak ?? r.no_telp ?? r.phone ?? '',
+        lokasi: r.lokasi ?? r.alamat ?? r.kota ?? '',
+        peran: r.peran ?? r.role_title ?? r.kompetensi ?? '',
+        status: r.status_verifikasi ?? r.status ?? '',
+      }));
+      setRelawan(normalized);
     } catch (error) {
       console.error('Gagal mengambil data relawan:', error);
       setRelawan([]);
@@ -35,7 +44,8 @@ export function useUsers() {
     setIsLoadingPending(true);
     try {
       const res = await adminService.getPendingRelawan();
-      if (res && res.data) setPendingRelawans(res.data);
+      const list = res?.data?.data || res?.data || [];
+      setPendingRelawans(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Gagal mengambil relawan pending:', error);
     } finally {
@@ -79,8 +89,7 @@ export function useUsers() {
 
   // ─── Filter data sesuai tab aktif ─────────────────────────────────────
   const currentData =
-    activeTab === 'pengguna' ? pengguna
-    : activeTab === 'relawan' ? relawan
+    activeTab === 'relawan' ? relawan
     : pendingRelawans;
 
   const filteredData = currentData.filter(item => {

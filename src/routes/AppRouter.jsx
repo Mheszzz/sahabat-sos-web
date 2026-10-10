@@ -9,6 +9,7 @@ import PengaturanPage from '../pages/Pengaturan/PengaturanPage';
 import ManajemenAdminPage from '../pages/ManajemenAdmin/ManajemenAdminPage';
 import ManajemenUserPage from '../pages/ManajemenUser/ManajemenUserPage';
 import DetailKasusPage from '../pages/DetailKasus/DetailKasusPage';
+import MasterDataPage from '../pages/MasterData/MasterDataPage';
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
       {
         path: 'manajemen-user',
         element: <ManajemenUserPage />
+      },
+      {
+        path: 'master-data',
+        element: <MasterDataPage />
       },
       {
         path: 'detail-kasus/:id',
