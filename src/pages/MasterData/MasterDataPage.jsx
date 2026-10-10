@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Database, MessageSquare } from 'lucide-react';
 import { masterDataService } from '../../api/services/masterDataService';
 
@@ -26,7 +26,7 @@ export default function MasterDataPage() {
   const handleAddKategori = async (e) => {
     e.preventDefault();
     if (!newKategori) return;
-    try { await masterDataService.createKategori({ nama: newKategori }); setNewKategori(''); fetchMasterData(); } catch (error) { console.error(error); }
+    try { await masterDataService.createKategori({ title: newKategori }); setNewKategori(''); fetchMasterData(); } catch (error) { console.error(error); }
   };
 
   const handleDeleteKategori = async (id) => {
@@ -36,7 +36,7 @@ export default function MasterDataPage() {
 
   const handleSaveEditKategori = async (id) => {
     if (!editKategoriNama.trim()) return;
-    try { await masterDataService.updateKategori(id, { nama: editKategoriNama }); setEditKategoriId(null); fetchMasterData(); } catch (error) { console.error(error); }
+    try { await masterDataService.updateKategori(id, { title: editKategoriNama }); setEditKategoriId(null); fetchMasterData(); } catch (error) { console.error(error); }
   };
 
   const handleAddPesan = async (e) => {
@@ -88,9 +88,9 @@ export default function MasterDataPage() {
                 </>
               ) : (
                 <>
-                  <span className="text-[13px] font-bold text-slate-700 flex-1">{item.nama}</span>
+                  <span className="text-[13px] font-bold text-slate-700 flex-1">{item.title || item.nama}</span>
                   <div className="flex gap-1 flex-shrink-0">
-                    <button type="button" onClick={() => { setEditKategoriId(item.id); setEditKategoriNama(item.nama); }} className="text-blue-500 hover:text-blue-700 p-1"><Edit2 size={13} /></button>
+                    <button type="button" onClick={() => { setEditKategoriId(item.id); setEditKategoriNama(item.title || item.nama); }} className="text-blue-500 hover:text-blue-700 p-1"><Edit2 size={13} /></button>
                     <button type="button" onClick={() => handleDeleteKategori(item.id)} className="text-red-500 hover:text-red-700 p-1"><Trash2 size={13} /></button>
                   </div>
                 </>
