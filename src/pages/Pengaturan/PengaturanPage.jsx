@@ -17,7 +17,7 @@ export default function PengaturanPage() {
     <div className="page-shell space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-[24px] font-extrabold tracking-[-0.04em] text-slate-900">Pengaturan Sistem</h1>
+          <h1 className="text-[24px] font-extrabold tracking-[-0.04em] text-slate-900">Pengaturan Profil</h1>
           <p className="mt-1 text-[14px] font-medium text-slate-500">Kelola informasi profil dan akun administrator.</p>
         </div>
         {savedSuccess && (
