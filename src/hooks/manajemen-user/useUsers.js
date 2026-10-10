@@ -32,21 +32,10 @@ export function useUsers() {
       }));
       if (normalized.length > 0) {
         setRelawan(normalized);
-      } else {
-        setRelawan([
-          { id: 'R-001', nama: 'Budi Santoso', kontak: '+6281234567890', lokasi: 'Jakarta Selatan', peran: 'Medis', status: 'Terverifikasi' },
-          { id: 'R-002', nama: 'Siti Aminah', kontak: '+6281298765432', lokasi: 'Jakarta Timur', peran: 'Logistik', status: 'Terverifikasi' },
-          { id: 'R-003', nama: 'Andi Wijaya', kontak: '+6281311223344', lokasi: 'Jakarta Pusat', peran: 'Evakuasi', status: 'Nonaktif' },
-        ]);
       }
     } catch (error) {
       console.error('Gagal mengambil data relawan:', error);
-      // Fallback dummy data if backend is unreachable or empty
-      setRelawan([
-        { id: 'R-001', nama: 'Budi Santoso', kontak: '+6281234567890', lokasi: 'Jakarta Selatan', peran: 'Medis', status: 'Terverifikasi' },
-        { id: 'R-002', nama: 'Siti Aminah', kontak: '+6281298765432', lokasi: 'Jakarta Timur', peran: 'Logistik', status: 'Terverifikasi' },
-        { id: 'R-003', nama: 'Andi Wijaya', kontak: '+6281311223344', lokasi: 'Jakarta Pusat', peran: 'Evakuasi', status: 'Nonaktif' },
-      ]);
+      setRelawan([]);
     } finally {
       setIsLoadingRelawan(false);
     }
@@ -60,18 +49,10 @@ export function useUsers() {
       const list = res?.data?.data || res?.data || [];
       if (Array.isArray(list) && list.length > 0) {
         setPendingRelawans(list);
-      } else {
-        setPendingRelawans([
-          { id: 'R-004', nama: 'Dewi Lestari', email: 'dewi@example.com', kontak: '+6281998877665', lokasi: 'Jakarta Barat', peran: 'Dapur Umum', status: 'Pending Verifikasi' },
-          { id: 'R-005', nama: 'Fajar Hidayat', email: 'fajar@example.com', kontak: '+6285544332211', lokasi: 'Jakarta Utara', peran: 'Penyelamat', status: 'Pending Verifikasi' },
-        ]);
       }
     } catch (error) {
       console.error('Gagal mengambil relawan pending:', error);
-      setPendingRelawans([
-        { id: 'R-004', nama: 'Dewi Lestari', email: 'dewi@example.com', kontak: '+6281998877665', lokasi: 'Jakarta Barat', peran: 'Dapur Umum', status: 'Pending Verifikasi' },
-        { id: 'R-005', nama: 'Fajar Hidayat', email: 'fajar@example.com', kontak: '+6285544332211', lokasi: 'Jakarta Utara', peran: 'Penyelamat', status: 'Pending Verifikasi' },
-      ]);
+      setPendingRelawans([]);
     } finally {
       setIsLoadingPending(false);
     }
