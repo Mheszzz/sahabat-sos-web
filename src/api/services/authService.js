@@ -16,13 +16,17 @@ export const authService = {
   },
 
   /**
-   * Logout Admin
+   * Logout Admin — memanggil endpoint backend & bersihkan localStorage
    */
-  logout: () => {
-    localStorage.removeItem('admin_access_token');
-    localStorage.removeItem('admin_user_data');
-    // Optional: Call logout endpoint if needed
-    // return api.post('/logout');
+  logout: async () => {
+    try {
+      await api.post('/logout');
+    } catch {
+      // Abaikan error jika token sudah expired
+    } finally {
+      localStorage.removeItem('admin_access_token');
+      localStorage.removeItem('admin_user_data');
+    }
   },
 
   /**

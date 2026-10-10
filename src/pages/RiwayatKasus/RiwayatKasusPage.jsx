@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Download, Calendar, Filter, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
-import { laporanService } from '../../api/services/laporanService';
+import { kasusAktifService } from '../../api/services/kasusAktifService';
 import { adminService } from '../../api/services/adminService';
 
 const ITEMS_PER_PAGE = 8;
@@ -10,97 +10,6 @@ function formatDateRow(dt) {
   if (!dt) return '—';
   return new Date(dt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
-const placeholder_riwayatData = [
-	{
-		id: 'SOS-5016',
-		tanggal: '06 Sep 2026, 22:14',
-		kategori: 'Kecelakaan Lalu Lintas',
-		pelapor: 'Budi Hartono',
-		disabilitas: 'Tunanetra',
-		lokasi: 'Jl. Gatot Subroto No.12, Jakarta Selatan',
-		relawan: 'Agus Setiawan',
-		durasi: '12 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5015',
-		tanggal: '06 Sep 2026, 19:42',
-		kategori: 'Disorientasi di Transportasi Publik',
-		pelapor: 'Siti Rahayu',
-		disabilitas: 'Rungu & Wicara',
-		lokasi: 'Stasiun Gambir, Jakarta Pusat',
-		relawan: 'Fitri Rahayu',
-		durasi: '28 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5014',
-		tanggal: '06 Sep 2026, 16:05',
-		kategori: 'Aksesibilitas Buruk — Lift Rusak',
-		pelapor: 'Joko Susanto',
-		disabilitas: 'Daksa (Kursi Roda)',
-		lokasi: 'MRT Lebak Bulus, Jakarta Selatan',
-		relawan: 'Tri Handoko',
-		durasi: '9 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5013',
-		tanggal: '06 Sep 2026, 14:30',
-		kategori: 'Serangan Panik di Ruang Publik',
-		pelapor: 'Rina Wati',
-		disabilitas: 'Psikososial',
-		lokasi: 'Plaza Indonesia, Jakarta Pusat',
-		relawan: 'Nia Kurniasih',
-		durasi: '35 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5012',
-		tanggal: '06 Sep 2026, 11:18',
-		kategori: 'Laporan Tidak Valid',
-		pelapor: 'Tidak Diketahui',
-		disabilitas: '-',
-		lokasi: 'Lokasi tidak terdeteksi',
-		relawan: '-',
-		durasi: '-',
-		status: 'Dibatalkan',
-	},
-	{
-		id: 'SOS-5011',
-		tanggal: '06 Sep 2026, 09:55',
-		kategori: 'Butuh Panduan Navigasi Bandara',
-		pelapor: 'Arif Wicaksono',
-		disabilitas: 'Tunanetra',
-		lokasi: 'Bandara Soekarno-Hatta Terminal 3',
-		relawan: 'Dwi Riskianto',
-		durasi: '22 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5010',
-		tanggal: '05 Sep 2026, 20:33',
-		kategori: 'Kondisi Medis Mendadak',
-		pelapor: 'Dian Purnama',
-		disabilitas: 'Epilepsi',
-		lokasi: 'Taman Monas, Jakarta Pusat',
-		relawan: 'Budi Santoso',
-		durasi: '18 Menit',
-		status: 'Selesai',
-	},
-	{
-		id: 'SOS-5009',
-		tanggal: '05 Sep 2026, 17:10',
-		kategori: 'Sinyal Palsu / Test Tombol',
-		pelapor: 'Perangkat IoT-003',
-		disabilitas: '-',
-		lokasi: 'Bekasi Barat (Uji Coba Perangkat)',
-		relawan: '-',
-		durasi: '-',
-		status: 'Dibatalkan',
-	},
-];
 
 export default function RiwayatKasusPage() {
 	const navigate = useNavigate();
@@ -116,34 +25,48 @@ export default function RiwayatKasusPage() {
 			try {
 				setLoading(true);
 				setError('');
-				const res = await laporanService.getLaporan();
-				if (res && res.data) {
-					const items = res.data?.data ?? res.data ?? [];
-					const raw = Array.isArray(items) ? items : [];
-					setRiwayatData(raw.map((k) => ({
-						id: String(k.id),
-						rawId: k.id,
-						tanggal: formatDateRow(k.waktu_laporan),
-						kategori: k.kategori_laporan || 'Laporan Darurat',
-						pelapor: k.pengguna?.name || '—',
-						disabilitas: k.pengguna?.kategori_user || '—',
-						lokasi: k.lokasi_laporan || '—',
-						relawan: k.relawan?.name || '—',
-						durasi: '—',
-						status: k.status === 'selesai' ? 'Selesai' : k.status === 'batal' ? 'Dibatalkan' : (k.status || '—'),
-					})));
-				}
+				const res = await kasusAktifService.getRiwayatAdmin();
+				// Response: { data: { laporan: { data: [...] }, sos: { data: [...] } } }
+				const d = res?.data ?? {};
+
+				const laporanItems = d.laporan?.data ?? (Array.isArray(d.laporan) ? d.laporan : []);
+				const sosItems     = d.sos?.data     ?? (Array.isArray(d.sos)     ? d.sos     : []);
+
+				// Map transformItem fields dari KasusAktifController:
+				// { id, status, status_raw, kategori ('SOS'|'Laporan'), jenis_laporan,
+				//   pelapor.name, relawan.name, lokasi.alamat, waktu }
+				const mapItem = (k, tipeKategori) => ({
+					id: String(k.id),
+					rawId: k.id,
+					tipe: tipeKategori,
+					tanggal: formatDateRow(k.waktu ?? k.updated_at ?? k.created_at),
+					kategori: k.jenis_laporan ?? k.sub_judul ?? (tipeKategori === 'SOS' ? 'Darurat SOS' : 'Laporan'),
+					pelapor: k.pelapor?.name ?? k.pengguna?.name ?? '—',
+					disabilitas: k.pelapor?.kategori_user ?? k.pengguna?.kategori_user ?? '—',
+					lokasi: k.lokasi?.alamat ?? k.lokasi_laporan ?? '—',
+					relawan: k.relawan?.name ?? '—',
+					durasi: '—',
+					status:
+						(k.status_raw ?? k.status) === 'selesai' ? 'Selesai'
+						: (k.status_raw ?? k.status) === 'batal'   ? 'Dibatalkan'
+						: (k.status ?? '—'),
+				});
+
+				setRiwayatData([
+					...sosItems.map(k => mapItem(k, 'SOS')),
+					...laporanItems.map(k => mapItem(k, 'Laporan')),
+				]);
 			} catch (err) {
 				setError('Gagal memuat riwayat kasus. Pastikan backend berjalan.');
 				console.error(err);
-				// Fallback ke dummy data agar UI tetap bisa digunakan
-				setRiwayatData(placeholder_riwayatData);
 			} finally {
 				setLoading(false);
 			}
 		};
 		fetchRiwayat();
 	}, []);
+
+
 
 	const filtered = riwayatData.filter((r) => {
 		const matchStatus = statusFilter === 'Semua' || r.status === statusFilter;
@@ -349,7 +272,7 @@ export default function RiwayatKasusPage() {
 
 									<td className="text-right min-w-0">
 										<button
-											onClick={() => navigate(`/detail-kasus/${row.rawId || row.id}`)}
+											onClick={() => navigate(`/detail-kasus/${row.rawId || row.id}?tipe=${row.tipe === 'SOS' ? 'sos' : 'laporan'}`)}
 											className="btn-base btn-secondary h-8 rounded-lg px-2.5 text-[11px]"
 										>
 											<Eye size={12} />

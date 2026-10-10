@@ -34,6 +34,12 @@ export default function PengaturanPage() {
   const [newKategori, setNewKategori] = useState('');
   const [newPesan, setNewPesan] = useState('');
 
+  // Edit inline state
+  const [editKategoriId, setEditKategoriId] = useState(null);
+  const [editKategoriNama, setEditKategoriNama] = useState('');
+  const [editPesanId, setEditPesanId] = useState(null);
+  const [editPesanText, setEditPesanText] = useState('');
+
   const fetchMasterData = async () => {
     try {
       const resKat = await masterDataService.getKategori();
@@ -69,6 +75,15 @@ export default function PengaturanPage() {
     } catch (error) { console.error(error); }
   };
 
+  const handleSaveEditKategori = async (id) => {
+    if (!editKategoriNama.trim()) return;
+    try {
+      await masterDataService.updateKategori(id, { nama: editKategoriNama });
+      setEditKategoriId(null);
+      fetchMasterData();
+    } catch (error) { console.error(error); }
+  };
+
   const handleAddPesan = async (e) => {
     e.preventDefault();
     if(!newPesan) return;
@@ -83,6 +98,15 @@ export default function PengaturanPage() {
     if(!window.confirm('Hapus pesan cepat ini?')) return;
     try {
       await masterDataService.deletePesanCepat(id);
+      fetchMasterData();
+    } catch (error) { console.error(error); }
+  };
+
+  const handleSaveEditPesan = async (id) => {
+    if (!editPesanText.trim()) return;
+    try {
+      await masterDataService.updatePesanCepat(id, { pesan: editPesanText });
+      setEditPesanId(null);
       fetchMasterData();
     } catch (error) { console.error(error); }
   };
@@ -266,11 +290,35 @@ export default function PengaturanPage() {
 
                   <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
                     {kategoriList.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
-                        <span className="text-[13px] font-bold text-slate-700">{item.nama}</span>
-                        <button type="button" onClick={() => handleDeleteKategori(item.id)} className="text-red-500 hover:text-red-700 p-1">
-                          <Trash2 size={14} />
-                        </button>
+                      <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50 gap-2">
+                        {editKategoriId === item.id ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editKategoriNama}
+                              onChange={e => setEditKategoriNama(e.target.value)}
+                              className="form-input flex-1 text-[13px] h-8"
+                              autoFocus
+                              onKeyDown={e => e.key === 'Enter' && handleSaveEditKategori(item.id)}
+                            />
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button type="button" onClick={() => handleSaveEditKategori(item.id)} className="btn-base btn-primary text-[11px] h-7 px-2">Simpan</button>
+                              <button type="button" onClick={() => setEditKategoriId(null)} className="btn-base btn-secondary text-[11px] h-7 px-2">Batal</button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[13px] font-bold text-slate-700 flex-1">{item.nama}</span>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button type="button" onClick={() => { setEditKategoriId(item.id); setEditKategoriNama(item.nama); }} className="text-blue-500 hover:text-blue-700 p-1">
+                                <Edit2 size={13} />
+                              </button>
+                              <button type="button" onClick={() => handleDeleteKategori(item.id)} className="text-red-500 hover:text-red-700 p-1">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                     {kategoriList.length === 0 && (
@@ -301,11 +349,35 @@ export default function PengaturanPage() {
 
                   <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
                     {pesanCepatList.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
-                        <span className="text-[13px] font-bold text-slate-700">{item.pesan}</span>
-                        <button type="button" onClick={() => handleDeletePesan(item.id)} className="text-red-500 hover:text-red-700 p-1">
-                          <Trash2 size={14} />
-                        </button>
+                      <div key={item.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50 gap-2">
+                        {editPesanId === item.id ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editPesanText}
+                              onChange={e => setEditPesanText(e.target.value)}
+                              className="form-input flex-1 text-[13px] h-8"
+                              autoFocus
+                              onKeyDown={e => e.key === 'Enter' && handleSaveEditPesan(item.id)}
+                            />
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button type="button" onClick={() => handleSaveEditPesan(item.id)} className="btn-base btn-primary text-[11px] h-7 px-2">Simpan</button>
+                              <button type="button" onClick={() => setEditPesanId(null)} className="btn-base btn-secondary text-[11px] h-7 px-2">Batal</button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[13px] font-bold text-slate-700 flex-1">{item.pesan}</span>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button type="button" onClick={() => { setEditPesanId(item.id); setEditPesanText(item.pesan); }} className="text-blue-500 hover:text-blue-700 p-1">
+                                <Edit2 size={13} />
+                              </button>
+                              <button type="button" onClick={() => handleDeletePesan(item.id)} className="text-red-500 hover:text-red-700 p-1">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                     {pesanCepatList.length === 0 && (

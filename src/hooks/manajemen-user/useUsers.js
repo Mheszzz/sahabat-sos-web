@@ -1,37 +1,55 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../../api/services/adminService';
-import { volunteers } from '../../utils/dummyData';
-
-const mockCitizenUsers = [
-  { id: 'USR-201', nama: 'Sari Indah', email: 'sari.indah@gmail.com', disabilitas: 'Daksa (Kursi Roda)', lokasi: 'Kebayoran Baru, Jakarta Selatan', status: 'Terverifikasi', kontak: '+62 856-7890-1234', tglDaftar: '12 Jan 2026' },
-  { id: 'USR-202', nama: 'Ahmad Fauzi', email: 'fauzi.ahmad@gmail.com', disabilitas: 'Tunanetra', lokasi: 'Setiabudi, Jakarta Selatan', status: 'Terverifikasi', kontak: '+62 812-3456-7890', tglDaftar: '18 Jan 2026' },
-  { id: 'USR-203', nama: 'Rizky Pratama', email: 'rizky.p@gmail.com', disabilitas: 'Disabilitas Rungu', lokasi: 'Manggarai, Jakarta Selatan', status: 'Terverifikasi', kontak: '+62 877-2345-6789', tglDaftar: '04 Feb 2026' },
-  { id: 'USR-204', nama: 'Siti Aminah', email: 'siti.aminah@gmail.com', disabilitas: 'Psikososial', lokasi: 'Melawai, Jakarta Selatan', status: 'Pending Verifikasi', kontak: '+62 813-9876-5432', tglDaftar: '15 Feb 2026' },
-  { id: 'USR-205', nama: 'Dewi Putri', email: 'dewi.putri@gmail.com', disabilitas: 'Epilepsi', lokasi: 'Menteng, Jakarta Pusat', status: 'Terverifikasi', kontak: '+62 838-1234-5678', tglDaftar: '22 Feb 2026' },
-];
 
 export function useUsers() {
   const [activeTab, setActiveTab] = useState('pengguna');
   const [search, setSearch] = useState('');
-  const [pendingRelawans, setPendingRelawans] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
 
+  // Data state
+  const [pengguna, setPengguna] = useState([]);
+  const [relawan, setRelawan] = useState([]);
+  const [pendingRelawans, setPendingRelawans] = useState([]);
+
+  // Loading state
+  const [isLoadingPengguna, setIsLoadingPengguna] = useState(false);
+  const [isLoadingRelawan, setIsLoadingRelawan] = useState(false);
+  const [isLoadingPending, setIsLoadingPending] = useState(false);
+
+  // ─── Fetch Relawan Superadmin ─────────────────────────────────────────
+  const fetchRelawan = async () => {
+    setIsLoadingRelawan(true);
+    try {
+      const res = await adminService.getRelawanSuperadmin();
+      const list = res?.data ?? [];
+      setRelawan(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error('Gagal mengambil data relawan:', error);
+      setRelawan([]);
+    } finally {
+      setIsLoadingRelawan(false);
+    }
+  };
+
+  // ─── Fetch Pending Relawan ────────────────────────────────────────────
   const fetchPendingRelawan = async () => {
-    setIsLoading(true);
+    setIsLoadingPending(true);
     try {
       const res = await adminService.getPendingRelawan();
       if (res && res.data) setPendingRelawans(res.data);
     } catch (error) {
       console.error('Gagal mengambil relawan pending:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingPending(false);
     }
   };
 
+  // Fetch on mount (semua tab)
   useEffect(() => {
     fetchPendingRelawan();
+    fetchRelawan();
   }, []);
 
+  // ─── Verifikasi relawan ───────────────────────────────────────────────
   const handleVerify = async (id, status) => {
     try {
       await adminService.verifikasiRelawan(id, status);
@@ -43,19 +61,48 @@ export function useUsers() {
     }
   };
 
-  const currentData = activeTab === 'pengguna' ? mockCitizenUsers : activeTab === 'relawan' ? volunteers : pendingRelawans;
-  
+  // ─── Update status relawan ────────────────────────────────────────────
+  const handleUpdateStatusRelawan = async (id, status) => {
+    try {
+      await adminService.updateStatusRelawan(id, status);
+      setRelawan(prev =>
+        prev.map(r => r.id === id ? { ...r, status_verifikasi: status } : r)
+      );
+      alert('Status relawan berhasil diperbarui.');
+    } catch (error) {
+      console.error('Gagal update status relawan:', error);
+      alert('Terjadi kesalahan saat mengupdate status.');
+    }
+  };
+
+  const isLoading = isLoadingRelawan || isLoadingPending || isLoadingPengguna;
+
+  // ─── Filter data sesuai tab aktif ─────────────────────────────────────
+  const currentData =
+    activeTab === 'pengguna' ? pengguna
+    : activeTab === 'relawan' ? relawan
+    : pendingRelawans;
+
   const filteredData = currentData.filter(item => {
     const q = search.toLowerCase();
-    return !q || item.nama?.toLowerCase().includes(q) || item.lokasi?.toLowerCase().includes(q) || item.id?.toLowerCase().includes(q);
+    return !q
+      || (item.name || item.nama || '').toLowerCase().includes(q)
+      || (item.email || '').toLowerCase().includes(q)
+      || (item.lokasi || item.alamat || '').toLowerCase().includes(q)
+      || String(item.id || '').toLowerCase().includes(q);
   });
 
   return {
     activeTab, setActiveTab,
     search, setSearch,
+    pengguna,
+    relawan,
     pendingRelawans,
     isLoading,
     filteredData,
-    handleVerify
+    handleVerify,
+    handleUpdateStatusRelawan,
+    fetchRelawan,
+    fetchPendingRelawan,
   };
 }

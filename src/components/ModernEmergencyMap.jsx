@@ -200,11 +200,7 @@ export default function ModernEmergencyMap({
               Laporan ({countLaporan})
             </button>
           </div>
-          <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex-shrink-0 whitespace-nowrap">
-            <Radio size={12} className="animate-pulse" />
-            <span className="hidden sm:inline">Command Center GIS Online</span>
-            <span className="sm:hidden">GIS Online</span>
-          </div>
+
         </div>
       )}
 
