@@ -91,7 +91,7 @@ export default function DashboardPage() {
             type: 'sos',
             label: t.id_kasus,
             kategori: 'Kasus Darurat Aktif',
-            prioritas: t.status === 'aktif' ? 'DARURAT' : 'Ditangani',
+            prioritas: t.status === 'belum ditangani' ? 'DARURAT' : 'Ditangani',
             pelapor: t.korban,
             lokasi: 'Lokasi Darurat SOS',
             status: t.status,

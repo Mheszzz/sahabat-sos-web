@@ -73,7 +73,7 @@ export default function KasusAktifPage() {
     } catch { return raw; }
   };
 
-  // Helper: ambil status raw (aktif/proses/selesai)
+  // Helper: ambil status raw (belum ditangani/ditangani/selesai)
   const getStatusRaw = (c) => c.status_raw ?? c.status ?? '';
 
   // Helper: label tampilan kategori/insiden
@@ -85,8 +85,8 @@ export default function KasusAktifPage() {
     { id: 'semua',    label: 'Semua' },
     { id: 'sos',      label: 'SOS' },
     { id: 'laporan',  label: 'Laporan' },
-    { id: 'aktif',    label: 'Aktif' },
-    { id: 'proses',   label: 'Proses' },
+    { id: 'belum ditangani', label: 'Belum Ditangani' },
+    { id: 'ditangani',       label: 'Ditangani' },
   ].map(tab => ({
     ...tab,
     count:
@@ -99,8 +99,8 @@ export default function KasusAktifPage() {
   const filteredCases = cases.filter(c => {
     if (activeTab === 'sos'     && c._tipeKategori !== 'SOS')    return false;
     if (activeTab === 'laporan' && c._tipeKategori === 'SOS')    return false;
-    if (activeTab === 'aktif'   && getStatusRaw(c) !== 'aktif')  return false;
-    if (activeTab === 'proses'  && getStatusRaw(c) !== 'proses') return false;
+    if (activeTab === 'belum ditangani' && getStatusRaw(c) !== 'belum ditangani') return false;
+    if (activeTab === 'ditangani'       && getStatusRaw(c) !== 'ditangani') return false;
     
     if (filterKategori && getKategori(c).toLowerCase() !== filterKategori.toLowerCase()) return false;
 

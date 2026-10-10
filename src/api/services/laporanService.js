@@ -3,7 +3,7 @@ import api from '../libs/axiosInstance';
 export const laporanService = {
   /**
    * Mengambil daftar laporan (bisa difilter berdasarkan status)
-   * @param {string} status - Opsional: 'aktif', 'proses', 'selesai'
+   * @param {string} status - Opsional: 'belum ditangani', 'ditangani', 'selesai'
    * @param {number} page - Halaman untuk pagination
    * @returns {Promise} Response data { data: { current_page, data: [...], ... } }
    */
@@ -29,7 +29,7 @@ export const laporanService = {
   /**
    * Memperbarui status laporan
    * @param {number|string} id - ID Laporan
-   * @param {string} status - 'aktif' | 'proses' | 'selesai'
+   * @param {string} status - 'belum ditangani' | 'ditangani' | 'selesai'
    * @returns {Promise}
    */
   updateStatus: async (id, status) => {
