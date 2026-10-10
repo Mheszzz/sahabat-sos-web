@@ -70,7 +70,8 @@ export const kasusAktifService = {
    * @returns {Promise}
    */
   selesaikanKasus: async (tipe, id, catatan) => {
-    const response = await api.post(`/tugas-aktif/${tipe}/${id}/selesai`, {
+    const response = await api.patch(`/tugas-aktif/${tipe}/${id}/status`, {
+      status: 'selesai',
       catatan: catatan || 'Kasus ditandai selesai oleh admin.',
     });
     return response.data;

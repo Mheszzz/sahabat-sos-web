@@ -12,6 +12,9 @@ use App\Jobs\EscalateSOSJob;
 use App\Models\User;
 use App\Models\SOSRejection;
 use App\Models\SOSActivity;
+use App\Services\MapboxService;
+use App\HasGeoCalculations;
+use Illuminate\Support\Facades\Cache;
 
 class SOSController extends Controller
 {
@@ -32,7 +35,7 @@ class SOSController extends Controller
 
         // Cek apakah pengguna sudah punya laporan SOS yang masih aktif
         $activeSos = SOS::where('id_pengguna', $userId)
-            ->whereIn('status_sos', ['aktif', 'proses'])
+            ->whereIn('status_sos', ['belum ditangani', 'ditangani', 'aktif', 'proses'])
             ->first();
 
         if ($activeSos) {
@@ -46,7 +49,7 @@ class SOSController extends Controller
             'id_pengguna'     => $userId,
             'latitude'        => $lat,
             'longitude'       => $lng,
-            'status_sos'      => 'aktif',
+            'status_sos'      => 'belum ditangani',
             'waktu_sos'       => now(),
             'battery_level'   => $request->battery_level ?? 85,
             'signal_strength' => $request->signal_strength ?? '4G',
@@ -67,23 +70,21 @@ class SOSController extends Controller
             ]
         );
 
-        // broadcast
-        $nearestVolunteer = User::where('role', 'relawan')
-            ->nearby($lat, $lng, 1.0)
-            ->first();
+        // 1. Tahap 1: Broadcast ke semua relawan dalam radius 2 km
+        $volunteers2km = User::where('role', 'relawan')
+            ->nearby($lat, $lng, 2.0)
+            ->get();
 
-        if ($nearestVolunteer) {
-            // Kirim broadcast khusus ke relawan tersebut
-            Log::info("SOS ID {$sos->id}: Ditemukan 1 relawan (< 1km) -> User ID: {$nearestVolunteer->id}. Memulai delay eskalasi 30 detik.");
-            broadcast(new SOSCreated($sos, $nearestVolunteer->id))->toOthers();
-            
-            // Tunda eskalasi ke radius 3 km selama 30 detik
-            EscalateSOSJob::dispatch($sos->id)->delay(now()->addSeconds(30));
-        } else {
-            // Jika tidak ada relawan di 1 km, langsung broadcast ke radius 3 km saat itu juga
-            Log::info("SOS ID {$sos->id}: Tidak ada relawan dalam radius 1km. Langsung eskalasi ke radius 3km.");
-            EscalateSOSJob::dispatchSync($sos->id);
+        $volunteerIds = $volunteers2km->pluck('id')->toArray();
+
+        Log::info("SOS ID {$sos->id}: Memulai broadcast tahap 1 (radius 2 km). Ditemukan {$volunteers2km->count()} relawan.");
+
+        if ($volunteers2km->isNotEmpty()) {
+            broadcast(new SOSCreated($sos, $volunteerIds, 2.0))->toOthers();
         }
+
+        // 2. Tahap 2: Tunggu 30 detik, jika belum ada yang menerima, eskalasi ke radius 3 km
+        EscalateSOSJob::dispatch($sos->id, 3.0)->delay(now()->addSeconds(30));
 
         return response()->json([
             'message' => 'Sinyal SOS berhasil dikirim.',
@@ -96,7 +97,7 @@ class SOSController extends Controller
     {
         $sos = SOS::with(['pengguna', 'relawan'])
             ->where('id_pengguna', $request->user()->id)
-            ->whereIn('status_sos', ['aktif', 'proses'])
+            ->whereIn('status_sos', ['belum ditangani', 'ditangani', 'aktif', 'proses'])
             ->first();
 
         if (!$sos) {
@@ -117,7 +118,7 @@ class SOSController extends Controller
         $userId = $request->user()->id;
 
         $sos = SOS::with('pengguna')
-            ->where('status_sos', 'aktif')
+            ->whereIn('status_sos', ['belum ditangani', 'aktif'])
             ->whereNull('id_relawan')
             ->whereDoesntHave('rejections', function ($query) use ($userId) {
                 $query->where('id_relawan', $userId);
@@ -183,20 +184,20 @@ class SOSController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status_sos' => 'required|in:proses,selesai',
+            'status_sos' => 'required|in:belum ditangani,ditangani,proses,selesai',
         ]);
 
         $user = $request->user();
         $userId = $user->id;
 
-        // Jika relawan ingin mengambil tugas (ubah status dari 'aktif' ke 'proses')
-        if ($request->status_sos === 'proses') {
+        // Jika relawan ingin mengambil tugas (ubah status ke 'ditangani')
+        if (in_array($request->status_sos, ['ditangani', 'proses'])) {
             
-            // Hanya baris yang masih 'aktif' yang akan ter-update.
+            // Hanya baris yang masih 'belum ditangani' atau 'aktif' yang akan ter-update.
             $updated = SOS::where('id', $id)
-                ->where('status_sos', 'aktif') // Kunci keamanan race condition
+                ->whereIn('status_sos', ['belum ditangani', 'aktif']) // Kunci keamanan race condition
                 ->update([
-                    'status_sos' => 'proses',
+                    'status_sos' => 'ditangani',
                     'id_relawan' => $userId,
                     'updated_at' => now(),
                 ]);
@@ -222,7 +223,7 @@ class SOSController extends Controller
             // Jika statusnya diubah ke 'selesai'
             $sos = SOS::where('id', $id)
                 ->where('id_relawan', $userId) // Pastikan hanya relawan penanggung jawab yang bisa menyelesaikan
-                ->where('status_sos', 'proses')
+                ->whereIn('status_sos', ['ditangani', 'proses'])
                 ->first();
 
             if (!$sos) {
@@ -230,7 +231,7 @@ class SOSController extends Controller
                     'message' => 'Anda tidak memiliki hak untuk menyelesaikan SOS ini atau status SOS tidak valid.'
                 ], 403);
             }
-            $sos->status_sos = $request->status_sos;
+            $sos->status_sos = 'selesai';
             $sos->save();
 
             SOSActivity::record(
@@ -267,15 +268,48 @@ class SOSController extends Controller
     }
 
     // menampilkan SOS aktif yang sedang ditangani oleh relawan
-    public function activeTask(Request $request)
+    public function activeTask(Request $request, MapboxService $mapboxService)
     {
+        $user = $request->user();
+
         $sos = SOS::with(['pengguna', 'relawan', 'activities.user'])
-            ->where('id_relawan', $request->user()->id)
-            ->where('status_sos', 'proses')
+            ->where('id_relawan', $user->id)
+            ->whereIn('status_sos', ['ditangani', 'proses'])
             ->first();
 
+        if (!$sos) {
+            return response()->json([
+                'message' => 'Tidak ada tugas SOS aktif.',
+                'data'    => null
+            ]);
+        }
+
+        // 1. Ambil lokasi relawan dari Redis (Fallback: DB)
+        $relawanLocation = Cache::get("relawan:{$user->id}:location");
+        $relawanLat = $relawanLocation['latitude'] ?? $user->latitude;
+        $relawanLng = $relawanLocation['longitude'] ?? $user->longitude;
+
+        // 2. Minta rute jalan dari Mapbox
+        $routeData = null;
+        if ($relawanLat && $relawanLng && $sos->latitude && $sos->longitude) {
+            $routeData = $mapboxService->getRoute(
+                (float) $relawanLat,
+                (float) $relawanLng,
+                (float) $sos->latitude,
+                (float) $sos->longitude
+            );
+
+            // 3. Simpan Polyline ke Redis untuk acuan off-route
+            if ($routeData && isset($routeData['polyline'])) {
+                Cache::put("sos:{$sos->id}:polyline", $routeData['polyline'], 3600);
+            }
+        }
+
+        $data = $sos->toArray();
+        $data['route_info'] = $routeData;
+
         return response()->json([
-            'data' => $sos
+            'data' => $data
         ]);
     }
 
@@ -305,7 +339,7 @@ class SOSController extends Controller
 
         $sos = SOS::where('id', $id)
             ->where('id_pengguna', $userId)
-            ->whereIn('status_sos', ['aktif', 'proses'])
+            ->whereIn('status_sos', ['belum ditangani', 'ditangani', 'aktif', 'proses'])
             ->first();
 
         if (!$sos) {
@@ -344,7 +378,7 @@ class SOSController extends Controller
         $userId = $user->id;
 
         $sos = SOS::where('id', $id)
-            ->where('status_sos', 'aktif')
+            ->whereIn('status_sos', ['belum ditangani', 'aktif'])
             ->whereNull('id_relawan')
             ->first();
 

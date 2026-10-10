@@ -73,8 +73,13 @@ export default function KasusAktifPage() {
     } catch { return raw; }
   };
 
-  // Helper: ambil status raw (belum ditangani/ditangani/selesai)
-  const getStatusRaw = (c) => c.status_raw ?? c.status ?? '';
+  // Helper: ambil status raw (aktif/proses/selesai)
+  const getStatusRaw = (c) => {
+    const s = (c.status_raw ?? c.status ?? '').toLowerCase();
+    if (s === 'aktif') return 'belum ditangani';
+    if (s === 'proses') return 'ditangani';
+    return s;
+  };
 
   // Helper: label tampilan kategori/insiden
   const getKategori = (c) =>
@@ -86,7 +91,7 @@ export default function KasusAktifPage() {
     { id: 'sos',      label: 'SOS' },
     { id: 'laporan',  label: 'Laporan' },
     { id: 'belum ditangani', label: 'Belum Ditangani' },
-    { id: 'ditangani',       label: 'Ditangani' },
+    { id: 'ditangani',   label: 'Sedang Ditangani' },
   ].map(tab => ({
     ...tab,
     count:

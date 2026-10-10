@@ -30,7 +30,9 @@ export function useUsers() {
         peran: r.peran ?? r.role_title ?? r.kompetensi ?? '',
         status: r.status_verifikasi ?? r.status ?? '',
       }));
-      setRelawan(normalized);
+      if (normalized.length > 0) {
+        setRelawan(normalized);
+      }
     } catch (error) {
       console.error('Gagal mengambil data relawan:', error);
       setRelawan([]);
@@ -45,9 +47,12 @@ export function useUsers() {
     try {
       const res = await adminService.getPendingRelawan();
       const list = res?.data?.data || res?.data || [];
-      setPendingRelawans(Array.isArray(list) ? list : []);
+      if (Array.isArray(list) && list.length > 0) {
+        setPendingRelawans(list);
+      }
     } catch (error) {
       console.error('Gagal mengambil relawan pending:', error);
+      setPendingRelawans([]);
     } finally {
       setIsLoadingPending(false);
     }

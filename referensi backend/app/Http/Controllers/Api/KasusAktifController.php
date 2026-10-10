@@ -11,7 +11,9 @@ use App\Models\KategoriLaporan;
 use App\Models\User;
 use App\Models\SOSActivity;
 use App\Events\SOSUpdateStatus;
+use App\Http\Controllers\Api\HubungiKontakDaruratController;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class KasusAktifController extends Controller
 {
@@ -25,7 +27,7 @@ class KasusAktifController extends Controller
     {
         $s = strtolower(trim($status ?? ''));
         return match ($s) {
-            'aktif', 'pending', 'belum tertangani', 'belum_tertangani' => 'Belum Tertangani',
+            'aktif', 'pending', 'belum tertangani', 'belum_tertangani', 'belum ditangani', 'belum_ditangani' => 'Belum Tertangani',
             'proses', 'ditangani', 'dalam penanganan' => 'Ditangani',
             'selesai' => 'Selesai',
             'batal'   => 'Batal',
@@ -41,8 +43,8 @@ class KasusAktifController extends Controller
         if (!$status) return null;
         $s = strtolower(trim($status));
         return match ($s) {
-            'belum tertangani', 'belum_tertangani', 'aktif' => ['aktif'],
-            'ditangani', 'proses' => ['proses'],
+            'belum tertangani', 'belum_tertangani', 'belum ditangani', 'belum_ditangani', 'aktif' => ['belum ditangani', 'aktif'],
+            'ditangani', 'proses' => ['ditangani', 'proses'],
             'selesai' => ['selesai'],
             'batal'   => ['batal'],
             default   => [$status],
@@ -99,7 +101,30 @@ class KasusAktifController extends Controller
                 'kategori_user' => $item->pengguna->kategori_user ?? 'umum',
             ];
             if ($isDetail && $item->pengguna->relationLoaded('kontakDarurat')) {
-                $pelaporData['kontak_darurat'] = $item->pengguna->kontakDarurat;
+                $kontakList = $item->pengguna->kontakDarurat;
+                $kontakUtama = $kontakList->firstWhere('tipe', 'utama') ?? $kontakList->first();
+
+                $pelaporData['kontak_darurat'] = $kontakList;
+                if ($kontakUtama) {
+                    $waNumber = HubungiKontakDaruratController::formatWhatsAppNumber($kontakUtama->no_telp);
+                    $pesan = HubungiKontakDaruratController::generateWhatsAppMessage($item, $tipe, $item->pengguna, $kontakUtama);
+                    $encoded = rawurlencode($pesan);
+
+                    $pelaporData['kontak_darurat_utama'] = [
+                        'id'               => $kontakUtama->id,
+                        'nama'             => $kontakUtama->nama,
+                        'no_telp'          => $kontakUtama->no_telp,
+                        'no_telp_wa'       => $waNumber,
+                        'tipe'             => $kontakUtama->tipe ?? 'utama',
+                        'is_utama'         => ($kontakUtama->tipe === 'utama'),
+                        'pesan_khusus'     => $kontakUtama->pesan,
+                        'pesan_wa'         => $pesan,
+                        'whatsapp_url'     => $waNumber ? "https://wa.me/{$waNumber}?text={$encoded}" : null,
+                        'whatsapp_web_url' => $waNumber ? "https://web.whatsapp.com/send?phone={$waNumber}&text={$encoded}" : null,
+                    ];
+                } else {
+                    $pelaporData['kontak_darurat_utama'] = null;
+                }
             }
         }
 
@@ -170,7 +195,7 @@ class KasusAktifController extends Controller
         }
 
         $tipe = $request->query('tipe'); // 'laporan' | 'sos' | null (keduanya)
-        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['aktif', 'proses'];
+        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['belum ditangani', 'ditangani', 'aktif', 'proses'];
         $perPage = (int) $request->query('per_page', 10);
         $response = [];
 
@@ -218,7 +243,7 @@ class KasusAktifController extends Controller
             ], 403);
         }
 
-        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['aktif', 'proses'];
+        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['belum ditangani', 'ditangani', 'aktif', 'proses'];
         $perPage = (int) $request->query('per_page', 10);
 
         $laporan = Laporan::with(['pengguna', 'relawan'])
@@ -248,7 +273,7 @@ class KasusAktifController extends Controller
             ], 403);
         }
 
-        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['aktif', 'proses'];
+        $statusFilter = self::mapStatusToInternal($request->query('status')) ?? ['belum ditangani', 'ditangani', 'aktif', 'proses'];
         $perPage = (int) $request->query('per_page', 10);
 
         $sos = SOS::with(['pengguna', 'relawan'])
@@ -340,7 +365,7 @@ class KasusAktifController extends Controller
 
             $laporan->update([
                 'id_relawan' => $relawan->id,
-                'status'     => 'proses',
+                'status'     => 'ditangani',
             ]);
 
             return response()->json([
@@ -360,7 +385,7 @@ class KasusAktifController extends Controller
 
             $sos->update([
                 'id_relawan' => $relawan->id,
-                'status_sos' => 'proses',
+                'status_sos' => 'ditangani',
             ]);
 
             SOSActivity::record(
@@ -386,7 +411,8 @@ class KasusAktifController extends Controller
     }
 
     /**
-     * 6. SELESAIKAN KASUS (POST /api/tugas-aktif/{tipe}/{id}/selesai)
+     * 6. UBAH STATUS / TANGANI KASUS OLEH ADMIN (PATCH /api/tugas-aktif/{tipe}/{id}/status)
+     * Mendukung status 'proses' (ambil alih) & 'selesai' dengan lockForUpdate untuk mencegah race condition.
      */
     public function tanganiKasus(Request $request, $tipe, $id)
     {
@@ -398,66 +424,179 @@ class KasusAktifController extends Controller
         }
 
         $request->validate([
-            'catatan' => 'required|string',
+            'status'  => 'required|in:belum ditangani,ditangani,proses,selesai',
+            'catatan' => 'nullable|string',
         ]);
 
+        $targetStatus = match ($request->status) {
+            'aktif'  => 'belum ditangani',
+            'proses' => 'ditangani',
+            default  => $request->status,
+        };
         $tipeLower = strtolower($tipe);
 
-        if ($tipeLower === 'laporan') {
-            $laporan = Laporan::find($id);
-            if (!$laporan) {
-                return response()->json(['message' => 'Laporan tidak ditemukan'], 404);
+        if (!in_array($tipeLower, ['laporan', 'sos'])) {
+            return response()->json(['message' => "Tipe tidak valid. Gunakan 'laporan' atau 'sos'."], 400);
+        }
+
+        return DB::transaction(function () use ($tipeLower, $id, $targetStatus, $request, $user) {
+            return match ($tipeLower) {
+                'laporan' => $this->prosesLaporan($id, $targetStatus, $request, $user),
+                'sos'     => $this->prosesSOS($id, $targetStatus, $request, $user),
+            };
+        });
+    }
+
+    /**
+     * Helper untuk memproses perubahan status Laporan oleh Admin dengan Pessimistic Locking
+     */
+    private function prosesLaporan($id, string $targetStatus, Request $request, $user)
+    {
+        $laporan = Laporan::with(['relawan'])->lockForUpdate()->find($id);
+        if (!$laporan) {
+            return response()->json(['message' => 'Laporan tidak ditemukan'], 404);
+        }
+
+        if ($laporan->status === 'selesai') {
+            return response()->json(['message' => 'Laporan ini sudah berstatus selesai.'], 422);
+        }
+
+        // 1. Jika kasus saat ini SUDAH berstatus ditangani / proses:
+        if (in_array($laporan->status, ['ditangani', 'proses'])) {
+            // Cegah ambil alih lagi jika sudah ditangani
+            if (in_array($targetStatus, ['ditangani', 'proses'])) {
+                return response()->json([
+                    'message' => 'Laporan ini sudah dalam status proses penanganan.'
+                ], 422);
             }
 
-            $laporan->update(['status' => 'selesai']);
+            // Jika mau diselesaikan tapi sedang ditangani oleh relawan (bukan admin ini)
+            if (!empty($laporan->id_relawan) && $laporan->id_relawan !== $user->id) {
+                $namaRelawan = $laporan->relawan?->name ?? 'Relawan';
+                return response()->json([
+                    'message' => "Laporan ini sedang ditangani oleh relawan {$namaRelawan}. Admin tidak dapat mengubah statusnya."
+                ], 422);
+            }
+        }
 
+        // 2. Jika kasus masih aktif/belum ditangani tetapi sudah ada relawan yang ditugaskan
+        if (in_array($targetStatus, ['ditangani', 'proses']) && !is_null($laporan->id_relawan) && $laporan->id_relawan !== $user->id) {
+            return response()->json([
+                'message' => 'Laporan ini sudah memiliki relawan penanggung jawab dan tidak dapat diambil alih.'
+            ], 422);
+        }
+
+        $updateData = ['status' => $targetStatus];
+        if (in_array($targetStatus, ['ditangani', 'proses'])) {
+            // Catat ID admin yang mengambil alih ke id_relawan
+            $updateData['id_relawan'] = $user->id;
+        } elseif ($targetStatus === 'selesai' && empty($laporan->id_relawan)) {
+            // Jika diselesaikan langsung tanpa relawan sebelumnya, catat admin sebagai penanggung jawab
+            $updateData['id_relawan'] = $user->id;
+        }
+
+        $laporan->update($updateData);
+
+        $catatan = null;
+        if ($request->filled('catatan')) {
             $catatan = CatatanPenanganan::create([
                 'id_admin'   => $user->id,
                 'id_laporan' => $laporan->id,
                 'catatan'    => $request->catatan,
             ]);
+        }
 
+        return response()->json([
+            'message' => "Laporan berhasil diubah menjadi {$targetStatus}",
+            'data'    => [
+                'kasus'   => self::transformItem($laporan->fresh(['pengguna', 'relawan']), 'laporan', true),
+                'catatan' => $catatan,
+            ]
+        ]);
+    }
+
+    /**
+     * Helper untuk memproses perubahan status SOS oleh Admin dengan Pessimistic Locking
+     */
+    private function prosesSOS($id, string $targetStatus, Request $request, $user)
+    {
+        $sos = SOS::with(['relawan'])->lockForUpdate()->find($id);
+        if (!$sos) {
+            return response()->json(['message' => 'SOS tidak ditemukan'], 404);
+        }
+
+        if (in_array($sos->status_sos, ['selesai', 'batal'])) {
             return response()->json([
-                'message' => 'Laporan berhasil diselesaikan',
-                'data'    => [
-                    'kasus'   => self::transformItem($laporan->fresh(['pengguna', 'relawan']), 'laporan', true),
-                    'catatan' => $catatan,
-                ]
-            ]);
+                'message' => "Kasus SOS ini sudah berstatus '{$sos->status_sos}' dan tidak dapat diubah lagi."
+            ], 422);
+        }
 
-        } elseif ($tipeLower === 'sos') {
-            $sos = SOS::find($id);
-            if (!$sos) {
-                return response()->json(['message' => 'SOS tidak ditemukan'], 404);
+        // 1. Jika kasus SOS saat ini SUDAH berstatus ditangani / proses:
+        if (in_array($sos->status_sos, ['ditangani', 'proses'])) {
+            // Cegah ambil alih lagi jika sudah ditangani
+            if (in_array($targetStatus, ['ditangani', 'proses'])) {
+                return response()->json([
+                    'message' => 'Kasus SOS ini sudah dalam status proses penanganan.'
+                ], 422);
             }
 
-            $sos->update(['status_sos' => 'selesai']);
+            // Jika mau diselesaikan tapi sedang ditangani oleh relawan (bukan admin ini)
+            if (!empty($sos->id_relawan) && $sos->id_relawan !== $user->id) {
+                $namaRelawan = $sos->relawan?->name ?? 'Relawan';
+                return response()->json([
+                    'message' => "Kasus SOS ini sedang ditangani oleh relawan {$namaRelawan}. Admin tidak dapat mengubah statusnya."
+                ], 422);
+            }
+        }
 
+        // 2. Jika kasus masih aktif/belum ditangani tetapi sudah ada relawan yang ditugaskan
+        if (in_array($targetStatus, ['ditangani', 'proses']) && !is_null($sos->id_relawan) && $sos->id_relawan !== $user->id) {
+            return response()->json([
+                'message' => 'Kasus SOS ini sudah memiliki relawan penanggung jawab dan tidak dapat diambil alih.'
+            ], 422);
+        }
+
+        $updateData = ['status_sos' => $targetStatus];
+        if (in_array($targetStatus, ['ditangani', 'proses'])) {
+            // Catat ID admin yang mengambil alih ke id_relawan
+            $updateData['id_relawan'] = $user->id;
+        } elseif ($targetStatus === 'selesai' && empty($sos->id_relawan)) {
+            // Jika diselesaikan langsung tanpa relawan sebelumnya, catat admin sebagai penanggung jawab
+            $updateData['id_relawan'] = $user->id;
+        }
+
+        $sos->update($updateData);
+
+        $actionType = $targetStatus === 'selesai' ? 'sos_selesai' : 'admin_ambil_alih';
+        $logMessage = $targetStatus === 'selesai'
+            ? "Kasus SOS #{$sos->id} ditandai selesai oleh Admin {$user->name}"
+            : "Kasus SOS #{$sos->id} diambil alih oleh Admin {$user->name}";
+
+        SOSActivity::record(
+            $sos->id,
+            $actionType,
+            $logMessage,
+            $user->id
+        );
+
+        $catatan = null;
+        if ($request->filled('catatan')) {
             $catatan = CatatanPenanganan::create([
                 'id_admin' => $user->id,
                 'id_sos'   => $sos->id,
                 'catatan'  => $request->catatan,
             ]);
-
-            SOSActivity::record(
-                $sos->id,
-                'sos_selesai',
-                "Kasus SOS #{$sos->id} ditandai selesai oleh Admin {$user->name}",
-                $user->id
-            );
-
-            broadcast(new SOSUpdateStatus($sos))->toOthers();
-
-            return response()->json([
-                'message' => 'SOS berhasil diselesaikan',
-                'data'    => [
-                    'kasus'   => self::transformItem($sos->fresh(['pengguna', 'relawan']), 'sos', true),
-                    'catatan' => $catatan,
-                ]
-            ]);
         }
 
-        return response()->json(['message' => "Tipe tidak valid. Gunakan 'laporan' atau 'sos'."], 400);
+        broadcast(new SOSUpdateStatus($sos))->toOthers();
+
+        return response()->json([
+            'message' => "SOS berhasil diubah menjadi {$targetStatus}",
+            'data'    => [
+                'kasus'   => self::transformItem($sos->fresh(['pengguna', 'relawan']), 'sos', true),
+                'catatan' => $catatan,
+            ]
+        ]);
     }
 
     /**
