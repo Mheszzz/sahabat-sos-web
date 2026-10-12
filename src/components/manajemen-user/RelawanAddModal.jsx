@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { UserPlus, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { UserPlus, X, Loader2, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 import { adminService } from '../../api/services/adminService';
 
 export default function RelawanAddModal({ isOpen, onClose, onSave }) {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    password: '',
     no_telp: '',
     alamat: '',
+    pekerjaan: '',
   });
   const [isConfirming, setIsConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
   if (!isOpen) return null;
 
   const handleClose = () => {
-    setForm({ name: '', email: '', password: '', no_telp: '', alamat: '' });
+    setForm({ name: '', email: '', no_telp: '', alamat: '', pekerjaan: '' });
     setIsConfirming(false);
     setError('');
     onClose();
@@ -35,9 +35,9 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
       await adminService.registerRelawan({
         name: form.name,
         email: form.email,
-        password: form.password,
         no_telp: form.no_telp,
         alamat: form.alamat,
+        pekerjaan: form.pekerjaan,
       });
       handleClose();
       onSave();
@@ -74,6 +74,14 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
           </button>
         </div>
 
+        {/* Info Google SSO */}
+        <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 text-blue-800 text-[12px] leading-relaxed">
+          <Info size={15} className="flex-shrink-0 mt-0.5 text-blue-600" />
+          <span>
+            Relawan akan login di aplikasi mobile menggunakan <strong>Masuk dengan Akun Google</strong> dengan email terdaftar. Kata sandi tidak diperlukan.
+          </span>
+        </div>
+
         {/* Error Alert */}
         {error && (
           <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-red-700 text-[12px] font-semibold">
@@ -87,7 +95,7 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
           <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-amber-800 text-[12px] font-semibold">
             <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
             <span>
-              Konfirmasi: Daftarkan relawan untuk <strong>{form.email}</strong>?
+              Konfirmasi: Daftarkan relawan untuk <strong>{form.email}</strong>? Akun akan langsung berstatus terverifikasi.
             </span>
           </div>
         )}
@@ -111,7 +119,7 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
 
           <div>
             <label className="text-[12px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-              Email *
+              Email Google Relawan *
             </label>
             <input
               type="email"
@@ -119,23 +127,21 @@ export default function RelawanAddModal({ isOpen, onClose, onSave }) {
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full h-10 rounded-xl border border-slate-200 px-3 text-[13px] focus:outline-none focus:border-emerald-500"
-              placeholder="relawan@sahabatsos.id"
+              placeholder="contoh: relawan@gmail.com"
               disabled={loading}
             />
           </div>
 
           <div>
             <label className="text-[12px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-              Kata Sandi *
+              Pekerjaan / Keahlian
             </label>
             <input
-              type="password"
-              required
-              minLength={6}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              type="text"
+              value={form.pekerjaan}
+              onChange={(e) => setForm({ ...form, pekerjaan: e.target.value })}
               className="w-full h-10 rounded-xl border border-slate-200 px-3 text-[13px] focus:outline-none focus:border-emerald-500"
-              placeholder="Minimal 6 karakter"
+              placeholder="Contoh: Tim Medis, SAR, Mahasiswa"
               disabled={loading}
             />
           </div>
