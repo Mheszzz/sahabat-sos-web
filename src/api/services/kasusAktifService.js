@@ -78,6 +78,21 @@ export const kasusAktifService = {
   },
 
   /**
+   * Mengambil alih penanganan kasus aktif oleh Admin
+   * @param {string} tipe - 'sos' | 'laporan'
+   * @param {number|string} id - ID kasus
+   * @param {string} [catatan] - Catatan penanganan
+   * @returns {Promise}
+   */
+  tanganiKasus: async (tipe, id, catatan = null) => {
+    const response = await api.patch(`/tugas-aktif/${tipe}/${id}/status`, {
+      status: 'ditangani',
+      catatan: catatan || 'Kasus diambil alih dan ditangani oleh Admin.',
+    });
+    return response.data;
+  },
+
+  /**
    * Mengambil riwayat kasus selesai (audit admin).
    * Response: { data: { laporan: PaginatedLaporan, sos: PaginatedSOS } }
    * @param {Object} params - { tipe, per_page, page }

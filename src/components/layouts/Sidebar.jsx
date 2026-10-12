@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   Home, AlertTriangle, Clock, MapPin, Settings,
-  Siren, LogOut, UserCog, Users, ChevronRight, Database
+  LogOut, UserCog, Users, ChevronRight, Database
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 import { adminService } from '../../api/services/adminService';
@@ -55,8 +55,35 @@ function NavButton({ id, label, icon: Icon, badge, isActive }) {
 
 export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
   const location = useLocation();
-  // derive activePage from pathname roughly
-  const activePage = location.pathname === '/' ? 'dashboard' : location.pathname.substring(1);
+  const currentPath = location.pathname;
+
+  const isItemActive = (id) => {
+    if (id === 'dashboard') {
+      return currentPath === '/' || currentPath === '/dashboard';
+    }
+    if (id === 'kasus-aktif') {
+      return currentPath.startsWith('/kasus-aktif') || currentPath.startsWith('/detail-kasus');
+    }
+    if (id === 'riwayat') {
+      return currentPath.startsWith('/riwayat');
+    }
+    if (id === 'peta') {
+      return currentPath.startsWith('/peta');
+    }
+    if (id === 'pengaturan') {
+      return currentPath.startsWith('/pengaturan');
+    }
+    if (id === 'manajemen-admin') {
+      return currentPath.startsWith('/manajemen-admin');
+    }
+    if (id === 'manajemen-user') {
+      return currentPath.startsWith('/manajemen-user') || currentPath.startsWith('/detail-relawan');
+    }
+    if (id === 'master-data') {
+      return currentPath.startsWith('/master-data') || currentPath.startsWith('/detail-laporan');
+    }
+    return false;
+  };
   const [navItems, setNavItems] = useState(initialNavItems);
 
   useEffect(() => {
@@ -120,7 +147,7 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
           </p>
           <div className="space-y-0.5">
             {navItems.map(item => (
-              <NavButton key={item.id} {...item} isActive={activePage === item.id}  />
+              <NavButton key={item.id} {...item} isActive={isItemActive(item.id)} />
             ))}
           </div>
 
@@ -131,7 +158,7 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
             </p>
             <div className="space-y-0.5">
               {manajemenItems.map(item => (
-                <NavButton key={item.id} {...item} isActive={activePage === item.id}  />
+                <NavButton key={item.id} {...item} isActive={isItemActive(item.id)} />
               ))}
             </div>
           </div>
@@ -143,7 +170,7 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
         {currentUser && (
           <div className="px-3 pb-3 pt-2 border-t border-white/[0.07] flex-shrink-0">
             <div className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors">
-              <InitialsAvatar name={currentUser.nama} size={34} bgClass="bg-[#0b6f61]" />
+              <InitialsAvatar name={currentUser.nama} src={currentUser.foto_profile || currentUser.avatar_url || currentUser.foto_url} size={34} bgClass="bg-[#0b6f61]" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-[13px] font-bold truncate leading-tight">{currentUser.nama}</p>
                 <p className="text-white/40 text-[11px] truncate leading-tight mt-0.5">{currentUser.role}</p>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Download, Calendar, Filter, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
 import { adminService } from '../../api/services/adminService';
+import CustomSelect from '../../components/global/CustomSelect';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -15,6 +16,7 @@ export default function RiwayatKasusPage() {
 	const navigate = useNavigate();
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('Semua');
+	const [dateFilter, setDateFilter] = useState('30');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [riwayatData, setRiwayatData] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -141,27 +143,31 @@ export default function RiwayatKasusPage() {
 					</div>
 
 					<div className="flex flex-wrap items-center gap-3">
-						<div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-[#f8fafc] px-3 text-[12px] font-semibold text-slate-600">
-							<Calendar size={13} className="text-slate-400" />
-							<select className="bg-transparent outline-none">
-								<option value="30">30 Hari Terakhir</option>
-								<option value="7">7 Hari Terakhir</option>
-								<option value="90">3 Bulan Terakhir</option>
-							</select>
-						</div>
+						<CustomSelect
+							value={dateFilter}
+							onChange={setDateFilter}
+							options={[
+								{ value: '30', label: '30 Hari Terakhir' },
+								{ value: '7', label: '7 Hari Terakhir' },
+								{ value: '90', label: '3 Bulan Terakhir' },
+							]}
+							placeholder="Rentang Waktu"
+							icon={<Calendar size={13} />}
+							menuWidth="w-48"
+						/>
 
-						<div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-[#f8fafc] px-3 text-[12px] font-semibold text-slate-600">
-							<Filter size={13} className="text-slate-400" />
-							<select
-								value={statusFilter}
-								onChange={(e) => setStatusFilter(e.target.value)}
-								className="bg-transparent outline-none"
-							>
-								<option value="Semua">Semua Status</option>
-								<option value="Selesai">Selesai</option>
-								<option value="Dibatalkan">Dibatalkan</option>
-							</select>
-						</div>
+						<CustomSelect
+							value={statusFilter}
+							onChange={setStatusFilter}
+							options={[
+								{ value: 'Semua', label: 'Semua Status' },
+								{ value: 'Selesai', label: 'Selesai' },
+								{ value: 'Dibatalkan', label: 'Dibatalkan' },
+							]}
+							placeholder="Semua Status"
+							icon={<Filter size={13} />}
+							menuWidth="w-44"
+						/>
 					</div>
 				</div>
 			</div>
@@ -178,7 +184,7 @@ export default function RiwayatKasusPage() {
 								<th style={{minWidth: '200px'}}>Lokasi</th>
 								<th style={{minWidth: '140px'}}>Relawan</th>
 								<th style={{minWidth: '130px'}}>Status</th>
-								<th style={{width: '100px', minWidth: '100px'}} className="text-right">Aksi</th>
+								<th style={{width: '100px', minWidth: '100px'}} className="text-center">Aksi</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -265,10 +271,10 @@ export default function RiwayatKasusPage() {
 										</span>
 									</td>
 
-									<td className="text-right min-w-0">
+									<td className="text-center min-w-0">
 										<button
 											onClick={() => navigate(`/detail-kasus/${row.rawId || row.id}?tipe=${row.tipe === 'SOS' ? 'sos' : 'laporan'}`)}
-											className="btn-base btn-secondary h-8 rounded-lg px-2.5 text-[11px]"
+											className="btn-base btn-secondary h-8 rounded-lg px-2.5 text-[11px] inline-flex items-center justify-center gap-1.5"
 										>
 											<Eye size={12} />
 											<span>Detail</span>
