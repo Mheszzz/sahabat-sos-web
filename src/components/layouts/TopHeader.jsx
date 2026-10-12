@@ -1,22 +1,77 @@
-import { Bell, ChevronRight, Menu, Home } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Bell, ChevronRight, Menu, Home, AlertTriangle } from 'lucide-react';
 
-const breadcrumbMap = {
-  dashboard: ['Beranda', 'Dashboard Utama'],
-  'kasus-aktif': ['Beranda', 'Kasus Aktif'],
-  riwayat: ['Beranda', 'Riwayat Kasus'],
-  peta: ['Beranda', 'Peta Pemantauan'],
-  pengaturan: ['Beranda', 'Pengaturan Sistem'],
-  'detail-kasus': ['Kasus Aktif', 'Detail Kasus'],
-  'manajemen-admin': ['Manajemen', 'Manajemen Admin'],
-  'manajemen-user': ['Manajemen', 'Manajemen User'],
-};
-
-import { useLocation } from 'react-router-dom';
+function getBreadcrumbs(pathname) {
+  if (pathname.startsWith('/detail-kasus')) {
+    return [
+      { label: 'Kasus Aktif', to: '/kasus-aktif', icon: AlertTriangle },
+      { label: 'Detail Kasus' },
+    ];
+  }
+  if (pathname.startsWith('/kasus-aktif')) {
+    return [
+      { label: 'Kasus Aktif', icon: AlertTriangle },
+    ];
+  }
+  if (pathname.startsWith('/riwayat')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Riwayat Kasus' },
+    ];
+  }
+  if (pathname.startsWith('/peta')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Peta Pemantauan' },
+    ];
+  }
+  if (pathname.startsWith('/pengaturan')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Profil' },
+    ];
+  }
+  if (pathname.startsWith('/manajemen-admin')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Kelola Admin' },
+    ];
+  }
+  if (pathname.startsWith('/detail-relawan')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Kelola Relawan', to: '/manajemen-user' },
+      { label: 'Detail Relawan' },
+    ];
+  }
+  if (pathname.startsWith('/manajemen-user')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Kelola Relawan' },
+    ];
+  }
+  if (pathname.startsWith('/detail-laporan')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Master Data Laporan', to: '/master-data' },
+      { label: 'Detail Laporan' },
+    ];
+  }
+  if (pathname.startsWith('/master-data')) {
+    return [
+      { label: 'Beranda', to: '/dashboard' },
+      { label: 'Master Data Laporan' },
+    ];
+  }
+  return [
+    { label: 'Beranda', to: '/dashboard' },
+    { label: 'Dashboard Utama' },
+  ];
+}
 
 export default function TopHeader({ onMenuToggle }) {
   const location = useLocation();
-  const activePage = location.pathname === '/' ? 'dashboard' : location.pathname.substring(1);
-  const crumbs = breadcrumbMap[activePage] || ['Beranda', 'Dashboard Utama'];
+  const crumbs = getBreadcrumbs(location.pathname);
 
   return (
     <header className="sticky top-0 z-30 flex h-[56px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8">
@@ -29,11 +84,36 @@ export default function TopHeader({ onMenuToggle }) {
           <Menu size={18} />
         </button>
 
-        <nav className="flex items-center gap-2 text-[13px] font-medium">
-          <Home size={14} className="text-slate-400" />
-          <span className="text-slate-400">{crumbs[0]}</span>
-          <ChevronRight size={12} className="text-slate-300" />
-          <span className="font-semibold text-slate-700">{crumbs[1]}</span>
+        <nav className="flex items-center gap-1.5 text-[13px] font-medium" aria-label="Breadcrumb">
+          {crumbs.map((crumb, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === crumbs.length - 1;
+            const IconComponent = crumb.icon || (isFirst ? Home : null);
+
+            return (
+              <div key={idx} className="flex items-center gap-1.5">
+                {crumb.to && !isLast ? (
+                  <Link
+                    to={crumb.to}
+                    className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-700 transition-colors"
+                  >
+                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
+                    <span>{crumb.label}</span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
+                    <span className={isLast ? "font-semibold text-slate-700" : "text-slate-400"}>
+                      {crumb.label}
+                    </span>
+                  </div>
+                )}
+                {!isLast && (
+                  <ChevronRight size={12} className="text-slate-300 flex-shrink-0" />
+                )}
+              </div>
+            );
+          })}
         </nav>
       </div>
 

@@ -140,7 +140,7 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                   {/* ── Kolom 1: Profil ── */}
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <InitialsAvatar name={nama} size={40} />
+                      <InitialsAvatar name={nama} src={admin.foto_profile || admin.foto_url} size={40} />
                       <div className="min-w-0">
                         <p className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
                           {nama}

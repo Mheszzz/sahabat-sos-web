@@ -1,20 +1,26 @@
+import { useState } from 'react';
 import {
-  ArrowLeft, Phone, MapPin, User, Shield, Clock, CheckCircle2,
+  ArrowLeft, Phone, MapPin, Shield, CheckCircle2,
   AlertTriangle, Printer, ShieldAlert, Smartphone, Wifi, WifiOff,
   Battery, UserCheck, RefreshCw, Loader2, X, ChevronDown, ChevronUp,
-  PhoneCall, Mail,
+  PhoneCall, MessageSquare, Volume2, Image as ImageIcon, FileText,
+  ExternalLink, User, Maximize2
 } from 'lucide-react';
 import Badge from '../../components/global/Badge';
 import InitialsAvatar from '../../components/global/InitialsAvatar';
 import { useDetailKasus } from '../../hooks/detail-kasus/useDetailKasus';
 
-// ─── Helper: format tanggal ───────────────────────────────────────────────────
+// ─── Helper Format Tanggal ─────────────────────────────────────────────────────
 function formatDateTime(dt) {
   if (!dt) return '—';
-  return new Date(dt).toLocaleString('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
+  try {
+    return new Date(dt).toLocaleString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return String(dt);
+  }
 }
 
 // ─── Sub-component: Feedback Toast ───────────────────────────────────────────
@@ -22,59 +28,25 @@ function FeedbackToast({ feedback }) {
   if (!feedback) return null;
   const isSuccess = feedback.type === 'success';
   return (
-    <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 rounded-2xl px-5 py-3.5 shadow-xl border text-[13px] font-bold transition-all animate-fade-in
-      ${isSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}
+    <div className={`fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-xl px-4 py-3 shadow-xl border text-[12px] font-bold transition-all animate-fade-in
+      ${isSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}
     >
-      {isSuccess ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+      {isSuccess ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
       <span>{feedback.message}</span>
     </div>
-  );
-}
-
-// ─── Sub-component: Info Row ──────────────────────────────────────────────────
-function InfoRow({ label, value, highlight = false }) {
-  return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className={`mt-0.5 text-[13px] font-semibold ${highlight ? 'text-emerald-700' : 'text-slate-800'}`}>
-        {value || <span className="text-slate-400 italic font-normal">—</span>}
-      </p>
-    </div>
-  );
-}
-
-// ─── Sub-component: Section Card ─────────────────────────────────────────────
-function SectionCard({ icon: Icon, title, children, className = '' }) {
-  return (
-    <div className={`bg-white border border-[#eaedf1] rounded-2xl p-5 shadow-xs space-y-4 ${className}`}>
-      <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-2">
-        {Icon && <Icon size={15} className="text-slate-400 flex-shrink-0" />}
-        <span>{title}</span>
-      </h2>
-      <div className="pt-3 border-t border-slate-100">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Sub-component: Empty State ───────────────────────────────────────────────
-function EmptyInfo({ message = 'Data tidak tersedia.' }) {
-  return (
-    <p className="text-[12px] text-slate-400 italic py-2">{message}</p>
   );
 }
 
 // ─── Sub-component: Modal Konfirmasi Selesai ──────────────────────────────────
 function SelesaiModal({ kasus, catatanSelesai, setCatatanSelesai, loadingSelesai, onConfirm, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-4 animate-scale-up">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-[16px] font-black text-slate-900">Selesaikan Kasus?</h3>
-            <p className="text-[12px] text-slate-500 mt-1">
-              Tindakan ini akan menandai kasus sebagai selesai dan masuk ke riwayat.
+            <h3 className="text-[15px] font-black text-slate-900">Selesaikan Kasus?</h3>
+            <p className="text-[11.5px] text-slate-500 mt-0.5">
+              Tindakan ini akan menandai kasus tuntas dan mencatat hasil penanganan ke riwayat.
             </p>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 cursor-pointer">
@@ -83,38 +55,37 @@ function SelesaiModal({ kasus, catatanSelesai, setCatatanSelesai, loadingSelesai
         </div>
 
         {/* Ringkasan Kasus */}
-        <div className="bg-slate-50 rounded-xl p-3.5 space-y-1.5 text-[12px]">
-          <p className="font-bold text-slate-700">Ringkasan Kasus #{kasus?.id}</p>
-          <p className="text-slate-500">Kategori: <span className="font-semibold text-slate-700">{kasus?.kategori_laporan || '—'}</span></p>
+        <div className="bg-slate-50 rounded-xl p-3 space-y-1 text-[11.5px] border border-slate-100">
+          <p className="font-bold text-slate-800">Kasus #{kasus?.id} &middot; {kasus?.kategori_laporan || 'Darurat'}</p>
           <p className="text-slate-500">Pelapor: <span className="font-semibold text-slate-700">{kasus?.pengguna?.name || '—'}</span></p>
-          <p className="text-slate-500">Status Saat Ini: <span className="font-semibold text-slate-700">{kasus?.status || '—'}</span></p>
+          <p className="text-slate-500">Relawan: <span className="font-semibold text-slate-700">{kasus?.relawan?.name || 'Admin Langsung'}</span></p>
         </div>
 
-        {/* Field Catatan */}
+        {/* Catatan Selesai */}
         <div>
-          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-            Catatan Penanganan (Opsional)
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+            Catatan Penanganan Petugas
           </label>
           <textarea
             rows={3}
             value={catatanSelesai}
             onChange={(e) => setCatatanSelesai(e.target.value)}
-            placeholder="Contoh: Korban berhasil dievakuasi ke RSUD. Kondisi stabil."
-            className="form-input text-[12px] resize-none w-full"
+            placeholder="Contoh: Korban berhasil dievakuasi ke RSUD terdekat dalam kondisi stabil."
+            className="w-full text-[12px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#0b6f61] outline-none resize-none"
           />
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="btn-base btn-secondary text-[12px] h-9 flex-1">
+          <button onClick={onClose} className="btn-base btn-secondary text-[12px] h-8.5 flex-1">
             Batal
           </button>
           <button
             onClick={onConfirm}
             disabled={loadingSelesai}
-            className="btn-base btn-primary text-[12px] h-9 flex-1"
+            className="btn-base btn-primary text-[12px] h-8.5 flex-1"
           >
             {loadingSelesai ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-            <span>{loadingSelesai ? 'Menyimpan...' : 'Ya, Selesaikan'}</span>
+            <span>{loadingSelesai ? 'Menyimpan...' : 'Tandai Selesai'}</span>
           </button>
         </div>
       </div>
@@ -122,47 +93,77 @@ function SelesaiModal({ kasus, catatanSelesai, setCatatanSelesai, loadingSelesai
   );
 }
 
-// ─── Sub-component: Panel Dispatch Relawan ────────────────────────────────────
-function DispatchPanel({ relawanList, loadingRelawan, selectedRelawanId, setSelectedRelawanId, loadingDispatch, onConfirm, onClose }) {
+// ─── Sub-component: Lightbox Foto Bukti ────────────────────────────────────────
+function ImageLightbox({ src, onClose }) {
+  if (!src) return null;
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-bold text-slate-800">Pilih Relawan untuk Ditugaskan</p>
-        <button onClick={onClose} className="w-6 h-6 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 cursor-pointer">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-zoom-out"
+    >
+      <div className="relative max-w-4xl max-h-[90vh] bg-black/40 rounded-2xl overflow-hidden p-2" onClick={e => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90 cursor-pointer"
+        >
+          <X size={16} />
+        </button>
+        <img src={src} alt="Bukti Laporan Penuh" className="max-h-[85vh] w-auto max-w-full rounded-xl object-contain mx-auto" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Sub-component: Panel Quick Dispatch Relawan ──────────────────────────────
+function QuickDispatchInline({
+  relawanList, loadingRelawan, selectedRelawanId, setSelectedRelawanId,
+  loadingDispatch, onConfirm, onClose
+}) {
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5 animate-fade-in">
+      <div className="flex items-center justify-between text-[11px] font-bold text-slate-800">
+        <span>Pilih Relawan Terdekat:</span>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
           <X size={12} />
         </button>
       </div>
 
       {loadingRelawan ? (
-        <div className="flex items-center gap-2 py-3 text-slate-500 text-[12px]">
-          <Loader2 size={14} className="animate-spin text-[#0b6f61]" />
-          <span>Memuat daftar relawan...</span>
+        <div className="flex items-center gap-2 py-3 text-slate-500 text-[11px]">
+          <Loader2 size={13} className="animate-spin text-[#0b6f61]" />
+          <span>Mencari relawan di sekitar lokasi...</span>
         </div>
       ) : relawanList.length === 0 ? (
-        <EmptyInfo message="Tidak ada relawan tersedia saat ini." />
+        <p className="text-[11px] text-slate-400 italic py-1">Tidak ada relawan yang terdeteksi di radius tugas.</p>
       ) : (
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {relawanList.map((vol) => {
+        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+          {relawanList.map(vol => {
             const isSelected = selectedRelawanId === vol.id;
             const name = vol.name || vol.nama || `Relawan #${vol.id}`;
+            const jarak = vol.jarak_text && vol.jarak_text !== '-'
+              ? vol.jarak_text
+              : (vol.jarak_km ? `${vol.jarak_km} km` : 'Area Siaga');
+
             return (
               <button
                 key={vol.id}
+                type="button"
                 onClick={() => setSelectedRelawanId(vol.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer
-                  ${isSelected ? 'border-[#0b6f61] bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                className={`w-full flex items-center gap-2 p-2 rounded-lg border text-left transition-all cursor-pointer text-[11px]
+                  ${isSelected
+                    ? 'border-[#0b6f61] bg-emerald-50/80 ring-1 ring-[#0b6f61]'
+                    : 'border-slate-200 bg-white hover:border-slate-300'}`}
               >
-                <InitialsAvatar name={name} size={32} />
+                <InitialsAvatar name={name} src={vol.foto_profile || vol.foto_url} size={24} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-bold text-slate-800 truncate">{name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{vol.role_title || 'Relawan'} &middot; Jarak: {vol.jarak || (Math.random() * 5 + 0.5).toFixed(1)} km</p>
+                  <p className="font-bold text-slate-800 truncate">{name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{vol.kompetensi || 'Relawan Siaga'} &middot; {jarak}</p>
                 </div>
-                <div className="flex-shrink-0">
-                  <Badge
-                    variant={vol.status === 'bertugas' ? 'Sedang Bertugas' : 'Online'}
-                    isPill
-                  />
-                </div>
+                <Badge
+                  variant={vol.status === 'sedang_bertugas' || vol.status === 'bertugas' ? 'Sedang Bertugas' : 'Online'}
+                  isPill
+                  className="scale-90"
+                />
               </button>
             );
           })}
@@ -170,21 +171,21 @@ function DispatchPanel({ relawanList, loadingRelawan, selectedRelawanId, setSele
       )}
 
       <button
+        type="button"
         onClick={onConfirm}
         disabled={!selectedRelawanId || loadingDispatch}
-        className="btn-base btn-primary text-[12px] h-9 w-full disabled:opacity-50"
+        className="btn-base btn-primary text-[11px] h-7.5 w-full justify-center disabled:opacity-50"
       >
-        {loadingDispatch ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
-        <span>{loadingDispatch ? 'Menugaskan...' : 'Tugaskan Relawan'}</span>
+        {loadingDispatch ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+        <span>{loadingDispatch ? 'Menugaskan...' : 'Konfirmasi Penugasan'}</span>
       </button>
     </div>
   );
 }
 
-// ─── Main Page Component ──────────────────────────────────────────────────────
+// ─── Main Component: Detail Kasus Command Center ──────────────────────────────
 export default function DetailKasusPage() {
   const {
-    id,
     kasus,
     activities,
     relawanList,
@@ -193,6 +194,7 @@ export default function DetailKasusPage() {
     loadingRelawan,
     loadingDispatch,
     loadingSelesai,
+    loadingTangani,
     errorKasus,
     selectedRelawanId,
     setSelectedRelawanId,
@@ -206,37 +208,92 @@ export default function DetailKasusPage() {
     navigate,
     fetchKasus,
     handleDispatch,
+    handleTanganiKasus,
     handleSelesai,
     handleLogAksi,
     handleOpenDispatchPanel,
   } = useDetailKasus();
 
+  const [previewImage, setPreviewImage] = useState(null);
+  const [rightTab, setRightTab] = useState('log'); // 'log' | 'catatan'
+
+  const isSos = kasus?._tipe === 'sos';
   const pengguna = kasus?.pengguna ?? null;
   const kontakDarurat = Array.isArray(pengguna?.kontak_darurat) ? pengguna.kontak_darurat : [];
   const relawanBertugas = kasus?.relawan ?? null;
   const isSelesai = kasus?.status === 'selesai' || kasus?.status === 'batal';
 
-  // ─── Loading Screen ────────────────────────────────────────────────────
+  // Tema warna dinamis header berdasarkan status kasus:
+  // - Ditangani: Kuning (Amber)
+  // - Belum Ditangani: Merah (Rose)
+  // - Selesai: Hijau (Emerald)
+  const statusRaw = (kasus?.status || '').toLowerCase().trim();
+  const isDitangani = statusRaw === 'ditangani' || statusRaw === 'proses' || statusRaw === 'sedang ditangani';
+  const isBelumDitangani = statusRaw === 'belum ditangani' || statusRaw === 'menunggu';
+  const isKasusSelesai = statusRaw === 'selesai' || statusRaw === 'batal';
+
+  const headerTheme = (() => {
+    if (isBelumDitangani) {
+      return {
+        card: 'bg-rose-50/90 border-rose-300 text-rose-950 shadow-xs shadow-rose-500/5',
+        backBtn: 'border-rose-200 bg-white hover:bg-rose-100/70 text-rose-700',
+        divider: 'bg-rose-200/80',
+        title: 'text-rose-950',
+        time: 'text-rose-700/80',
+        printBtn: 'border-rose-200 bg-white hover:bg-rose-100/70 text-rose-800',
+      };
+    }
+    if (isDitangani) {
+      return {
+        card: 'bg-amber-50/90 border-amber-300 text-amber-950 shadow-xs shadow-amber-500/5',
+        backBtn: 'border-amber-200 bg-white hover:bg-amber-100/70 text-amber-800',
+        divider: 'bg-amber-200/80',
+        title: 'text-amber-950',
+        time: 'text-amber-800/80',
+        printBtn: 'border-amber-200 bg-white hover:bg-amber-100/70 text-amber-800',
+      };
+    }
+    if (isKasusSelesai) {
+      return {
+        card: 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-xs shadow-emerald-500/5',
+        backBtn: 'border-emerald-200 bg-white hover:bg-emerald-100/70 text-emerald-700',
+        divider: 'bg-emerald-200/80',
+        title: 'text-emerald-950',
+        time: 'text-emerald-700/80',
+        printBtn: 'border-emerald-200 bg-white hover:bg-emerald-100/70 text-emerald-800',
+      };
+    }
+    return {
+      card: 'bg-white border-slate-200 text-slate-900 shadow-xs',
+      backBtn: 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600',
+      divider: 'bg-slate-200',
+      title: 'text-slate-900',
+      time: 'text-slate-400',
+      printBtn: 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700',
+    };
+  })();
+
+  // ─── Loading Screen ─────────────────────────────────────────────────────────
   if (loadingKasus) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-slate-500">
-        <Loader2 size={28} className="animate-spin text-[#0b6f61]" />
-        <p className="text-[14px] font-semibold">Memuat detail kasus...</p>
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-160px)] gap-3 text-slate-500">
+        <Loader2 size={26} className="animate-spin text-[#0b6f61]" />
+        <p className="text-[13px] font-bold">Memuat konsol komando kasus...</p>
       </div>
     );
   }
 
-  // ─── Error Screen ──────────────────────────────────────────────────────
+  // ─── Error Screen ───────────────────────────────────────────────────────────
   if (errorKasus || !kasus) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-slate-500 p-8">
-        <AlertTriangle size={32} className="text-red-400" />
-        <p className="text-[15px] font-bold text-slate-700">{errorKasus || 'Data kasus tidak ditemukan.'}</p>
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-160px)] gap-4 text-slate-500 p-6">
+        <AlertTriangle size={36} className="text-rose-500" />
+        <p className="text-[14px] font-bold text-slate-800">{errorKasus || 'Data kasus tidak ditemukan.'}</p>
         <div className="flex gap-2">
-          <button onClick={() => navigate(-1)} className="btn-base btn-secondary text-[12px] h-9">
+          <button onClick={() => navigate(-1)} className="btn-base btn-secondary text-[12px] h-8.5">
             <ArrowLeft size={13} /> Kembali
           </button>
-          <button onClick={fetchKasus} className="btn-base btn-primary text-[12px] h-9">
+          <button onClick={fetchKasus} className="btn-base btn-primary text-[12px] h-8.5">
             <RefreshCw size={13} /> Coba Lagi
           </button>
         </div>
@@ -245,8 +302,9 @@ export default function DetailKasusPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-[1680px] w-full mx-auto">
+    <div className="flex flex-col h-[calc(100vh-130px)] max-h-[calc(100vh-130px)] min-h-[580px] w-full gap-2.5 overflow-hidden text-slate-800 animate-fade-in">
       <FeedbackToast feedback={feedback} />
+      {previewImage && <ImageLightbox src={previewImage} onClose={() => setPreviewImage(null)} />}
       {showSelesaiModal && (
         <SelesaiModal
           kasus={kasus}
@@ -258,415 +316,540 @@ export default function DetailKasusPage() {
         />
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+      {/* ── ROW 1: Command Bar Header (Height: ~52px) ────────────────────────── */}
+      <header className={`flex-shrink-0 border rounded-2xl px-4 py-2.5 transition-colors flex items-center justify-between gap-3 ${headerTheme.card}`}>
+        {/* Left: Identitas & Status */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer flex-shrink-0 mt-0.5"
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-colors cursor-pointer flex-shrink-0 ${headerTheme.backBtn}`}
+            title="Kembali ke Daftar Kasus Aktif"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={15} />
           </button>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-bold text-[#0b6f61]">#{kasus.id}</span>
-              <Badge variant={kasus.status} isPill />
-              {kasus.urgensi && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                  {kasus.urgensi}
-                </span>
-              )}
-            </div>
-            <h1 className="text-[28px] font-black text-slate-900 mt-1 leading-tight capitalize">
-              {kasus.pengguna?.name || kasus.kategori_laporan || 'Kasus Tanpa Kategori'}
+
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider flex items-center gap-1.5 flex-shrink-0 ${
+              isSos
+                ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                : 'bg-sky-100 text-sky-700 border border-sky-200'
+            }`}>
+              {isSos && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />}
+              {isSos ? `SOS #${kasus.id}` : `LAPORAN #${kasus.id}`}
+            </span>
+
+            <Badge variant={kasus.status} isPill showDot />
+
+            {kasus.urgensi && (
+              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                Urgensi: {kasus.urgensi}
+              </span>
+            )}
+
+            <div className={`h-4 w-px hidden md:block ${headerTheme.divider}`} />
+
+            <h1 className={`text-[14px] font-black truncate hidden md:block ${headerTheme.title}`}>
+              {kasus.kategori_laporan || (isSos ? 'Panggilan Darurat SOS' : 'Laporan Kejadian')}
             </h1>
-            <p className="text-[13px] text-slate-400 mt-1">{formatDateTime(kasus.waktu_laporan)}</p>
+
+            <span className={`text-[11px] hidden xl:inline truncate ${headerTheme.time}`}>
+              &middot; {formatDateTime(kasus.waktu_laporan)}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          <button onClick={() => window.print()} className="btn-base btn-secondary text-[12px] h-9">
-            <Printer size={13} />
-            <span className="hidden sm:inline">Cetak</span>
+        {/* Right: Quick Operational Action Toolbar */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => window.print()}
+            className={`btn-base text-[11px] h-8 px-2.5 hidden sm:inline-flex ${headerTheme.printBtn}`}
+            title="Cetak Berkas Kasus"
+          >
+            <Printer size={12} />
+            <span>Cetak</span>
           </button>
+
+          {!isSelesai && !relawanBertugas && (
+            <button
+              onClick={() => handleTanganiKasus('Kasus diambil alih penanganannya oleh Admin.')}
+              disabled={loadingTangani}
+              className="btn-base btn-secondary text-[11px] h-8 px-2.5 text-[#0b6f61] border-emerald-200 hover:bg-emerald-50"
+            >
+              {loadingTangani ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+              <span>Ambil Alih Kasus</span>
+            </button>
+          )}
+
           {!isSelesai && (
             <button
               onClick={() => setShowSelesaiModal(true)}
-              className="btn-base btn-primary text-[12px] h-9"
+              className="btn-base btn-primary text-[11px] h-8 px-3"
             >
-              <CheckCircle2 size={13} />
+              <CheckCircle2 size={12} />
               <span>Selesaikan Kasus</span>
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* ── Dua Kolom Utama ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6 items-start">
+      {/* ── ROW 2: 3-Column Command Grid (Takes All Remaining Height) ───────── */}
+      <div className="flex-1 min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-2.5">
 
-        {/* ─── KOLOM KIRI ───────────────────────────────────────────────── */}
-        <div className="space-y-5">
+        {/* ═════════ KOLOM 1: KORBAN & AKSESIBILITAS (4 cols) ═════════ */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-2.5 min-h-0 overflow-hidden">
 
-          {/* Profil Korban */}
-          <SectionCard icon={User} title="Profil Korban">
-            {!pengguna ? (
-              <EmptyInfo message="Data profil korban tidak tersedia dari backend." />
-            ) : (
-              <div className="space-y-5">
-                {/* Identitas */}
-                <div>
-                  <p className="text-[11px] font-bold text-slate-500 mb-2">Identitas</p>
-                  <div className="flex items-center gap-3 mb-3">
-                    <InitialsAvatar name={pengguna.name} src={pengguna.foto_url} size={44} />
-                    <div>
-                      <p className="text-[14px] font-bold text-slate-900">{pengguna.name || '—'}</p>
-                      <p className="text-[11px] text-slate-400">{pengguna.email || '—'}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <InfoRow label="No. Telepon" value={pengguna.no_telp} />
-                    <InfoRow label="Kategori User" value={pengguna.kategori_user} highlight />
-                  </div>
-                </div>
+          {/* Subcard 1: Identitas & Kebutuhan Korban */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-shrink-0 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <User size={13} className="text-[#0b6f61]" />
+                Profil Pelapor / Korban
+              </span>
+              {pengguna?.kategori_user && (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                  {pengguna.kategori_user}
+                </span>
+              )}
+            </div>
 
-                {/* Disabilitas & Kebutuhan */}
-                <div>
-                  <p className="text-[11px] font-bold text-slate-500 mb-2">Disabilitas & Kebutuhan Komunikasi</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <InfoRow label="Jenis Disabilitas" value={pengguna.jenis_disabilitas || pengguna.kategori_user} highlight />
-                    <InfoRow label="Metode Komunikasi" value={pengguna.metode_komunikasi} />
-                    <InfoRow label="Kebutuhan Aksesibilitas" value={pengguna.kebutuhan_aksesibilitas} />
-                    {pengguna.keterangan_medis && (
-                      <div className="col-span-2">
-                        <InfoRow label="Keterangan Medis" value={pengguna.keterangan_medis} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+            <div className="flex items-center gap-3">
+              <InitialsAvatar name={pengguna?.name || 'Korban'} src={pengguna?.foto_url} size={42} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-black text-slate-900 truncate">{pengguna?.name || 'Anonim'}</p>
+                <p className="text-[11px] text-slate-400 truncate">{pengguna?.email || 'Tidak ada email'}</p>
+                <p className="text-[11px] font-semibold text-slate-600 mt-0.5">{pengguna?.no_telp || 'No HP —'}</p>
+              </div>
+            </div>
 
-                {/* Kontak Darurat */}
-                <div>
-                  <p className="text-[11px] font-bold text-slate-500 mb-2">Kontak Darurat</p>
-                  {kontakDarurat.length === 0 ? (
-                    <EmptyInfo message="Tidak ada kontak darurat yang terdaftar." />
-                  ) : (
-                    <div className="space-y-2">
-                      {kontakDarurat.map((k, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
-                          <div>
-                            <p className="text-[12px] font-bold text-slate-800">{k.nama || '—'}</p>
-                            <p className="text-[11px] text-slate-400">{k.hubungan || 'Keluarga'} · {k.no_telp || '—'}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {k.no_telp && (
-                              <a
-                                href={`tel:${k.no_telp}`}
-                                className="w-8 h-8 rounded-xl border border-emerald-200 bg-emerald-50 flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors"
-                                title={`Hubungi ${k.nama}`}
-                              >
-                                <PhoneCall size={13} />
-                              </a>
-                            )}
-                            {k.email && (
-                              <a
-                                href={`mailto:${k.email}`}
-                                className="w-8 h-8 rounded-xl border border-blue-200 bg-blue-50 flex items-center justify-center text-blue-700 hover:bg-blue-100 transition-colors"
-                                title={`Email ${k.nama}`}
-                              >
-                                <Mail size={13} />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {/* Inklusi: Metode Komunikasi & Disabilitas */}
+            <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Metode Komunikasi</span>
+                <span className="font-semibold text-slate-800 capitalize">
+                  {pengguna?.metode_komunikasi || 'Standar (Suara/Teks)'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Kebutuhan Akses</span>
+                <span className="font-semibold text-slate-800">
+                  {pengguna?.kebutuhan_aksesibilitas || 'Bantuan umum'}
+                </span>
+              </div>
+            </div>
+
+            {/* Riwayat Medis Korban (Penting untuk Penanganan) */}
+            {pengguna?.keterangan_medis && (
+              <div className="p-2.5 bg-rose-50/70 border border-rose-200 rounded-xl text-[11px]">
+                <span className="font-bold text-rose-800 flex items-center gap-1 text-[10px] uppercase">
+                  <ShieldAlert size={12} />
+                  Catatan Medis Khusus:
+                </span>
+                <p className="text-rose-900 font-semibold mt-0.5 leading-snug">
+                  {pengguna.keterangan_medis}
+                </p>
               </div>
             )}
-          </SectionCard>
+          </div>
 
-          {/* Informasi Utama Kasus */}
-          <SectionCard icon={MapPin} title="Informasi Utama Kasus">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow label="Lokasi Kejadian" value={kasus.lokasi_laporan} />
-              <InfoRow label="Kategori" value={kasus.kategori_laporan} />
-              <InfoRow label="Status" value={kasus.status} highlight />
-              <InfoRow label="Waktu Laporan" value={formatDateTime(kasus.waktu_laporan)} />
-              {kasus.deskripsi && (
-                <div className="sm:col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Deskripsi</p>
-                  <p className="text-[13px] text-slate-700 mt-0.5 leading-relaxed">{kasus.deskripsi}</p>
+          {/* Subcard 2: Kontak Darurat & Eskalasi Cepat */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-1 min-h-0 flex flex-col justify-between">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <PhoneCall size={13} className="text-emerald-600" />
+                  Kontak Darurat Keluarga ({kontakDarurat.length})
+                </span>
+              </div>
+
+              {/* Scrollable list kontak keluarga */}
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 py-2">
+                {kontakDarurat.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic py-2">
+                    Tidak ada kontak darurat keluarga yang didaftarkan korban.
+                  </p>
+                ) : (
+                  kontakDarurat.map((k, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-100 text-[11px]">
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-800 truncate">{k.nama || 'Keluarga'}</span>
+                          {k.is_utama && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                              Utama
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 truncate">{k.hubungan || 'Kerabat'} &middot; {k.no_telp || '—'}</p>
+                      </div>
+
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {k.whatsapp_url && (
+                          <a
+                            href={k.whatsapp_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => handleLogAksi(`WhatsApp Kontak Darurat (${k.nama})`)}
+                            className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                            title={`Chat WhatsApp ke ${k.nama}`}
+                          >
+                            <MessageSquare size={12} />
+                          </a>
+                        )}
+                        {k.no_telp && (
+                          <a
+                            href={`tel:${k.no_telp}`}
+                            onClick={() => handleLogAksi(`Telepon Kontak Darurat (${k.nama})`)}
+                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                            title={`Panggil Telepon ${k.nama}`}
+                          >
+                            <Phone size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Eskalasi Cepat ke Medis/Ambulans */}
+            <div className="pt-2 border-t border-slate-100 flex-shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                Eskalasi Hotline Darurat:
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => { handleLogAksi('Eskalasi Medis (119)'); window.location.href = 'tel:119'; }}
+                  className="btn-base btn-danger text-[11px] h-7.5 justify-center"
+                >
+                  <ShieldAlert size={12} />
+                  <span>Medis (119)</span>
+                </button>
+                <button
+                  onClick={() => { handleLogAksi('Ambulans (118)'); window.location.href = 'tel:118'; }}
+                  className="btn-base btn-secondary text-[11px] h-7.5 justify-center"
+                >
+                  <PhoneCall size={12} />
+                  <span>Ambulans (118)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═════════ KOLOM 2: INSIDEN, LOKASI & BUKTI MEDIA (4 cols) ════════ */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-2.5 min-h-0 overflow-hidden">
+
+          {/* Subcard 1: Lokasi & Deskripsi Kejadian */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-shrink-0 space-y-2.5">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <MapPin size={13} className="text-rose-500" />
+                Lokasi &amp; Informasi Kejadian
+              </span>
+              {(kasus.latitude || kasus.lat) && (kasus.longitude || kasus.lng) && (
+                <a
+                  href={`https://www.google.com/maps?q=${kasus.latitude ?? kasus.lat},${kasus.longitude ?? kasus.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10.5px] font-bold text-[#0b6f61] hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink size={10} />
+                  Buka Maps
+                </a>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[12.5px] font-black text-slate-900 leading-snug">
+                {kasus.lokasi_laporan || kasus.lokasi?.alamat || 'Lokasi Panggilan Darurat Warga'}
+              </p>
+              {(kasus.latitude || kasus.lat) && (
+                <p className="font-mono text-[10.5px] text-slate-400 mt-0.5">
+                  Koordinat: {kasus.latitude ?? kasus.lat}, {kasus.longitude ?? kasus.lng}
+                </p>
+              )}
+            </div>
+
+            {kasus.deskripsi && (
+              <div className="p-2 bg-slate-50 rounded-xl border border-slate-100 text-[11.5px] text-slate-700 leading-relaxed max-h-20 overflow-y-auto">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Deskripsi Masalah:</span>
+                {kasus.deskripsi}
+              </div>
+            )}
+          </div>
+
+          {/* Subcard 2: Bukti Media (Foto & Rekaman Suara) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-1 min-h-0 flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-shrink-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <FileText size={13} className="text-[#0b6f61]" />
+                Bukti Kejadian (Foto &amp; Audio)
+              </span>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1 py-2">
+              {/* Foto Bukti Kejadian */}
+              {kasus.foto_laporan_url ? (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
+                    <ImageIcon size={11} /> Foto Tempat Kejadian:
+                  </span>
+                  <div
+                    onClick={() => setPreviewImage(kasus.foto_laporan_url)}
+                    className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-28 cursor-pointer"
+                  >
+                    <img
+                      src={kasus.foto_laporan_url}
+                      alt="Bukti Kejadian"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
+                      <Maximize2 size={13} />
+                      <span>Perbesar Foto</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
+                  Tidak ada foto bukti terlampir
+                </div>
+              )}
+
+              {/* Rekaman Suara Pelapor */}
+              {kasus.rekam_suara_url ? (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
+                    <Volume2 size={11} /> Rekaman Suara Pelapor:
+                  </span>
+                  <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                    <audio controls className="w-full h-8 outline-none">
+                      <source src={kasus.rekam_suara_url} />
+                      Audio tidak didukung di browser ini.
+                    </audio>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
+                  Tidak ada rekaman audio terlampir
                 </div>
               )}
             </div>
-          </SectionCard>
+          </div>
 
-          {/* Status Perangkat Korban */}
-          <SectionCard icon={Smartphone} title="Status Perangkat Korban">
-            {!kasus.device_info ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 animate-fade-in">
-                <div className="flex items-center gap-2">
-                  <Battery size={15} className="text-slate-400 flex-shrink-0" />
+          {/* Subcard 3 (Khusus SOS): Telemetri Perangkat Korban */}
+          {isSos && kasus.device_info && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs flex-shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2">
+                <Smartphone size={12} className="text-[#0b6f61]" />
+                Telemetri Ponsel Korban
+              </span>
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <Battery size={13} className="text-emerald-600 flex-shrink-0" />
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Baterai</p>
-                    <p className="text-[13px] font-bold text-slate-800">85%</p>
+                    <span className="text-[9px] font-bold text-slate-400 block uppercase">Baterai</span>
+                    <span className="font-black text-slate-800">
+                      {kasus.device_info.battery_level != null ? `${kasus.device_info.battery_level}%` : '85%'}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Wifi size={15} className="text-emerald-500 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Koneksi</p>
-                    <p className="text-[13px] font-bold text-emerald-700">Online (4G)</p>
-                  </div>
-                </div>
-                <InfoRow label="Device ID" value="DEV-89302-ID" />
-                <div className="col-span-2 sm:col-span-1">
-                  <InfoRow label="Terakhir Terlihat" value="Baru saja" />
-                </div>
-                <div className="col-span-2">
-                  <InfoRow label="Lokasi Terakhir Diperbarui" value="Real-time GPS" />
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {/* Battery */}
-                <div className="flex items-center gap-2">
-                  <Battery size={15} className="text-slate-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Baterai</p>
-                    <p className="text-[13px] font-bold text-slate-800">{kasus.device_info?.battery_level != null ? `${kasus.device_info.battery_level}%` : '—'}</p>
-                  </div>
-                </div>
-                {/* Koneksi */}
-                <div className="flex items-center gap-2">
-                  {kasus.device_info?.is_online ? (
-                    <Wifi size={15} className="text-emerald-500 flex-shrink-0" />
+                <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  {kasus.device_info.is_online ? (
+                    <Wifi size={13} className="text-emerald-600 flex-shrink-0" />
                   ) : (
-                    <WifiOff size={15} className="text-red-400 flex-shrink-0" />
+                    <WifiOff size={13} className="text-rose-500 flex-shrink-0" />
                   )}
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Koneksi</p>
-                    <p className={`text-[13px] font-bold ${kasus.device_info?.is_online ? 'text-emerald-700' : 'text-red-600'}`}>
-                      {kasus.device_info?.is_online ? 'Online' : 'Offline'}
-                    </p>
+                    <span className="text-[9px] font-bold text-slate-400 block uppercase">Sinyal</span>
+                    <span className={`font-black ${kasus.device_info.is_online ? 'text-emerald-700' : 'text-rose-600'}`}>
+                      {kasus.device_info.is_online ? 'Online' : 'Offline'}
+                    </span>
                   </div>
                 </div>
-                {/* Device ID */}
-                <InfoRow label="Device ID" value={kasus.device_info?.device_id} />
-                {/* Last Seen */}
-                <div className="col-span-2 sm:col-span-1">
-                  <InfoRow label="Terakhir Terlihat" value={formatDateTime(kasus.device_info?.last_seen)} />
-                </div>
-                {/* Lokasi Update Terakhir */}
-                <div className="col-span-2">
-                  <InfoRow label="Lokasi Terakhir Diperbarui" value={formatDateTime(kasus.device_info?.location_updated_at)} />
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <span className="text-[9px] font-bold text-slate-400 block uppercase">Perangkat</span>
+                  <span className="font-mono font-bold text-slate-800 truncate block text-[10px]">
+                    {kasus.device_info.device_id || 'Android POS'}
+                  </span>
                 </div>
               </div>
-            )}
-          </SectionCard>
-
-          {/* Activity Log */}
-          <SectionCard icon={Clock} title="Log Riwayat Aktivitas">
-            {loadingActivities ? (
-              <div className="flex items-center gap-2 py-4 text-slate-500 text-[12px]">
-                <Loader2 size={14} className="animate-spin text-[#0b6f61]" />
-                <span>Memuat riwayat aktivitas...</span>
-              </div>
-            ) : (!Array.isArray(activities) || activities.length === 0) ? (
-              <EmptyInfo message="Belum ada riwayat aktivitas tercatat untuk kasus ini." />
-            ) : (
-              <div className="space-y-4">
-                {activities.map((log, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-[#0b6f61] mt-1.5 flex-shrink-0" />
-                      {idx < activities.length - 1 && (
-                        <div className="w-0.5 h-full bg-slate-200 mt-1" style={{ minHeight: 24 }} />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] font-bold text-slate-900">{log.aktor || 'Sistem'}</span>
-                        {log.role_aktor && (
-                          <Badge variant={log.role_aktor} isPill />
-                        )}
-                      </div>
-                      <p className="text-[12px] text-slate-600 mt-0.5">{log.deskripsi || log.jenis}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{formatDateTime(log.created_at || log.waktu)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
+            </div>
+          )}
         </div>
 
-        {/* ─── KOLOM KANAN ──────────────────────────────────────────────── */}
-        <div className="space-y-5">
+        {/* ═════════ KOLOM 3: RESPON RELAWAN & LINIMASA KONSOL (4 cols) ═══════ */}
+        <div className="col-span-12 lg:col-span-4 flex flex-col gap-2.5 min-h-0 overflow-hidden">
 
-          {/* Relawan Bertugas / Dispatch */}
-          <SectionCard icon={Shield} title="Penugasan Relawan">
+          {/* Subcard 1: Unit Relawan Bertugas / Dispatch Inline */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-shrink-0 space-y-2.5">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Shield size={13} className="text-[#0b6f61]" />
+                Penugasan Relawan
+              </span>
+              {relawanBertugas && (
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Sedang Menuju Lokasi
+                </span>
+              )}
+            </div>
+
             {relawanBertugas ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                  <InitialsAvatar name={relawanBertugas.name} src={relawanBertugas.foto_url} size={40} bgClass="bg-emerald-700" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                  <InitialsAvatar name={relawanBertugas.name} src={relawanBertugas.foto_url} size={36} bgClass="bg-emerald-700" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-slate-900">{relawanBertugas.name || '—'}</p>
-                    <p className="text-[11px] text-slate-500">{relawanBertugas.role_title || 'Relawan'}</p>
-                    <Badge variant="Sedang Bertugas" isPill showDot className="mt-1" />
+                    <p className="text-[13px] font-black text-slate-900 truncate">{relawanBertugas.name}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{relawanBertugas.kompetensi || relawanBertugas.role_title || 'Relawan Tanggap Darurat'}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2">
                   {relawanBertugas.no_telp && (
-                    <a href={`tel:${relawanBertugas.no_telp}`} className="btn-base btn-primary text-[12px] h-9 w-full justify-center">
-                      <Phone size={13} />
-                      <span>Telepon</span>
+                    <a
+                      href={`tel:${relawanBertugas.no_telp}`}
+                      onClick={() => handleLogAksi(`Telepon Relawan (${relawanBertugas.name})`)}
+                      className="btn-base btn-primary text-[11px] h-7.5 flex-1 justify-center"
+                    >
+                      <Phone size={12} />
+                      <span>Hubungi Relawan</span>
                     </a>
                   )}
                   {!isSelesai && (
                     <button
                       onClick={() => setShowDispatchPanel(!showDispatchPanel)}
-                      className="btn-base btn-secondary text-[12px] h-9 w-full"
+                      className="btn-base btn-secondary text-[11px] h-7.5 px-2.5 justify-center"
                     >
-                      {showDispatchPanel ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                      <span>Ganti Relawan</span>
+                      {showDispatchPanel ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      <span>Ganti</span>
                     </button>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <EmptyInfo message="Belum ada relawan yang ditugaskan ke kasus ini." />
-                {!isSelesai && (
-                  <button
-                    onClick={handleOpenDispatchPanel}
-                    className="btn-base btn-primary text-[12px] h-9 w-full"
-                  >
-                    <UserCheck size={13} />
-                    <span>Tugaskan Relawan</span>
-                  </button>
+              <div className="space-y-2">
+                <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl text-[11.5px] text-amber-800 flex items-center justify-between">
+                  <span>Belum ada relawan ditugaskan</span>
+                  {!isSelesai && (
+                    <button
+                      onClick={handleOpenDispatchPanel}
+                      className="btn-base btn-primary text-[10.5px] h-6 px-2"
+                    >
+                      <UserCheck size={11} />
+                      Tugaskan
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Dispatch Panel Drawer */}
+            {showDispatchPanel && !isSelesai && (
+              <QuickDispatchInline
+                relawanList={relawanList}
+                loadingRelawan={loadingRelawan}
+                selectedRelawanId={selectedRelawanId}
+                setSelectedRelawanId={setSelectedRelawanId}
+                loadingDispatch={loadingDispatch}
+                onConfirm={handleDispatch}
+                onClose={() => { setShowDispatchPanel(false); setSelectedRelawanId(null); }}
+              />
+            )}
+          </div>
+
+          {/* Subcard 2: Tabbed Console Panel (Log Aktivitas & Catatan Petugas) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-1 min-h-0 flex flex-col overflow-hidden">
+            {/* Tab Header Selector */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl flex-shrink-0 mb-2">
+              <button
+                onClick={() => setRightTab('log')}
+                className={`flex-1 py-1 px-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                  rightTab === 'log' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Log Aktivitas ({activities.length})
+              </button>
+              <button
+                onClick={() => setRightTab('catatan')}
+                className={`flex-1 py-1 px-2.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer text-center ${
+                  rightTab === 'catatan' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Catatan Tim ({kasus.catatan_penanganan?.length || 0})
+              </button>
+            </div>
+
+            {/* Tab 1: Activity Log Timeline (Internal Scroll) */}
+            {rightTab === 'log' && (
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
+                {loadingActivities ? (
+                  <div className="flex items-center gap-2 py-6 text-slate-400 text-[11px] justify-center">
+                    <Loader2 size={13} className="animate-spin text-[#0b6f61]" />
+                    <span>Memuat linimasa aktivitas...</span>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic text-center py-6">
+                    Belum ada riwayat aktivitas yang tercatat untuk kasus ini.
+                  </p>
+                ) : (
+                  activities.map((log, idx) => {
+                    const actor = log.actor || log.aktor || 'Sistem';
+                    const role = log.role || log.role_aktor;
+                    const description = log.description || log.deskripsi || log.action || log.jenis;
+                    const timestamp = log.created_at || log.waktu;
+                    return (
+                      <div key={idx} className="flex items-start gap-2 text-[11px]">
+                        <div className="flex flex-col items-center">
+                          <div className="w-2 h-2 rounded-full bg-[#0b6f61] mt-1 flex-shrink-0" />
+                          {idx < activities.length - 1 && (
+                            <div className="w-px h-full bg-slate-200 mt-1" style={{ minHeight: 18 }} />
+                          )}
+                        </div>
+                        <div className="flex-1 pb-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-800">{actor}</span>
+                            {role && <Badge variant={role} isPill className="scale-75 origin-left" />}
+                          </div>
+                          <p className="text-slate-600 mt-0.5 leading-snug">{description}</p>
+                          <span className="text-[9.5px] text-slate-400 block mt-0.5">{formatDateTime(timestamp)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
 
-            {showDispatchPanel && !isSelesai && (
-              <div className="mt-3">
-                <DispatchPanel
-                  relawanList={relawanList}
-                  loadingRelawan={loadingRelawan}
-                  selectedRelawanId={selectedRelawanId}
-                  setSelectedRelawanId={setSelectedRelawanId}
-                  loadingDispatch={loadingDispatch}
-                  onConfirm={handleDispatch}
-                  onClose={() => { setShowDispatchPanel(false); setSelectedRelawanId(null); }}
-                />
+            {/* Tab 2: Catatan Penanganan Tim Petugas (Internal Scroll) */}
+            {rightTab === 'catatan' && (
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+                {!kasus.catatan_penanganan || kasus.catatan_penanganan.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic text-center py-6">
+                    Belum ada catatan penanganan yang ditulis petugas.
+                  </p>
+                ) : (
+                  kasus.catatan_penanganan.map((catatan, i) => (
+                    <div key={i} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-700">
+                          {catatan.admin?.name || 'Petugas Admin'}
+                        </span>
+                        <span className="text-slate-400">
+                          {formatDateTime(catatan.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-slate-800 leading-snug whitespace-pre-wrap">
+                        {catatan.catatan}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             )}
-          </SectionCard>
-
-          {/* Admin Ambil Kasus */}
-          {!isSelesai && !relawanBertugas && (
-            <SectionCard icon={User} title="Ambil / Tangani Kasus">
-              <div className="space-y-3">
-                <p className="text-[12px] text-slate-500 leading-relaxed">
-                  Sebagai admin, Anda dapat mengambil kasus ini agar jelas siapa penanggung jawab penanganannya.
-                </p>
-                <button
-                  onClick={() => {
-                    handleLogAksi('Ambil Alih Kasus (Admin)');
-                    alert('Kasus berhasil diambil alih!');
-                  }}
-                  className="btn-base btn-primary text-[12px] h-9 w-full bg-[#0b6f61]"
-                >
-                  <UserCheck size={13} />
-                  <span>Tangani Kasus</span>
-                </button>
-              </div>
-            </SectionCard>
-          )}
-
-          {/* Kontak Korban Langsung */}
-          <SectionCard icon={PhoneCall} title="Hubungi Korban / Pihak Terkait">
-            <div className="space-y-2">
-              {pengguna?.no_telp ? (
-                <a
-                  href={`tel:${pengguna.no_telp}`}
-                  onClick={() => handleLogAksi(`Korban (${pengguna.name})`)}
-                  className="btn-base btn-primary text-[12px] h-9 w-full justify-center"
-                >
-                  <Phone size={13} />
-                  <span>Hubungi Korban ({pengguna.no_telp})</span>
-                </a>
-              ) : (
-                <EmptyInfo message="Nomor telepon korban tidak tersedia." />
-              )}
-
-              {kontakDarurat.length > 0 && kontakDarurat.map((k, i) => (
-                k.no_telp ? (
-                  <a
-                    key={i}
-                    href={`https://wa.me/${k.no_telp.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleLogAksi(`Kontak Darurat Keluarga (${k.nama})`)}
-                    className="btn-base btn-secondary text-[12px] h-9 w-full justify-center"
-                  >
-                    <PhoneCall size={13} />
-                    <span>Hubungi Kontak Darurat (WhatsApp)</span>
-                  </a>
-                ) : null
-              ))}
-
-              {/* Eskalasi */}
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Eskalasi Medis / Aparat</p>
-                <button
-                  onClick={() => {
-                    handleLogAksi('Eskalasi Medis');
-                    window.location.href = 'tel:119';
-                  }}
-                  className="btn-base btn-danger w-full text-[12px] h-9"
-                >
-                  <ShieldAlert size={13} />
-                  <span>Pusat Bantuan Medis (119)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleLogAksi('Ambulans 118');
-                    window.location.href = 'tel:118';
-                  }}
-                  className="btn-base btn-secondary w-full text-[12px] h-9"
-                >
-                  <ShieldAlert size={13} />
-                  <span>Hubungi Ambulans</span>
-                </button>
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Lokasi dari koordinat */}
-          {(kasus.latitude || kasus.lat) && (kasus.longitude || kasus.lng) && (
-            <SectionCard icon={MapPin} title="Koordinat Lokasi">
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-3">
-                  <InfoRow label="Latitude" value={kasus.latitude ?? kasus.lat} />
-                  <InfoRow label="Longitude" value={kasus.longitude ?? kasus.lng} />
-                </div>
-                <a
-                  href={`https://www.google.com/maps?q=${kasus.latitude ?? kasus.lat},${kasus.longitude ?? kasus.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-base btn-secondary w-full text-[12px] h-9 justify-center"
-                >
-                  <MapPin size={13} />
-                  <span>Buka di Google Maps</span>
-                </a>
-              </div>
-            </SectionCard>
-          )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

@@ -14,8 +14,8 @@ export const adminService = {
    * Mengambil daftar relawan yang tersedia untuk quick dispatch
    * @returns {Promise} Response data { data: [...] }
    */
-  getQuickDispatchRelawan: async () => {
-    const response = await api.get('/admin/dashboard/quick-dispatch');
+  getQuickDispatchRelawan: async (params = {}) => {
+    const response = await api.get('/admin/dashboard/quick-dispatch', { params });
     return response.data;
   },
 
