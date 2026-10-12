@@ -20,37 +20,37 @@ export default function UserTable({ activeTab, search, setSearch, data, onVerify
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ width: '60px', minWidth: '60px' }}>ID</th>
-              <th style={{ minWidth: '160px' }}>Nama Lengkap</th>
-              <th style={{ minWidth: '140px' }}>No. Telepon</th>
-              <th style={{ minWidth: '200px' }}>Alamat</th>
-              <th style={{ minWidth: '120px' }}>Status Aktif</th>
+              <th style={{ width: '70px', minWidth: '70px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">No</th>
+              <th style={{ minWidth: '180px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Nama Lengkap</th>
+              <th style={{ minWidth: '150px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">No. Telepon</th>
+              <th style={{ minWidth: '220px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Alamat</th>
+              <th style={{ minWidth: '130px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Status Aktif</th>
               {activeTab === 'pending' && (
-                <th style={{ minWidth: '120px' }}>Status Verifikasi</th>
+                <th style={{ minWidth: '140px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Status Verifikasi</th>
               )}
-              <th style={{ width: '120px', minWidth: '120px' }} className="text-right">Aksi</th>
+              <th style={{ width: '160px', minWidth: '160px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan="6" className="p-8 text-center text-slate-500">Tidak ada data.</td></tr>
-            ) : data.map(item => (
-              <tr key={item.id}>
-                {/* ID */}
-                <td className="min-w-0">
-                  <span className="block text-[12px] font-extrabold text-slate-900">{item.id}</span>
+              <tr><td colSpan={activeTab === 'pending' ? 7 : 6} className="p-8 text-center text-slate-500">Tidak ada data.</td></tr>
+            ) : data.map((item, index) => (
+              <tr key={item.id ?? index}>
+                {/* No Urut */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  <span className="text-[12px] font-bold text-slate-700">{index + 1}</span>
                 </td>
 
                 {/* Nama + Email */}
-                <td className="min-w-0">
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
                   <p className="text-[14px] font-bold text-slate-900 break-words">{item.name ?? item.nama ?? '—'}</p>
-                  <p className="text-[12px] text-slate-400 break-words">{item.email ?? ''}</p>
+                  {item.email && <p className="text-[12px] text-slate-400 break-words">{item.email}</p>}
                 </td>
 
                 {/* No. Telepon */}
-                <td className="min-w-0">
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
                   {item.no_telp ? (
-                    <div className="flex items-center gap-1.5 text-[13px] text-slate-600">
+                    <div className="inline-flex items-center justify-center gap-1.5 text-[13px] text-slate-600">
                       <Phone size={12} className="flex-shrink-0" />
                       <span>{item.no_telp}</span>
                     </div>
@@ -60,10 +60,10 @@ export default function UserTable({ activeTab, search, setSearch, data, onVerify
                 </td>
 
                 {/* Alamat */}
-                <td className="min-w-0">
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
                   {item.alamat ? (
-                    <div className="flex items-start gap-1.5 text-[13px] text-slate-600">
-                      <MapPin size={12} className="flex-shrink-0 mt-0.5" />
+                    <div className="inline-flex items-center justify-center gap-1.5 text-[13px] text-slate-600">
+                      <MapPin size={12} className="flex-shrink-0" />
                       <span className="break-words">{item.alamat}</span>
                     </div>
                   ) : (
@@ -72,61 +72,77 @@ export default function UserTable({ activeTab, search, setSearch, data, onVerify
                 </td>
 
                 {/* Status Aktif (is_active boolean) */}
-                <td className="min-w-0">
-                  {item.is_active === true || item.is_active === 1 ? (
-                    <Badge variant="success">Aktif</Badge>
-                  ) : item.is_active === false || item.is_active === 0 ? (
-                    <Badge variant="danger">Nonaktif</Badge>
-                  ) : (
-                    <Badge variant="default">—</Badge>
-                  )}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  <div className="inline-flex justify-center">
+                    {item.is_active === true || item.is_active === 1 ? (
+                      <Badge variant="success">Aktif</Badge>
+                    ) : item.is_active === false || item.is_active === 0 ? (
+                      <Badge variant="danger">Nonaktif</Badge>
+                    ) : (
+                      <Badge variant="default">—</Badge>
+                    )}
+                  </div>
                 </td>
 
                 {/* Status Verifikasi (hanya tab pending) */}
                 {activeTab === 'pending' && (
-                  <td className="min-w-0">
-                    <Badge variant={
-                      item.status_verifikasi === 'terverifikasi' ? 'success'
-                      : item.status_verifikasi === 'pending' ? 'warning'
-                      : 'danger'
-                    }>
-                      {item.status_verifikasi ?? 'pending'}
-                    </Badge>
+                  <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                    <div className="inline-flex justify-center">
+                      <Badge variant={
+                        item.status_verifikasi === 'terverifikasi' ? 'success'
+                        : item.status_verifikasi === 'pending' ? 'warning'
+                        : 'danger'
+                      }>
+                        {item.status_verifikasi ?? 'pending'}
+                      </Badge>
+                    </div>
                   </td>
                 )}
 
                 {/* Aksi */}
-                <td className="text-right min-w-0">
+                <td className="text-center min-w-0" style={{ textAlign: 'center' }}>
                   {activeTab === 'pending' ? (
-                    <div className="flex justify-end gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => onVerify(item.id, 'terverifikasi')}
                         title="Setujui"
-                        className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100"
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center gap-1 hover:bg-emerald-100 text-[12px] font-semibold transition-colors"
                       >
                         <Check size={14} />
+                        <span>Setujui</span>
                       </button>
                       <button
                         onClick={() => onVerify(item.id, 'ditolak')}
                         title="Tolak"
-                        className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100"
+                        className="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 flex items-center gap-1 hover:bg-red-100 text-[12px] font-semibold transition-colors"
                       >
                         <X size={14} />
+                        <span>Tolak</span>
                       </button>
                     </div>
                   ) : (
-                    <div className="flex justify-end gap-2">
+                    <div className="flex items-center justify-center">
                       {onUpdateStatus && (
                         <button
                           onClick={() => onUpdateStatus(item.id, !(item.is_active === true || item.is_active === 1))}
-                          title={item.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                          title={item.is_active ? 'Nonaktifkan Relawan' : 'Aktifkan Relawan'}
+                          className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[12px] font-semibold transition-colors ${
                             item.is_active
-                              ? 'bg-red-50 text-red-500 hover:bg-red-100'
+                              ? 'bg-red-50 text-red-600 hover:bg-red-100'
                               : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                           }`}
                         >
-                          {item.is_active ? <X size={14} /> : <Check size={14} />}
+                          {item.is_active ? (
+                            <>
+                              <X size={14} />
+                              <span>Nonaktifkan</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check size={14} />
+                              <span>Aktifkan</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
