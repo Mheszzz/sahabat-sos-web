@@ -20,17 +20,9 @@ export function useUsers() {
     setIsLoadingRelawan(true);
     try {
       const res = await adminService.getRelawanSuperadmin();
-      const list = res?.data?.data || res?.data || [];
-      // Normalize field names: API may return name or nama
-      const normalized = (Array.isArray(list) ? list : []).map(r => ({
-        ...r,
-        nama: r.nama ?? r.name ?? '',
-        kontak: r.kontak ?? r.no_telp ?? r.phone ?? '',
-        lokasi: r.lokasi ?? r.alamat ?? r.kota ?? '',
-        peran: r.peran ?? r.role_title ?? r.kompetensi ?? '',
-        status: r.status_verifikasi ?? r.status ?? '',
-      }));
-      setRelawan(normalized);
+      // Backend: { status, data: { data: [...], current_page, ... } } (paginated)
+      const list = res?.data?.data ?? res?.data ?? res ?? [];
+      setRelawan(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Gagal mengambil data relawan:', error);
       setRelawan([]);
@@ -45,9 +37,12 @@ export function useUsers() {
     try {
       const res = await adminService.getPendingRelawan();
       const list = res?.data?.data || res?.data || [];
-      setPendingRelawans(Array.isArray(list) ? list : []);
+      if (Array.isArray(list) && list.length > 0) {
+        setPendingRelawans(list);
+      }
     } catch (error) {
       console.error('Gagal mengambil relawan pending:', error);
+      setPendingRelawans([]);
     } finally {
       setIsLoadingPending(false);
     }
@@ -71,14 +66,13 @@ export function useUsers() {
     }
   };
 
-  // ─── Update status relawan ────────────────────────────────────────────
-  const handleUpdateStatusRelawan = async (id, status) => {
+  // ─── Update status aktif relawan (is_active boolean) ────────────────────
+  const handleUpdateStatusRelawan = async (id, isActive) => {
     try {
-      await adminService.updateStatusRelawan(id, status);
+      await adminService.updateStatusRelawan(id, isActive);
       setRelawan(prev =>
-        prev.map(r => r.id === id ? { ...r, status_verifikasi: status } : r)
+        prev.map(r => r.id === id ? { ...r, is_active: isActive } : r)
       );
-      alert('Status relawan berhasil diperbarui.');
     } catch (error) {
       console.error('Gagal update status relawan:', error);
       alert('Terjadi kesalahan saat mengupdate status.');
@@ -97,7 +91,8 @@ export function useUsers() {
     return !q
       || (item.name || item.nama || '').toLowerCase().includes(q)
       || (item.email || '').toLowerCase().includes(q)
-      || (item.lokasi || item.alamat || '').toLowerCase().includes(q)
+      || (item.alamat || item.lokasi || '').toLowerCase().includes(q)
+      || (item.no_telp || item.kontak || '').toLowerCase().includes(q)
       || String(item.id || '').toLowerCase().includes(q);
   });
 

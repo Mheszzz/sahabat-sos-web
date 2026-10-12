@@ -51,10 +51,13 @@ export default function RiwayatKasusPage() {
 						: (k.status ?? '—'),
 				});
 
-				setRiwayatData([
+				const mappedData = [
 					...sosItems.map(k => mapItem(k, 'SOS')),
 					...laporanItems.map(k => mapItem(k, 'Laporan')),
-				]);
+				];
+				if (mappedData.length > 0) {
+					setRiwayatData(mappedData);
+				}
 			} catch (err) {
 				setError('Gagal memuat riwayat kasus. Pastikan backend berjalan.');
 				console.error(err);

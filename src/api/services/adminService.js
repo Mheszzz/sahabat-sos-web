@@ -104,10 +104,21 @@ export const adminService = {
 
   /**
    * Mengambil ringkasan sebaran urgensi kasus
+   * @param {Object} params - { rentang: 'semua'|'hari_ini'|'minggu_ini'|'bulan_ini' }
    * @returns {Promise}
    */
-  getSebaranUrgensi: async () => {
-    const response = await api.get('/admin/dashboard/sebaran-urgensi');
+  getSebaranUrgensi: async (params = {}) => {
+    const response = await api.get('/admin/dashboard/sebaran-urgensi', { params });
+    return response.data;
+  },
+
+  /**
+   * Mengambil tren data grafik SOS harian mingguan
+   * @param {Object} params - { tanggal, rentang }
+   * @returns {Promise}
+   */
+  getGrafikSos: async (params = {}) => {
+    const response = await api.get('/admin/dashboard/grafik-sos', { params });
     return response.data;
   },
 
@@ -186,8 +197,19 @@ export const adminService = {
    * @param {string} status - Status baru
    * @returns {Promise}
    */
-  updateStatusRelawan: async (id, status) => {
-    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { status });
+  updateStatusRelawan: async (id, isActive) => {
+    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { is_active: isActive });
+    return response.data;
+  },
+
+  /**
+   * Mendaftarkan akun relawan baru dari dashboard admin
+   * Menggunakan endpoint publik register relawan
+   * @param {Object} data - { name, email, password, no_telp, alamat }
+   * @returns {Promise}
+   */
+  registerRelawan: async (data) => {
+    const response = await api.post('/auth/register/relawan', data);
     return response.data;
   },
 

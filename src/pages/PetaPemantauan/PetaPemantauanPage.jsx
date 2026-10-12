@@ -34,7 +34,7 @@ export default function PetaPemantauanPage() {
               type: 'sos',
               label: t.id_kasus,
               kategori: 'Darurat SOS (' + t.jenis_disabilitas + ')',
-              prioritas: t.status === 'aktif' ? 'DARURAT' : 'Ditangani',
+              prioritas: (t.status === 'aktif' || t.status === 'belum ditangani') ? 'DARURAT' : 'Ditangani',
               pelapor: t.korban,
               lokasi: 'Lokasi Darurat',
               status: t.status,
