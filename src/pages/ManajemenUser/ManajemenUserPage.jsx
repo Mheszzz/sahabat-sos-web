@@ -9,15 +9,18 @@ import RelawanAddModal from '../../components/manajemen-user/RelawanAddModal';
 
 export default function ManajemenUserPage() {
   const { currentUser } = useOutletContext() || {};
-  const isSuperAdmin = currentUser?.role === 'Super Admin' || currentUser?.role === 'superadmin';
+  const isSuperAdmin = currentUser?.role?.toLowerCase() === 'super admin' || currentUser?.role?.toLowerCase() === 'superadmin';
+  const hasVerifyPermission = Array.isArray(currentUser?.permissions) && currentUser.permissions.includes('verifikasi_relawan');
+  const canAccess = isSuperAdmin || hasVerifyPermission;
   const { activeTab, setActiveTab, search, setSearch, pendingRelawans, isLoading, filteredData, handleVerify, handleUpdateStatusRelawan, fetchRelawan } = useUsers();
   const [isAddRelawanOpen, setIsAddRelawanOpen] = useState(false);
 
-  if (!isSuperAdmin) {
+  if (!canAccess) {
     return (
       <div className="p-6 lg:p-12 max-w-[800px] mx-auto text-center space-y-5">
         <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto"><Lock size={30} /></div>
         <h1 className="text-[24px] font-black text-slate-900">403 — Akses Ditolak</h1>
+        <p className="text-[13px] text-slate-500">Anda memerlukan izin &quot;verifikasi_relawan&quot; atau hak akses Super Admin untuk mengelola relawan.</p>
         <Link to="/" className="btn-base btn-primary text-[13px] h-10 px-5 inline-flex"><ArrowLeft size={14} /><span>Kembali ke Dashboard</span></Link>
       </div>
     );
