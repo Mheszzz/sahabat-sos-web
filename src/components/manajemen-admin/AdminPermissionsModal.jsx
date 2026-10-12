@@ -7,12 +7,32 @@ const AVAILABLE_PERMISSIONS = [
   {
     key: 'verifikasi_relawan',
     label: 'Verifikasi Relawan',
-    description: 'Izin melihat daftar relawan pending dan melakukan verifikasi/penolakan.',
+    description: 'Izin melihat daftar relawan pending dan memverifikasi atau menolak pendaftaran.',
   },
   {
     key: 'kelola_laporan',
     label: 'Kelola Laporan Darurat',
-    description: 'Izin memantau seluruh laporan dan mengubah status laporan.',
+    description: 'Izin memantau seluruh laporan kasus SOS dan mengubah status penanganan laporan.',
+  },
+  {
+    key: 'pantau_peta',
+    label: 'Pantau Peta Kasus',
+    description: 'Izin mengakses peta pemantauan sebaran kejadian kasus darurat dan lokasi relawan.',
+  },
+  {
+    key: 'kelola_relawan',
+    label: 'Kelola Data Relawan',
+    description: 'Izin melihat direktori relawan dan mengaktifkan / menonaktifkan status relawan.',
+  },
+  {
+    key: 'broadcast_sirene',
+    label: 'Broadcast Sirene Posko',
+    description: 'Izin memicu sirene alarm darurat di seluruh titik posko siaga.',
+  },
+  {
+    key: 'kelola_admin',
+    label: 'Kelola Administrator',
+    description: 'Izin membuat akun admin baru serta mengonfigurasi hak akses administrator.',
   },
 ];
 

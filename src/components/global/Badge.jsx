@@ -1,6 +1,6 @@
 import { statusClassMap, statusDotMap } from '../../utils/theme';
 
-const pulsingStatuses = new Set(['Sedang Bertugas', 'Aktif', 'SOS Darurat', 'Online']);
+const pulsingStatuses = new Set(['Sedang Bertugas', 'belum ditangani', 'Belum Tertangani', 'SOS Darurat', 'Online']);
 
 export default function Badge({
   children,
