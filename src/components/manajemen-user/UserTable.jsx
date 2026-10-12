@@ -1,7 +1,7 @@
 import { Search, MapPin, Phone, Check, X } from 'lucide-react';
 import Badge from '../global/Badge';
 
-export default function UserTable({ activeTab, search, setSearch, data, onVerify }) {
+export default function UserTable({ activeTab, search, setSearch, data, onVerify, onUpdateStatus }) {
   return (
     <div className="bg-white border border-[#eaedf1] rounded-2xl overflow-hidden shadow-xs">
       <div className="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -16,47 +16,136 @@ export default function UserTable({ activeTab, search, setSearch, data, onVerify
           />
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="table-responsive">
+        <table className="data-table">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-[#eaedf1]">
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">ID</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">Nama Lengkap</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">Kebutuhan / Peran</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">Kontak</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">Wilayah</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase">Status</th>
-              <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase text-right">Aksi</th>
+            <tr>
+              <th style={{ width: '70px', minWidth: '70px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">No</th>
+              <th style={{ minWidth: '180px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Nama Lengkap</th>
+              <th style={{ minWidth: '150px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">No. Telepon</th>
+              <th style={{ minWidth: '220px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Alamat</th>
+              <th style={{ minWidth: '130px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Status Aktif</th>
+              {activeTab === 'pending' && (
+                <th style={{ minWidth: '140px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Status Verifikasi</th>
+              )}
+              <th style={{ width: '160px', minWidth: '160px', textAlign: 'center' }} className="!text-center !font-bold !text-slate-900">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#eaedf1]">
+          <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan="7" className="p-8 text-center text-slate-500">Tidak ada data.</td></tr>
-            ) : data.map(item => (
-              <tr key={item.id} className="hover:bg-slate-50/50">
-                <td className="p-4 text-[13px] font-semibold text-slate-700">{item.id}</td>
-                <td className="p-4">
-                  <p className="text-[14px] font-bold text-slate-900">{item.nama}</p>
-                  <p className="text-[12px] text-slate-500">{item.email}</p>
+              <tr><td colSpan={activeTab === 'pending' ? 7 : 6} className="p-8 text-center text-slate-500">Tidak ada data.</td></tr>
+            ) : data.map((item, index) => (
+              <tr key={item.id ?? index}>
+                {/* No Urut */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  <span className="text-[12px] font-bold text-slate-700">{index + 1}</span>
                 </td>
-                <td className="p-4 text-[13px] font-medium text-slate-600">{item.disabilitas || item.peran || 'N/A'}</td>
-                <td className="p-4 text-[13px] text-slate-600">
-                  <div className="flex items-center gap-1.5"><Phone size={12}/>{item.kontak}</div>
+
+                {/* Nama + Email */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  <p className="text-[14px] font-bold text-slate-900 break-words">{item.name ?? item.nama ?? '—'}</p>
+                  {item.email && <p className="text-[12px] text-slate-400 break-words">{item.email}</p>}
                 </td>
-                <td className="p-4 text-[13px] text-slate-600">
-                  <div className="flex items-center gap-1.5"><MapPin size={12}/>{item.lokasi}</div>
-                </td>
-                <td className="p-4">
-                  <Badge variant={item.status === 'Terverifikasi' ? 'success' : item.status === 'Pending Verifikasi' ? 'warning' : 'danger'}>{item.status || 'N/A'}</Badge>
-                </td>
-                <td className="p-4 text-right">
-                  {activeTab === 'pending' ? (
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => onVerify(item.id, 'terverifikasi')} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100"><Check size={14}/></button>
-                      <button onClick={() => onVerify(item.id, 'ditolak')} className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100"><X size={14}/></button>
+
+                {/* No. Telepon */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  {item.no_telp ? (
+                    <div className="inline-flex items-center justify-center gap-1.5 text-[13px] text-slate-600">
+                      <Phone size={12} className="flex-shrink-0" />
+                      <span>{item.no_telp}</span>
                     </div>
                   ) : (
-                    <button className="text-[12px] font-semibold text-emerald-600 hover:text-emerald-700">Detail</button>
+                    <span className="text-[12px] text-slate-400">—</span>
+                  )}
+                </td>
+
+                {/* Alamat */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  {item.alamat ? (
+                    <div className="inline-flex items-center justify-center gap-1.5 text-[13px] text-slate-600">
+                      <MapPin size={12} className="flex-shrink-0" />
+                      <span className="break-words">{item.alamat}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-slate-400">—</span>
+                  )}
+                </td>
+
+                {/* Status Aktif (is_active boolean) */}
+                <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                  <div className="inline-flex justify-center">
+                    {item.is_active === true || item.is_active === 1 ? (
+                      <Badge variant="success">Aktif</Badge>
+                    ) : item.is_active === false || item.is_active === 0 ? (
+                      <Badge variant="danger">Nonaktif</Badge>
+                    ) : (
+                      <Badge variant="default">—</Badge>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status Verifikasi (hanya tab pending) */}
+                {activeTab === 'pending' && (
+                  <td className="min-w-0 text-center" style={{ textAlign: 'center' }}>
+                    <div className="inline-flex justify-center">
+                      <Badge variant={
+                        item.status_verifikasi === 'terverifikasi' ? 'success'
+                        : item.status_verifikasi === 'pending' ? 'warning'
+                        : 'danger'
+                      }>
+                        {item.status_verifikasi ?? 'pending'}
+                      </Badge>
+                    </div>
+                  </td>
+                )}
+
+                {/* Aksi */}
+                <td className="text-center min-w-0" style={{ textAlign: 'center' }}>
+                  {activeTab === 'pending' ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => onVerify(item.id, 'terverifikasi')}
+                        title="Setujui"
+                        className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 flex items-center gap-1 hover:bg-emerald-100 text-[12px] font-semibold transition-colors"
+                      >
+                        <Check size={14} />
+                        <span>Setujui</span>
+                      </button>
+                      <button
+                        onClick={() => onVerify(item.id, 'ditolak')}
+                        title="Tolak"
+                        className="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 flex items-center gap-1 hover:bg-red-100 text-[12px] font-semibold transition-colors"
+                      >
+                        <X size={14} />
+                        <span>Tolak</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      {onUpdateStatus && (
+                        <button
+                          onClick={() => onUpdateStatus(item.id, !(item.is_active === true || item.is_active === 1))}
+                          title={item.is_active ? 'Nonaktifkan Relawan' : 'Aktifkan Relawan'}
+                          className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[12px] font-semibold transition-colors ${
+                            item.is_active
+                              ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                              : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {item.is_active ? (
+                            <>
+                              <X size={14} />
+                              <span>Nonaktifkan</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check size={14} />
+                              <span>Aktifkan</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </td>
               </tr>
