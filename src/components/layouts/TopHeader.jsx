@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, ChevronRight, Menu, Home, AlertTriangle } from 'lucide-react';
+import { Bell, ChevronRight, Menu, AlertTriangle } from 'lucide-react';
 
 function getBreadcrumbs(pathname) {
   if (pathname.startsWith('/detail-kasus')) {
@@ -15,56 +15,47 @@ function getBreadcrumbs(pathname) {
   }
   if (pathname.startsWith('/riwayat')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Riwayat Kasus' },
     ];
   }
   if (pathname.startsWith('/peta')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Peta Pemantauan' },
     ];
   }
   if (pathname.startsWith('/pengaturan')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Profil' },
     ];
   }
   if (pathname.startsWith('/manajemen-admin')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Kelola Admin' },
     ];
   }
   if (pathname.startsWith('/detail-relawan')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Kelola Relawan', to: '/manajemen-user' },
       { label: 'Detail Relawan' },
     ];
   }
   if (pathname.startsWith('/manajemen-user')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Kelola Relawan' },
     ];
   }
   if (pathname.startsWith('/detail-laporan')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Master Data Laporan', to: '/master-data' },
       { label: 'Detail Laporan' },
     ];
   }
   if (pathname.startsWith('/master-data')) {
     return [
-      { label: 'Beranda', to: '/dashboard' },
       { label: 'Master Data Laporan' },
     ];
   }
   return [
-    { label: 'Beranda', to: '/dashboard' },
     { label: 'Dashboard Utama' },
   ];
 }
@@ -86,9 +77,8 @@ export default function TopHeader({ onMenuToggle }) {
 
         <nav className="flex items-center gap-1.5 text-[13px] font-medium" aria-label="Breadcrumb">
           {crumbs.map((crumb, idx) => {
-            const isFirst = idx === 0;
             const isLast = idx === crumbs.length - 1;
-            const IconComponent = crumb.icon || (isFirst ? Home : null);
+            const IconComponent = crumb.icon;
 
             return (
               <div key={idx} className="flex items-center gap-1.5">
