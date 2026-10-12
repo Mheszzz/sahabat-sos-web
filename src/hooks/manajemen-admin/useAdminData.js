@@ -39,23 +39,15 @@ export function useAdminData() {
   // ── Statistik (berdasarkan data nyata dari backend) ─────────────────────────
   const totalAdmin = admins.length;
 
-  // Admin yang punya minimal 1 permission
+  // Admin yang punya akses (Super Admin otomatis punya akses penuh, atau admin dengan minimal 1 permission)
   const adminDenganAkses = admins.filter(
-    (a) => Array.isArray(a.permissions) && a.permissions.length > 0
+    (a) => (a.role || '').toLowerCase() === 'superadmin' || (Array.isArray(a.permissions) && a.permissions.length > 0)
   ).length;
 
   // Admin yang belum punya permission sama sekali
   const adminTanpaAkses = admins.filter(
-    (a) => !Array.isArray(a.permissions) || a.permissions.length === 0
+    (a) => (a.role || '').toLowerCase() !== 'superadmin' && (!Array.isArray(a.permissions) || a.permissions.length === 0)
   ).length;
-
-  // Admin yang terdaftar bulan ini (berdasarkan created_at)
-  const now = new Date();
-  const adminBaru = admins.filter((a) => {
-    if (!a.created_at) return false;
-    const d = new Date(a.created_at);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }).length;
 
   // ── Filter & Sort ────────────────────────────────────────────────────────────
   const filteredAdmins = admins
@@ -115,7 +107,6 @@ export function useAdminData() {
     totalAdmin,
     adminDenganAkses,
     adminTanpaAkses,
-    adminBaru,
     // Actions
     fetchAdmins,
   };
