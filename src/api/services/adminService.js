@@ -104,10 +104,21 @@ export const adminService = {
 
   /**
    * Mengambil ringkasan sebaran urgensi kasus
+   * @param {Object} params - { rentang: 'semua'|'hari_ini'|'minggu_ini'|'bulan_ini' }
    * @returns {Promise}
    */
-  getSebaranUrgensi: async () => {
-    const response = await api.get('/admin/dashboard/sebaran-urgensi');
+  getSebaranUrgensi: async (params = {}) => {
+    const response = await api.get('/admin/dashboard/sebaran-urgensi', { params });
+    return response.data;
+  },
+
+  /**
+   * Mengambil tren data grafik SOS harian mingguan
+   * @param {Object} params - { tanggal, rentang }
+   * @returns {Promise}
+   */
+  getGrafikSos: async (params = {}) => {
+    const response = await api.get('/admin/dashboard/grafik-sos', { params });
     return response.data;
   },
 

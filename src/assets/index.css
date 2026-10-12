@@ -415,6 +415,81 @@ button, input, select { font: inherit; }
 }
 
 /* ═══════════════════════════════════════════════
+   COMMAND MAP MARKERS & PILLS
+═══════════════════════════════════════════════ */
+.command-map-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.command-map-marker .marker-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 10;
+}
+
+.command-map-marker:hover .marker-circle {
+  transform: scale(1.12);
+}
+
+.command-map-marker .marker-tag {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1.5px solid #ffffff;
+  z-index: 12;
+  line-height: 1.2;
+}
+
+.command-map-marker.sos-marker .marker-circle {
+  background: #dc2626;
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+}
+.command-map-marker.sos-marker .marker-tag {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.command-map-marker.laporan-marker .marker-circle {
+  background: #ea580c;
+  color: #ffffff;
+}
+.command-map-marker.laporan-marker .marker-tag {
+  background: #c2410c;
+  color: #ffffff;
+}
+
+.command-map-marker.relawan-marker .marker-circle {
+  background: #059669;
+  color: #ffffff;
+}
+.command-map-marker.relawan-marker .marker-tag {
+  background: #047857;
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════ */
 @media (max-width: 640px) {
