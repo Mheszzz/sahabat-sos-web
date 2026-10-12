@@ -8,40 +8,33 @@ import { Users, Shield, CheckCircle2, Calendar } from 'lucide-react';
  *   - admin yang belum punya permission sama sekali
  *   - admin terdaftar bulan ini (berdasarkan created_at)
  */
-export default function AdminStats({ totalAdmin, adminDenganAkses, adminTanpaAkses, adminBaru }) {
+export default function AdminStats({ totalAdmin, adminDenganAkses, adminTanpaAkses }) {
   const stats = [
     {
-      label: 'Total Admin',
+      label: 'Total Admin & Superadmin',
       value: totalAdmin,
       icon: Users,
       iconBg: 'bg-slate-50',
       iconColor: 'text-slate-600',
     },
     {
-      label: 'Punya Hak Akses',
+      label: 'Punya Hak Akses Khusus',
       value: adminDenganAkses,
       icon: Shield,
-      iconBg: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
     },
     {
-      label: 'Belum Ada Akses',
+      label: 'Belum Ada Akses Modul',
       value: adminTanpaAkses,
       icon: CheckCircle2,
       iconBg: 'bg-amber-50',
       iconColor: 'text-amber-600',
     },
-    {
-      label: 'Daftar Bulan Ini',
-      value: adminBaru,
-      icon: Calendar,
-      iconBg: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-    },
   ];
 
   return (
-    <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {stats.map((s) => (
         <div
           key={s.label}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Database, MessageSquare } from 'lucide-react';
 import { masterDataService } from '../../api/services/masterDataService';
+import PageHeader from '../../components/global/PageHeader';
 
 export default function MasterDataPage() {
   const [kategoriList, setKategoriList] = useState([]);
@@ -57,10 +58,10 @@ export default function MasterDataPage() {
 
   return (
     <div className="page-shell space-y-6">
-      <div>
-        <h1 className="text-[24px] font-extrabold tracking-[-0.04em] text-slate-900">Master Data Laporan</h1>
-        <p className="mt-1 text-[14px] font-medium text-slate-500">Kelola kategori laporan darurat dan pesan cepat yang tersedia untuk pengguna.</p>
-      </div>
+      <PageHeader
+        title="Master Data Laporan"
+        description="Kelola kategori laporan darurat dan pesan cepat yang tersedia untuk pengguna."
+      />
 
       {/* Kategori Laporan */}
       <div className="rounded-[22px] border border-[#e2e8f0] bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">

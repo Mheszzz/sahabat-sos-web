@@ -1,19 +1,54 @@
-import { Eye, Shield, Power, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Eye, Shield, Power, Clock, CheckCircle2, XCircle, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 
 /**
- * Komponen untuk menampilkan badge permission secara ringkas.
- * Berdasarkan key yang datang dari backend: verifikasi_relawan, kelola_laporan
+ * Pemetaan izin (permissions) ke label Bahasa Indonesia dan tema visual
+ */
+const PERMISSION_CONFIG = {
+  kelola_laporan: {
+    label: 'Kelola Laporan Darurat',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+  verifikasi_relawan: {
+    label: 'Verifikasi Relawan',
+    badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  pantau_peta: {
+    label: 'Pantau Peta Kasus',
+    badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
+  },
+  kelola_relawan: {
+    label: 'Kelola Relawan',
+    badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+  },
+  broadcast_sirene: {
+    label: 'Broadcast Sirene Posko',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+  },
+  kelola_admin: {
+    label: 'Kelola Administrator',
+    badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+};
+
+/**
+ * Komponen untuk menampilkan badge permission secara rapi dengan bahasa Indonesia.
  */
 function PermissionChip({ perm }) {
-  const labels = {
-    verifikasi_relawan: 'Verifikasi Relawan',
-    kelola_laporan: 'Kelola Laporan',
+  const config = PERMISSION_CONFIG[perm] || {
+    label: perm
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' '),
+    badgeClass: 'bg-slate-50 text-slate-700 border-slate-200',
   };
+
   return (
-    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-      <CheckCircle2 size={9} />
-      {labels[perm] || perm}
+    <span
+      className={`inline-flex items-center gap-1 border text-[11px] font-semibold px-2 py-0.5 rounded-md ${config.badgeClass}`}
+    >
+      <CheckCircle2 size={11} className="flex-shrink-0" />
+      <span>{config.label}</span>
     </span>
   );
 }
@@ -58,10 +93,10 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-[#eaedf1]">
-                <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase tracking-wider w-[280px]">Profil Admin</th>
-                <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Hak Akses</th>
-                <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Info Akun</th>
-                <th className="p-4 text-[12px] font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider w-[280px]">Profil Admin</th>
+                <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider">Hak Akses</th>
+                <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider">Info Akun</th>
+                <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eaedf1]">
@@ -106,19 +141,19 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
           <thead>
             <tr className="bg-slate-50/80 border-b border-[#eaedf1]">
               {/* Kolom 1: Profil */}
-              <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[280px]">
-                Profil Admin
+              <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider w-[280px]">
+                Profil Administrator
               </th>
-              {/* Kolom 2: Hak Akses — data tersedia dari backend (field permissions) */}
-              <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Hak Akses (Permissions)
+              {/* Kolom 2: Hak Akses */}
+              <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider">
+                Hak Akses Modul
               </th>
-              {/* Kolom 3: Info Akun — data dari created_at & permissions_granted_at */}
-              <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Info Akun
+              {/* Kolom 3: Info Akun */}
+              <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider">
+                Info Akun & Izin
               </th>
               {/* Kolom 4: Aksi */}
-              <th className="p-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">
+              <th className="p-4 text-[12px] font-bold text-slate-900 uppercase tracking-wider text-right">
                 Aksi
               </th>
             </tr>
@@ -130,7 +165,7 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
               const hasPermissions = permissions.length > 0;
               const terdaftar = formatTanggal(admin.created_at);
               const aksesDisetujui = formatTanggal(admin.permissions_granted_at);
-              const isAdmin = (admin.role || '').toLowerCase() === 'admin';
+              const isSuperAdmin = (admin.role || '').toLowerCase() === 'superadmin';
 
               return (
                 <tr
@@ -145,33 +180,44 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                         <p className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
                           {nama}
                         </p>
-                        <p className="text-[12px] text-slate-500 truncate">{admin.email || '—'}</p>
-                        {/* Role Badge */}
-                        <span
-                          className={`mt-1 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            isAdmin
-                              ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {admin.role || 'admin'}
-                        </span>
+                        <p className="text-[12px] text-slate-500 truncate">
+                          {admin.email || admin.accounts?.[0]?.email || '—'}
+                        </p>
+                        {/* Role Badge (Pembeda Jelas Super Admin vs Admin) */}
+                        {isSuperAdmin ? (
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                            <ShieldCheck size={11} className="text-purple-600" />
+                            Super Admin
+                          </span>
+                        ) : (
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                            <Shield size={11} className="text-slate-500" />
+                            Admin
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
 
                   {/* ── Kolom 2: Hak Akses ── */}
                   <td className="p-4">
-                    {hasPermissions ? (
-                      <div className="flex flex-col gap-1.5">
+                    {isSuperAdmin ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-800 border border-purple-200 text-[11px] font-bold px-2.5 py-1 rounded-lg">
+                          <Sparkles size={12} className="text-purple-600" />
+                          Akses Penuh (Seluruh Modul)
+                        </span>
+                      </div>
+                    ) : hasPermissions ? (
+                      <div className="flex flex-wrap gap-1.5 max-w-[360px]">
                         {permissions.map((perm) => (
                           <PermissionChip key={perm} perm={perm} />
                         ))}
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" />
-                        <span className="text-[12px] text-slate-400 italic">Belum ada hak akses</span>
+                        <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                        <span className="text-[12px] text-slate-500 font-medium">Hanya Akses Beranda (Belum Ada Izin)</span>
                       </div>
                     )}
                   </td>
@@ -185,20 +231,28 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                           <span>Terdaftar: <span className="font-semibold text-slate-700">{terdaftar}</span></span>
                         </div>
                       )}
-                      {aksesDisetujui ? (
+                      {isSuperAdmin ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-purple-700">
+                          <ShieldCheck size={11} className="text-purple-500 flex-shrink-0" />
+                          <span className="font-semibold">Hak akses penuh permanen</span>
+                        </div>
+                      ) : aksesDisetujui ? (
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                          <Shield size={11} className="text-blue-400 flex-shrink-0" />
-                          <span>Akses diberikan: <span className="font-semibold text-slate-700">{aksesDisetujui}</span></span>
+                          <Shield size={11} className="text-blue-500 flex-shrink-0" />
+                          <span>
+                            Diberikan:{' '}
+                            <span className="font-semibold text-slate-700">{aksesDisetujui}</span>
+                            {admin.granted_by?.name && (
+                              <span className="text-slate-400"> oleh {admin.granted_by.name}</span>
+                            )}
+                          </span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                           <Shield size={11} className="text-slate-300 flex-shrink-0" />
-                          <span className="italic">Belum ada akses diberikan</span>
+                          <span className="italic">Belum ada izin modul khusus</span>
                         </div>
                       )}
-                      {/* Catatan: last_login, kasus_ditangani, kasus_aktif, kasus_selesai
-                          belum tersedia di endpoint GET /superadmin/admins.
-                          Akan ditampilkan otomatis jika backend menambahkan field tersebut. */}
                     </div>
                   </td>
 
@@ -215,22 +269,46 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                       </button>
 
                       {/* Kelola Hak Akses */}
-                      <button
-                        onClick={() => onPermissions(admin)}
-                        className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
-                        title="Kelola Hak Akses"
-                      >
-                        <Shield size={14} />
-                      </button>
+                      {isSuperAdmin ? (
+                        <button
+                          disabled
+                          className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-300 flex items-center justify-center cursor-not-allowed"
+                          title="Super Admin memiliki akses penuh tanpa perlu pengaturan izin per modul"
+                        >
+                          <Shield size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onPermissions(admin)}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
+                          title="Kelola Hak Akses"
+                        >
+                          <Shield size={14} />
+                        </button>
+                      )}
 
-                      {/* Aktifkan / Nonaktifkan (Cabut Akses) */}
-                      <button
-                        onClick={() => onToggleStatus(admin)}
-                        className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50 flex items-center justify-center transition-all cursor-pointer"
-                        title={hasPermissions ? 'Cabut Semua Akses' : 'Lihat Hak Akses'}
-                      >
-                        <Power size={14} />
-                      </button>
+                      {/* Cabut Hak Akses */}
+                      {isSuperAdmin ? (
+                        <button
+                          disabled
+                          className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-300 flex items-center justify-center cursor-not-allowed"
+                          title="Akses Super Admin bersifat permanen dan tidak dapat dicabut"
+                        >
+                          <Power size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onToggleStatus(admin)}
+                          className={`w-8 h-8 rounded-lg bg-white border flex items-center justify-center transition-all cursor-pointer ${
+                            hasPermissions
+                              ? 'border-slate-200 text-slate-500 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50'
+                              : 'border-slate-200 text-slate-300 hover:text-slate-500'
+                          }`}
+                          title={hasPermissions ? 'Cabut Seluruh Hak Akses' : 'Belum Ada Hak Akses untuk Dicabut'}
+                        >
+                          <Power size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -18,7 +18,7 @@ export default function ManajemenAdminPage() {
     statusFilter, setStatusFilter, 
     roleFilter, setRoleFilter,
     sortBy, setSortBy, 
-    totalAdmin, adminDenganAkses, adminTanpaAkses, adminBaru, fetchAdmins 
+    totalAdmin, adminDenganAkses, adminTanpaAkses, fetchAdmins 
   } = useAdminData();
 
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -67,7 +67,6 @@ export default function ManajemenAdminPage() {
         totalAdmin={totalAdmin} 
         adminDenganAkses={adminDenganAkses} 
         adminTanpaAkses={adminTanpaAkses} 
-        adminBaru={adminBaru} 
       />
       
       <AdminFilters 

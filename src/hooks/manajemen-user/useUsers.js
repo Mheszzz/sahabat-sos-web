@@ -59,10 +59,11 @@ export function useUsers() {
     try {
       await adminService.verifikasiRelawan(id, status);
       setPendingRelawans(prev => prev.filter(r => r.id !== id));
-      alert(`Relawan berhasil ${status === 'terverifikasi' ? 'disetujui' : 'ditolak'}.`);
+      await fetchRelawan();
+      return { success: true, status };
     } catch (error) {
       console.error('Gagal verifikasi relawan:', error);
-      alert('Terjadi kesalahan saat verifikasi.');
+      throw error;
     }
   };
 

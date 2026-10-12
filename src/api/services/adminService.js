@@ -183,33 +183,32 @@ export const adminService = {
   // ==========================================
 
   /**
-   * Mengambil daftar seluruh Relawan (superadmin)
+   * Mengambil daftar seluruh Relawan (Admin & Superadmin)
    * @returns {Promise} Response data { data: [...] }
    */
   getRelawanSuperadmin: async () => {
-    const response = await api.get('/superadmin/relawan');
+    const response = await api.get('/admin/relawan');
     return response.data;
   },
 
   /**
-   * Mengupdate status relawan (superadmin)
+   * Mengupdate status relawan (Admin & Superadmin)
    * @param {number|string} id - ID Relawan
-   * @param {string} status - Status baru
+   * @param {boolean} isActive - Status keaktifan baru
    * @returns {Promise}
    */
   updateStatusRelawan: async (id, isActive) => {
-    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { is_active: isActive });
+    const response = await api.put(`/admin/relawan/${id}/updateStatus`, { is_active: isActive });
     return response.data;
   },
 
   /**
-   * Mendaftarkan akun relawan baru dari dashboard admin
-   * Menggunakan endpoint publik register relawan
-   * @param {Object} data - { name, email, password, no_telp, alamat }
+   * Mendaftarkan akun relawan baru dari dashboard admin (Pre-Registration via Google SSO)
+   * @param {Object} data - { name, email, no_telp, alamat, pekerjaan }
    * @returns {Promise}
    */
   registerRelawan: async (data) => {
-    const response = await api.post('/auth/register/relawan', data);
+    const response = await api.post('/admin/relawan', data);
     return response.data;
   },
 

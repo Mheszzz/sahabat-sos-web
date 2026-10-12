@@ -5,18 +5,19 @@ const breadcrumbMap = {
   'kasus-aktif': ['Beranda', 'Kasus Aktif'],
   riwayat: ['Beranda', 'Riwayat Kasus'],
   peta: ['Beranda', 'Peta Pemantauan'],
-  pengaturan: ['Beranda', 'Pengaturan Sistem'],
+  pengaturan: ['Beranda', 'Profil'],
   'detail-kasus': ['Kasus Aktif', 'Detail Kasus'],
-  'manajemen-admin': ['Manajemen', 'Manajemen Admin'],
-  'manajemen-user': ['Manajemen', 'Manajemen User'],
+  'manajemen-admin': ['Beranda', 'Kelola Admin'],
+  'manajemen-user': ['Beranda', 'Kelola Relawan'],
+  'master-data': ['Beranda', 'Master Data Laporan'],
 };
 
 import { useLocation } from 'react-router-dom';
 
 export default function TopHeader({ onMenuToggle }) {
   const location = useLocation();
-  const activePage = location.pathname === '/' ? 'dashboard' : location.pathname.substring(1);
-  const crumbs = breadcrumbMap[activePage] || ['Beranda', 'Dashboard Utama'];
+  const pathKey = location.pathname === '/' ? 'dashboard' : location.pathname.split('/')[1];
+  const crumbs = breadcrumbMap[pathKey] || ['Beranda', 'Dashboard Utama'];
 
   return (
     <header className="sticky top-0 z-30 flex h-[56px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8">
