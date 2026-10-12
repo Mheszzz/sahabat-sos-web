@@ -186,8 +186,19 @@ export const adminService = {
    * @param {string} status - Status baru
    * @returns {Promise}
    */
-  updateStatusRelawan: async (id, status) => {
-    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { status });
+  updateStatusRelawan: async (id, isActive) => {
+    const response = await api.put(`/superadmin/relawan/${id}/updateStatus`, { is_active: isActive });
+    return response.data;
+  },
+
+  /**
+   * Mendaftarkan akun relawan baru dari dashboard admin
+   * Menggunakan endpoint publik register relawan
+   * @param {Object} data - { name, email, password, no_telp, alamat }
+   * @returns {Promise}
+   */
+  registerRelawan: async (data) => {
+    const response = await api.post('/auth/register/relawan', data);
     return response.data;
   },
 
