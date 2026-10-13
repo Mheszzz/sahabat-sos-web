@@ -1,26 +1,59 @@
-﻿import { HeartHandshake, ShieldCheck } from 'lucide-react';
+import { HeartHandshake, ShieldAlert } from 'lucide-react';
 
-export default function UserTabs({ activeTab, setActiveTab, pendingCount }) {
+export default function UserTabs({
+  activeTab,
+  setActiveTab,
+  registeredCount = 0,
+  pendingCount = 0,
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-2 bg-white border border-[#eaedf1] p-1.5 rounded-2xl w-fit shadow-xs">
+    <div className="flex flex-wrap items-center gap-1 bg-white border border-[#eaedf1] p-1 rounded-xl w-fit shadow-2xs">
+      {/* Tab: Relawan Terdaftar */}
       <button
         onClick={() => setActiveTab('relawan')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
-          activeTab === 'relawan' ? 'bg-[#006D77] text-white' : 'text-slate-500 hover:text-slate-900'
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+          activeTab === 'relawan'
+            ? 'bg-[#0b6f61] text-white shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
         }`}
       >
-        <HeartHandshake size={15} />
+        <HeartHandshake size={14.5} className={activeTab === 'relawan' ? 'text-teal-200' : 'text-slate-400'} />
         <span>Relawan Terdaftar</span>
+        <span
+          className={`text-[10.5px] font-extrabold px-1.5 py-0.2 rounded-full transition-colors ${
+            activeTab === 'relawan'
+              ? 'bg-white/20 text-white'
+              : 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {registeredCount}
+        </span>
       </button>
+
+      {/* Tab: Pending Verifikasi */}
       <button
         onClick={() => setActiveTab('pending')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold transition-all cursor-pointer ${
-          activeTab === 'pending' ? 'bg-[#b45309] text-white' : 'text-slate-500 hover:text-slate-900'
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+          activeTab === 'pending'
+            ? 'bg-amber-600 text-white shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
         }`}
       >
-        <ShieldCheck size={15} />
-        <span>Pending Verifikasi {pendingCount > 0 && `(${pendingCount})`}</span>
+        <ShieldAlert size={14.5} className={activeTab === 'pending' ? 'text-amber-200' : pendingCount > 0 ? 'text-amber-500' : 'text-slate-400'} />
+        <span>Pending Verifikasi</span>
+        <span
+          className={`text-[10.5px] font-extrabold px-1.5 py-0.2 rounded-full transition-colors ${
+            activeTab === 'pending'
+              ? 'bg-white/25 text-white'
+              : pendingCount > 0
+              ? 'bg-amber-100 text-amber-800 animate-pulse font-black'
+              : 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {pendingCount}
+        </span>
       </button>
     </div>
   );
 }
+

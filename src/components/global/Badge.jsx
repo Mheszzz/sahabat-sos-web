@@ -19,7 +19,7 @@ export default function Badge({
   const displayLabel = children || (
     typeof variant === 'string'
       ? (variant === 'belum ditangani' || variant === 'belum tertangani' ? 'Belum Ditangani'
-        : variant === 'ditangani' || variant === 'proses' ? 'Ditangani'
+        : variant === 'ditangani' || variant === 'proses' || variant === 'sedang ditangani' || variant === 'sedang_ditangani' ? 'Ditangani'
         : variant === 'selesai' ? 'Selesai'
         : variant === 'batal' || variant === 'dibatalkan' ? 'Dibatalkan'
         : variant)

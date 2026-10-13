@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   ArrowLeft, Phone, MapPin, Shield, CheckCircle2,
   AlertTriangle, Printer, ShieldAlert, Smartphone, Wifi, WifiOff,
   Battery, UserCheck, RefreshCw, Loader2, X, ChevronDown, ChevronUp,
   PhoneCall, MessageSquare, Volume2, Image as ImageIcon, FileText,
-  ExternalLink, User, Maximize2
+  ExternalLink, User, Maximize2, Clock, Navigation, Activity, Siren
 } from 'lucide-react';
 import Badge from '../../components/global/Badge';
 import InitialsAvatar from '../../components/global/InitialsAvatar';
+import DetailSosMap from '../../components/DetailSosMap';
 import { useDetailKasus } from '../../hooks/detail-kasus/useDetailKasus';
 
-// ─── Helper Format Tanggal ─────────────────────────────────────────────────────
+// ─── Helper Format Tanggal & Waktu ───────────────────────────────────────────
 function formatDateTime(dt) {
   if (!dt) return '—';
   try {
@@ -21,6 +22,163 @@ function formatDateTime(dt) {
   } catch {
     return String(dt);
   }
+}
+
+function formatRelativeTime(dt) {
+  if (!dt) return '';
+  try {
+    const date = new Date(dt);
+    const diffMs = Date.now() - date.getTime();
+    if (Number.isNaN(diffMs) || diffMs < 0) return 'Baru saja';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Baru saja';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} mnt lalu`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} jam lalu`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay} hr lalu`;
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function getActivityMeta(log) {
+  const action = String(log?.action || log?.jenis || '').toLowerCase();
+  const desc = String(log?.description || log?.deskripsi || '').toLowerCase();
+
+  // 1. Pemicu SOS / Status Darurat
+  if (
+    action.includes('sos_dipicu') ||
+    action.includes('sos_triggered') ||
+    action.includes('eskalasi') ||
+    desc.includes('sinyal darurat sos') ||
+    desc.includes('tombol darurat') ||
+    desc.includes('darurat sos')
+  ) {
+    return {
+      type: 'sos',
+      nodeColor: 'bg-rose-500 text-white ring-4 ring-rose-100 shadow-xs shadow-rose-500/20',
+      lineColor: 'bg-rose-200',
+      cardClass: 'border-rose-200/90 bg-gradient-to-br from-rose-50/60 to-white hover:border-rose-300',
+      headerClass: 'border-rose-100/80',
+      icon: <Siren size={13} className="animate-pulse" />,
+    };
+  }
+
+  // 2. Relawan Bertugas / Respon Lapangan
+  if (
+    action.includes('relawan') ||
+    action.includes('dispatch') ||
+    action.includes('tangani') ||
+    desc.includes('menerima tugas') ||
+    desc.includes('menuju lokasi') ||
+    desc.includes('relawan')
+  ) {
+    return {
+      type: 'relawan',
+      nodeColor: 'bg-amber-500 text-white ring-4 ring-amber-100 shadow-xs shadow-amber-500/20',
+      lineColor: 'bg-amber-200',
+      cardClass: 'border-amber-200/90 bg-gradient-to-br from-amber-50/50 to-white hover:border-amber-300',
+      headerClass: 'border-amber-100/80',
+      icon: <Navigation size={12} className="fill-white" />,
+    };
+  }
+
+  // 3. Selesai / Tuntas
+  if (
+    action.includes('selesai') ||
+    action.includes('tuntas') ||
+    desc.includes('selesai') ||
+    desc.includes('tuntas') ||
+    desc.includes('dievakuasi')
+  ) {
+    return {
+      type: 'selesai',
+      nodeColor: 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs shadow-emerald-600/20',
+      lineColor: 'bg-emerald-200',
+      cardClass: 'border-emerald-200/90 bg-gradient-to-br from-emerald-50/50 to-white hover:border-emerald-300',
+      headerClass: 'border-emerald-100/80',
+      icon: <CheckCircle2 size={13} />,
+    };
+  }
+
+  // 4. Panggilan Suara / Hubungi
+  if (
+    action.includes('telepon') ||
+    action.includes('wa') ||
+    action.includes('chat') ||
+    desc.includes('telepon') ||
+    desc.includes('whatsapp') ||
+    desc.includes('hubungi')
+  ) {
+    return {
+      type: 'kontak',
+      nodeColor: 'bg-sky-500 text-white ring-4 ring-sky-100 shadow-xs shadow-sky-500/20',
+      lineColor: 'bg-sky-200',
+      cardClass: 'border-sky-200/90 bg-gradient-to-br from-sky-50/50 to-white hover:border-sky-300',
+      headerClass: 'border-sky-100/80',
+      icon: <PhoneCall size={12} />,
+    };
+  }
+
+  // 5. Pembatalan
+  if (action.includes('batal') || desc.includes('batal')) {
+    return {
+      type: 'batal',
+      nodeColor: 'bg-slate-400 text-white ring-4 ring-slate-100',
+      lineColor: 'bg-slate-200',
+      cardClass: 'border-slate-200 bg-slate-50/60 hover:border-slate-300',
+      headerClass: 'border-slate-200/60',
+      icon: <X size={13} />,
+    };
+  }
+
+  // 6. Default Aktivitas Sistem / Operasional
+  return {
+    type: 'default',
+    nodeColor: 'bg-[#0b6f61] text-white ring-4 ring-emerald-100 shadow-xs shadow-[#0b6f61]/20',
+    lineColor: 'bg-slate-200',
+    cardClass: 'border-slate-200/90 bg-white hover:border-slate-300',
+    headerClass: 'border-slate-100',
+    icon: <Activity size={12} />,
+  };
+}
+
+function getRoleMeta(role, actorName) {
+  const r = String(role || '').toLowerCase().trim();
+  const a = String(actorName || '').toLowerCase().trim();
+
+  if (r.includes('relawan') || a.includes('relawan')) {
+    return {
+      label: 'Relawan',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      avatarBg: 'bg-emerald-700',
+    };
+  }
+
+  if (r.includes('pengguna') || r.includes('user') || r.includes('korban') || r.includes('pelapor')) {
+    return {
+      label: 'Pengguna',
+      badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
+      avatarBg: 'bg-sky-600',
+    };
+  }
+
+  if (r.includes('admin') || a.includes('admin') || r.includes('petugas')) {
+    return {
+      label: 'Admin',
+      badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
+      avatarBg: 'bg-purple-600',
+    };
+  }
+
+  return {
+    label: role ? (String(role).charAt(0).toUpperCase() + String(role).slice(1)) : 'Sistem',
+    badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
+    avatarBg: 'bg-slate-500',
+  };
 }
 
 // ─── Sub-component: Feedback Toast ───────────────────────────────────────────
@@ -217,7 +375,15 @@ export default function DetailKasusPage() {
   const [previewImage, setPreviewImage] = useState(null);
   const [rightTab, setRightTab] = useState('log'); // 'log' | 'catatan'
 
-  const isSos = kasus?._tipe === 'sos';
+  const handleSelectRelawan = useCallback((volId) => {
+    setSelectedRelawanId(volId);
+    setShowDispatchPanel(true);
+  }, [setSelectedRelawanId, setShowDispatchPanel]);
+
+  const isSos = kasus?._tipe === 'sos' ||
+    kasus?.kategori === 'SOS' ||
+    kasus?.kategori_laporan?.toLowerCase().includes('sos') ||
+    kasus?.jenis_laporan?.toLowerCase().includes('sos');
   const pengguna = kasus?.pengguna ?? null;
   const kontakDarurat = Array.isArray(pengguna?.kontak_darurat) ? pengguna.kontak_darurat : [];
   const relawanBertugas = kasus?.relawan ?? null;
@@ -335,7 +501,7 @@ export default function DetailKasusPage() {
                 : 'bg-sky-100 text-sky-700 border border-sky-200'
             }`}>
               {isSos && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />}
-              {isSos ? `SOS #${kasus.id}` : `LAPORAN #${kasus.id}`}
+              {kasus.id_kasus || kasus.nomor_kasus || (isSos ? `SOS #${kasus.id}` : `LAPORAN #${kasus.id}`)}
             </span>
 
             <Badge variant={kasus.status} isPill showDot />
@@ -562,7 +728,7 @@ export default function DetailKasusPage() {
 
             <div>
               <p className="text-[12.5px] font-black text-slate-900 leading-snug">
-                {kasus.lokasi_laporan || kasus.lokasi?.alamat || 'Lokasi Panggilan Darurat Warga'}
+                {kasus.lokasi_laporan || kasus.lokasi?.alamat || 'Lokasi Panggilan Darurat'}
               </p>
               {(kasus.latitude || kasus.lat) && (
                 <p className="font-mono text-[10.5px] text-slate-400 mt-0.5">
@@ -579,63 +745,72 @@ export default function DetailKasusPage() {
             )}
           </div>
 
-          {/* Subcard 2: Bukti Media (Foto & Rekaman Suara) */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-1 min-h-0 flex flex-col">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-shrink-0">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <FileText size={13} className="text-[#0b6f61]" />
-                Bukti Kejadian (Foto &amp; Audio)
-              </span>
-            </div>
+          {/* Subcard 2: Peta Lokasi (Khusus SOS) ATAU Bukti Media Foto & Audio (Laporan Biasa) */}
+          {isSos ? (
+            <DetailSosMap
+              kasus={kasus}
+              relawanBertugas={relawanBertugas}
+              relawanList={relawanList}
+              onSelectRelawan={handleSelectRelawan}
+            />
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 flex-shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <FileText size={13} className="text-[#0b6f61]" />
+                  Bukti Kejadian (Foto &amp; Audio)
+                </span>
+              </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1 py-2">
-              {/* Foto Bukti Kejadian */}
-              {kasus.foto_laporan_url ? (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
-                    <ImageIcon size={11} /> Foto Tempat Kejadian:
-                  </span>
-                  <div
-                    onClick={() => setPreviewImage(kasus.foto_laporan_url)}
-                    className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-28 cursor-pointer"
-                  >
-                    <img
-                      src={kasus.foto_laporan_url}
-                      alt="Bukti Kejadian"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
-                      <Maximize2 size={13} />
-                      <span>Perbesar Foto</span>
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1 py-2">
+                {/* Foto Bukti Kejadian */}
+                {kasus.foto_laporan_url ? (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
+                      <ImageIcon size={11} /> Foto Tempat Kejadian:
+                    </span>
+                    <div
+                      onClick={() => setPreviewImage(kasus.foto_laporan_url)}
+                      className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-28 cursor-pointer"
+                    >
+                      <img
+                        src={kasus.foto_laporan_url}
+                        alt="Bukti Kejadian"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
+                        <Maximize2 size={13} />
+                        <span>Perbesar Foto</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
-                  Tidak ada foto bukti terlampir
-                </div>
-              )}
-
-              {/* Rekaman Suara Pelapor */}
-              {kasus.rekam_suara_url ? (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
-                    <Volume2 size={11} /> Rekaman Suara Pelapor:
-                  </span>
-                  <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                    <audio controls className="w-full h-8 outline-none">
-                      <source src={kasus.rekam_suara_url} />
-                      Audio tidak didukung di browser ini.
-                    </audio>
+                ) : (
+                  <div className="p-2.5 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
+                    Tidak ada foto bukti terlampir
                   </div>
-                </div>
-              ) : (
-                <div className="p-2 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
-                  Tidak ada rekaman audio terlampir
-                </div>
-              )}
+                )}
+
+                {/* Rekaman Suara Pelapor */}
+                {kasus.rekam_suara_url ? (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-1">
+                      <Volume2 size={11} /> Rekaman Suara Pelapor:
+                    </span>
+                    <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                      <audio controls className="w-full h-8 outline-none">
+                        <source src={kasus.rekam_suara_url} />
+                        Audio tidak didukung di browser ini.
+                      </audio>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-[11px]">
+                    Tidak ada rekaman audio terlampir
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Subcard 3 (Khusus SOS): Telemetri Perangkat Korban */}
           {isSos && kasus.device_info && (
@@ -781,37 +956,77 @@ export default function DetailKasusPage() {
 
             {/* Tab 1: Activity Log Timeline (Internal Scroll) */}
             {rightTab === 'log' && (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
+              <div className="flex-1 min-h-0 overflow-y-auto pl-2 pr-1.5 py-1.5 space-y-0">
                 {loadingActivities ? (
-                  <div className="flex items-center gap-2 py-6 text-slate-400 text-[11px] justify-center">
-                    <Loader2 size={13} className="animate-spin text-[#0b6f61]" />
+                  <div className="flex items-center gap-2 py-8 text-slate-400 text-[11px] justify-center">
+                    <Loader2 size={14} className="animate-spin text-[#0b6f61]" />
                     <span>Memuat linimasa aktivitas...</span>
                   </div>
                 ) : activities.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic text-center py-6">
-                    Belum ada riwayat aktivitas yang tercatat untuk kasus ini.
-                  </p>
+                  <div className="py-8 text-center space-y-1">
+                    <Activity size={20} className="mx-auto text-slate-300" />
+                    <p className="text-[11px] text-slate-400 italic">
+                      Belum ada riwayat aktivitas yang tercatat untuk kasus ini.
+                    </p>
+                  </div>
                 ) : (
                   activities.map((log, idx) => {
                     const actor = log.actor || log.aktor || 'Sistem';
                     const role = log.role || log.role_aktor;
                     const description = log.description || log.deskripsi || log.action || log.jenis;
                     const timestamp = log.created_at || log.waktu;
+                    const meta = getActivityMeta(log);
+                    const roleMeta = getRoleMeta(role, actor);
+                    const relativeTime = formatRelativeTime(timestamp);
+                    const isLast = idx === activities.length - 1;
+
                     return (
-                      <div key={idx} className="flex items-start gap-2 text-[11px]">
-                        <div className="flex flex-col items-center">
-                          <div className="w-2 h-2 rounded-full bg-[#0b6f61] mt-1 flex-shrink-0" />
-                          {idx < activities.length - 1 && (
-                            <div className="w-px h-full bg-slate-200 mt-1" style={{ minHeight: 18 }} />
+                      <div key={idx} className="relative flex items-start gap-2.5 text-[11px] group">
+                        {/* Timeline Left Track: Node + Vertical Connector */}
+                        <div className="w-8 flex flex-col items-center flex-shrink-0 self-stretch pt-0.5">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${meta.nodeColor}`}>
+                            {meta.icon}
+                          </div>
+                          {!isLast && (
+                            <div className="w-0.5 bg-slate-200 flex-1 my-1" style={{ minHeight: 18 }} />
                           )}
                         </div>
-                        <div className="flex-1 pb-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold text-slate-800">{actor}</span>
-                            {role && <Badge variant={role} isPill className="scale-75 origin-left" />}
+
+                        {/* Timeline Right: Polished Event Card */}
+                        <div className={`flex-1 min-w-0 rounded-xl p-2.5 border shadow-2xs transition-all hover:shadow-xs mb-2.5 ${meta.cardClass}`}>
+                          {/* Top Row: Actor Avatar + Name + Role Badge + Relative Time */}
+                          <div className={`flex items-center justify-between gap-1.5 pb-1.5 border-b ${meta.headerClass}`}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <InitialsAvatar
+                                name={actor}
+                                size={18}
+                                bgClass={roleMeta.avatarBg}
+                              />
+                              <span className="font-bold text-slate-800 text-[11.5px] truncate" title={actor}>
+                                {actor}
+                              </span>
+                              <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap leading-none ${roleMeta.badgeClass}`}>
+                                {roleMeta.label}
+                              </span>
+                            </div>
+
+                            {relativeTime && (
+                              <span className="text-[9.5px] font-medium text-slate-400 whitespace-nowrap flex-shrink-0">
+                                {relativeTime}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-slate-600 mt-0.5 leading-snug">{description}</p>
-                          <span className="text-[9.5px] text-slate-400 block mt-0.5">{formatDateTime(timestamp)}</span>
+
+                          {/* Event Message */}
+                          <p className="text-slate-700 text-[11px] font-medium leading-relaxed mt-1.5">
+                            {description}
+                          </p>
+
+                          {/* Event Timestamp */}
+                          <div className="flex items-center gap-1 text-[9.5px] text-slate-400 mt-2 pt-1 border-t border-slate-100/80">
+                            <Clock size={10} className="text-slate-400 flex-shrink-0" />
+                            <span>{formatDateTime(timestamp)}</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -822,23 +1037,31 @@ export default function DetailKasusPage() {
 
             {/* Tab 2: Catatan Penanganan Tim Petugas (Internal Scroll) */}
             {rightTab === 'catatan' && (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 py-1">
                 {!kasus.catatan_penanganan || kasus.catatan_penanganan.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic text-center py-6">
                     Belum ada catatan penanganan yang ditulis petugas.
                   </p>
                 ) : (
                   kasus.catatan_penanganan.map((catatan, i) => (
-                    <div key={i} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl space-y-1 text-[11px]">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-slate-700">
-                          {catatan.admin?.name || 'Petugas Admin'}
-                        </span>
-                        <span className="text-slate-400">
-                          {formatDateTime(catatan.created_at)}
-                        </span>
+                    <div key={i} className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl space-y-1.5 text-[11px] hover:border-slate-300 transition-all shadow-2xs">
+                      <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-100">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <InitialsAvatar
+                            name={catatan.admin?.name || 'Petugas Admin'}
+                            size={18}
+                            bgClass="bg-[#0b6f61]"
+                          />
+                          <span className="font-bold text-slate-800 text-[11px] truncate">
+                            {catatan.admin?.name || 'Petugas Admin'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9.5px] text-slate-400 flex-shrink-0">
+                          <Clock size={10} />
+                          <span>{formatDateTime(catatan.created_at)}</span>
+                        </div>
                       </div>
-                      <p className="text-slate-800 leading-snug whitespace-pre-wrap">
+                      <p className="text-slate-700 leading-snug whitespace-pre-wrap text-[11px]">
                         {catatan.catatan}
                       </p>
                     </div>

@@ -10,7 +10,9 @@ export default function SOSCard({ kasus, onOpenDetail }) {
       {/* Header: ID + Status */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[12px] font-bold text-[#0b6f61]">{kasus.id}</span>
+          <span className="text-[12px] font-bold text-[#0b6f61]">
+            {kasus.id_kasus || kasus.nomor_kasus || `#${kasus.id}`}
+          </span>
           <Badge
             variant={isDarurat ? 'DARURAT SOS' : 'LAPORAN PENGGUNA'}
             className="text-[11px]"

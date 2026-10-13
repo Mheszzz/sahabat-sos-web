@@ -72,6 +72,7 @@ function getBreadcrumbs(pathname) {
 export default function TopHeader({ onMenuToggle }) {
   const location = useLocation();
   const crumbs = getBreadcrumbs(location.pathname);
+  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
 
   return (
     <header className="sticky top-0 z-30 flex h-[56px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8">
@@ -117,15 +118,17 @@ export default function TopHeader({ onMenuToggle }) {
         </nav>
       </div>
 
-      <button
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
-        aria-label="Notifikasi"
-      >
-        <Bell size={17} />
-        <span className="absolute -right-0.5 -top-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">
-          3
-        </span>
-      </button>
+      {isDashboard && (
+        <button
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+          aria-label="Notifikasi"
+        >
+          <Bell size={17} />
+          <span className="absolute -right-0.5 -top-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">
+            3
+          </span>
+        </button>
+      )}
     </header>
   );
 }
