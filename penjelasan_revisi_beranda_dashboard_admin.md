@@ -12,27 +12,22 @@ Ini adalah visualisasi utama untuk memantau lokasi secara geografis.
 *   **Area Peta Interaktif:** Menampilkan titik lokasi (pin) dengan penanda warna dan ikon:
     *   **Merah:** Menandakan keadaan darurat/SOS (contoh: #SOS-4 • Malioboro).
     *   **Kuning:** Menandakan laporan insiden (contoh: #5 Medis).
-    *   **Hijau:** Menandakan lokasi relawan siaga beserta nama dan jaraknya (contoh: Dimas P, Rian H).
+    *   **Hijau:** Menandakan lokasi relawan siaga beserta namanya (contoh: Dimas Anggara, Rian Hidayat, Annisa Putri).
 *   **Kontrol Zoom:** Tombol `+` dan `-` di sudut kanan atas peta untuk memperbesar/memperkecil tampilan peta.
 *   **Legenda & Status Peta (Bagian Bawah):** Menjelaskan arti warna pin (Merah: SOS Aktif, Hijau: Relawan Siaga, Kuning: Laporan Pending) beserta jumlahnya. Terdapat juga keterangan bahwa pembaruan GPS bersifat real-time via satelit.
 
-## 3. Kolom Kanan Atas: Kartu Ringkasan Informasi (Summary Cards)
-Menampilkan metrik angka penting yang membutuhkan perhatian cepat.
-*   **Kasus Hari Ini:** Menampilkan total jumlah laporan & SOS (angka besar "12"). Terdapat indikator tren positif warna hijau ("+8% dibanding kemarin") untuk analisis komparatif harian.
-*   **Darurat SOS Aktif (Highlight Merah):** Didesain mencolok dengan outline dan teks merah, label "PRIORITAS TINGGI", dan ikon peringatan. Menampilkan angka "1" yang menandakan ada satu kasus yang butuh respons segera.
-*   **Laporan Aktif & Relawan Aktif:** Dua kartu kecil berdampingan. Menampilkan jumlah laporan yang sedang ditangani tim ("3") dan jumlah relawan yang dalam status siaga ("18").
-
-## 4. Kolom Kanan Bawah: Statistik & Grafik Analitik
-Menyajikan data dalam bentuk visualisasi untuk melihat tren dan sebaran kasus.
-*   **Sebaran Kategori Laporan:**
-    *   Menampilkan *progress bar* untuk mengetahui kategori laporan terbanyak.
-    *   Terdapat filter waktu ("Semua Waktu").
-    *   Kategori yang ditampilkan meliputi: Kondisi Medis (4 kasus), Butuh Pendamping (3 kasus), Tersesat (2 kasus), dan Darurat SOS (2 kasus).
-    *   Di bagian bawahnya terdapat teks ringkasan untuk ancaman bahaya dan lainnya.
-*   **Grafik SOS Harian (Tren SOS Mingguan):**
-    *   Menampilkan grafik batang (bar chart) yang menunjukkan jumlah kasus dari hari Minggu hingga Sabtu.
-    *   Terdapat label total kasus ("18 Total Kasus").
-    *   Di bagian bawah grafik terdapat *insight* otomatis, seperti hari dengan puncak insiden (contoh: Sabtu dengan 5 SOS) dan rata-rata kasus harian (2.6/hari).
+## 3. Kolom Kanan: Ringkasan Informasi & Analitik
+Menyajikan metrik penting dan grafik analitik dengan tata letak berurutan dari atas ke bawah:
+*   **Grafik SOS Harian (Tren SOS Mingguan) [Paling Atas]:**
+    *   Menampilkan grafik batang (*bar chart*) yang menunjukkan tren jumlah kasus SOS dari hari Minggu hingga Sabtu.
+    *   Dilengkapi lencana total kasus (contoh: "7 Total Kasus").
+    *   Di bagian bawah grafik terdapat *insight* otomatis mengenai hari puncak insiden (contoh: Sabtu dengan 6 SOS) dan rata-rata kasus harian.
+*   **Kasus Hari Ini [Tengah]:**
+    *   Menampilkan total jumlah laporan & SOS yang masuk hari ini (angka besar "12").
+    *   Dilengkapi indikator tren komparatif harian (contoh: "+0% dibanding kemarin").
+*   **Sebaran Kategori Laporan [Bawah]:**
+    *   Menampilkan *progress bar* proporsi kategori kasus masuk (Kondisi Medis, Butuh Pendamping, Tersesat, Aksesibilitas Rusak, dll.).
+    *   Dilengkapi filter waktu (*dropdown* Semua Waktu, Hari Ini, Minggu Ini, Bulan Ini) dan ringkasan sub-kategori di bagian bawah.
 
 ## 5. Bagian Bawah: Tabel Manajemen Data (Kasus & Relawan)
 Bagian ini digunakan untuk melihat detail data tabular dan melakukan tindakan operasional.

@@ -192,6 +192,16 @@ export const adminService = {
   },
 
   /**
+   * Mengambil detail lengkap relawan berdasarkan ID (Admin & Superadmin)
+   * @param {number|string} id - ID Relawan
+   * @returns {Promise}
+   */
+  getRelawanDetail: async (id) => {
+    const response = await api.get(`/admin/relawan/${id}`);
+    return response.data;
+  },
+
+  /**
    * Mengupdate status relawan (Admin & Superadmin)
    * @param {number|string} id - ID Relawan
    * @param {boolean} isActive - Status keaktifan baru

@@ -21,6 +21,7 @@ export default function AdminCommandMap({
   const mapInstanceRef = useRef(null);
   const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const hasInitialBoundsRef = useRef(false);
 
   const [mapMode, setMapMode] = useState('street'); // 'street' | 'satellite'
   const [selectedItem, setSelectedItem] = useState(null);
@@ -84,61 +85,7 @@ export default function AdminCommandMap({
     markersLayerRef.current.clearLayers();
 
     const bounds = L.latLngBounds();
-    const items = (mapData && mapData.length > 0) ? mapData : [
-      // Default sample matching screenshot if mapData is empty
-      {
-        id: 4,
-        displayId: '#SOS-4',
-        type: 'sos',
-        label: '#SOS-4 • Malioboro',
-        pelapor: 'Ahmad Fauzi',
-        kategori: 'Darurat SOS',
-        status: 'ditangani',
-        lokasi: 'Kawasan Malioboro, Kota Yogyakarta',
-        lat: -7.7930,
-        lng: 110.3658,
-        eta: '3 mnt'
-      },
-      {
-        id: 5,
-        displayId: '#5',
-        type: 'laporan',
-        label: '#5 Medis',
-        pelapor: 'Dewi Lestari',
-        kategori: 'Kondisi Medis',
-        status: 'ditangani',
-        lokasi: 'Jl. Margo Utomo, Gowongan, Jetis',
-        lat: -7.7850,
-        lng: 110.3670,
-        eta: '6 mnt'
-      },
-      {
-        id: 101,
-        displayId: 'REL-1',
-        type: 'relawan',
-        label: 'Dimas P. (1.2km)',
-        pelapor: 'Dimas Pratama',
-        kategori: 'Relawan Siaga Medis & P3K',
-        status: 'siaga',
-        lokasi: 'Depok, Sleman',
-        lat: -7.7720,
-        lng: 110.3850,
-        eta: 'Tersedia'
-      },
-      {
-        id: 102,
-        displayId: 'REL-2',
-        type: 'relawan',
-        label: 'Rian H. (500m)',
-        pelapor: 'Rian Hidayat',
-        kategori: 'Relawan Siaga Lapangan',
-        status: 'siaga',
-        lokasi: 'Sultan Agung, Yogyakarta',
-        lat: -7.8040,
-        lng: 110.3730,
-        eta: 'Tersedia'
-      }
-    ];
+    const items = Array.isArray(mapData) ? mapData : [];
 
     items.forEach((item) => {
       if (!item.lat || !item.lng) return;
@@ -206,8 +153,9 @@ export default function AdminCommandMap({
       bounds.extend([item.lat, item.lng]);
     });
 
-    if (items.length > 0 && bounds.isValid()) {
+    if (!hasInitialBoundsRef.current && items.length > 0 && bounds.isValid()) {
       mapInstanceRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+      hasInitialBoundsRef.current = true;
     }
   }, [mapData]);
 
@@ -350,7 +298,7 @@ export default function AdminCommandMap({
 
             <button
               onClick={() => {
-                onOpenDetail?.(selectedItem.id, selectedItem.type);
+                onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
                 setSelectedItem(null);
               }}
               className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0b6f61] py-1.5 text-[11px] font-bold text-white hover:bg-[#095c52] transition-colors"

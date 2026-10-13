@@ -1,11 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Phone, Check, X, Eye, Loader2 } from 'lucide-react';
 import Badge from '../global/Badge';
 import RelawanDetailModal from './RelawanDetailModal';
 
 export default function UserTable({ activeTab, search, setSearch, data, onVerify, onUpdateStatus }) {
+  const [searchParams] = useSearchParams();
   const [selectedRelawan, setSelectedRelawan] = useState(null);
   const [loadingRowId, setLoadingRowId] = useState(null);
+
+  useEffect(() => {
+    const targetId = searchParams.get('id');
+    if (targetId && data && data.length > 0) {
+      const found = data.find(item => String(item.id) === String(targetId));
+      if (found) {
+        setSelectedRelawan(found);
+      }
+    }
+  }, [searchParams, data]);
 
   const handleRowVerify = async (id, status) => {
     try {
@@ -162,7 +174,16 @@ export default function UserTable({ activeTab, search, setSearch, data, onVerify
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setSelectedRelawan(item)}
+                        title="Lihat Detail Relawan"
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 flex items-center gap-1 hover:bg-slate-200 text-[12px] font-semibold transition-colors"
+                      >
+                        <Eye size={14} />
+                        <span className="hidden sm:inline">Detail</span>
+                      </button>
+
                       {onUpdateStatus && (
                         <button
                           onClick={() => onUpdateStatus(item.id, !(item.is_active === true || item.is_active === 1))}

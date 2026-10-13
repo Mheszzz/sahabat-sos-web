@@ -8,10 +8,15 @@ import { useNavigate } from 'react-router-dom';
 
 export default function PetaPemantauanPage() {
   const navigate = useNavigate();
-  const onOpenDetail = (id, type) => {
-    if (type === 'relawan') navigate('/detail-relawan/' + id);
-    else if (type === 'laporan') navigate('/detail-laporan/' + id);
-    else navigate('/detail-kasus/' + id);
+  const onOpenDetail = (id, type, item) => {
+    if (type === 'relawan') {
+      const searchParam = item?.relawan || item?.pelapor ? `?search=${encodeURIComponent(item.relawan || item.pelapor)}` : (id ? `?id=${id}` : '');
+      navigate(`/manajemen-user${searchParam}`);
+    } else if (type === 'laporan') {
+      navigate('/detail-laporan/' + id);
+    } else {
+      navigate('/detail-kasus/' + id);
+    }
   };
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);

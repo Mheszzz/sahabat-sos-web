@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Bell,
-  Settings,
   CheckCheck,
   Trash2,
   AlertTriangle,
   RotateCcw,
-  ChevronLeft,
-  Volume2,
   ExternalLink,
-  ShieldAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
@@ -30,14 +26,6 @@ export default function NotificationDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState(DEFAULT_SOS_NOTIFICATIONS);
-  const [viewSettings, setViewSettings] = useState(false);
-
-  // Settings for SOS
-  const [settings, setSettings] = useState({
-    soundSos: true,
-    popupAlert: true,
-    vibrateAlert: true,
-  });
 
   const dropdownRef = useRef(null);
 
@@ -95,14 +83,12 @@ export default function NotificationDropdown() {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
-        setViewSettings(false);
       }
     };
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
-        setViewSettings(false);
       }
     };
 
@@ -145,7 +131,6 @@ export default function NotificationDropdown() {
       <button
         onClick={() => {
           setIsOpen(prev => !prev);
-          setViewSettings(false);
         }}
         className={`relative flex h-9 w-9 items-center justify-center rounded-lg border transition-all ${
           isOpen
@@ -168,35 +153,20 @@ export default function NotificationDropdown() {
         <div className="absolute right-0 top-full mt-2.5 w-[360px] sm:w-[410px] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden z-[1000] animate-in fade-in zoom-in-95 duration-150 flex flex-col font-sans">
           {/* ════ Header Bar ════ */}
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5 bg-white">
-            {viewSettings ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setViewSettings(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
-                  title="Kembali"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <h2 className="text-[15px] font-bold text-slate-900">
-                  Setelan Notifikasi SOS
-                </h2>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-bold text-slate-900">
-                  Notifikasi
-                </h2>
-                {unreadCount > 0 && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-600">
-                    {unreadCount} SOS Aktif
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <h2 className="text-[15px] font-bold text-slate-900">
+                Notifikasi
+              </h2>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-600">
+                  {unreadCount} SOS Aktif
+                </span>
+              )}
+            </div>
 
             {/* Header Right Actions */}
             <div className="flex items-center gap-1">
-              {!viewSettings && notifications.length > 0 && (
+              {notifications.length > 0 && (
                 <>
                   {unreadCount > 0 && (
                     <button
@@ -217,80 +187,11 @@ export default function NotificationDropdown() {
                   </button>
                 </>
               )}
-
-              {/* Settings Gear Icon (Identik dengan YouTube) */}
-              <button
-                onClick={() => setViewSettings(prev => !prev)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                  viewSettings
-                    ? 'bg-slate-100 text-slate-800'
-                    : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
-                }`}
-                title="Setelan Notifikasi"
-              >
-                <Settings size={16} />
-              </button>
             </div>
           </div>
 
           {/* ════ Content Body ════ */}
-          {viewSettings ? (
-            /* ── SETTINGS VIEW ── */
-            <div className="p-4 space-y-3 bg-slate-50/50">
-              <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                    <Volume2 size={16} />
-                  </div>
-                  <div>
-                    <div className="text-[12px] font-bold text-slate-800">
-                      Suara Sirine SOS
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Alarm audio otomatis saat ada SOS aktif
-                    </div>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.soundSos}
-                  onChange={e => setSettings(s => ({ ...s, soundSos: e.target.checked }))}
-                  className="h-4 w-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-[#dc2626]">
-                    <ShieldAlert size={16} />
-                  </div>
-                  <div>
-                    <div className="text-[12px] font-bold text-slate-800">
-                      Peringatan Prioritas Tinggi
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Tampilkan lencana merah darurat di navbar
-                    </div>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.popupAlert}
-                  onChange={e => setSettings(s => ({ ...s, popupAlert: e.target.checked }))}
-                  className="h-4 w-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
-                />
-              </div>
-
-              <div className="pt-2 text-center">
-                <button
-                  onClick={() => setViewSettings(false)}
-                  className="w-full rounded-xl bg-slate-900 py-2 text-[12px] font-bold text-white shadow-xs hover:bg-slate-800 transition-colors"
-                >
-                  Selesai
-                </button>
-              </div>
-            </div>
-          ) : notifications.length > 0 ? (
+          {notifications.length > 0 ? (
             /* ── DAFTAR NOTIFIKASI SOS AKTIF SAJA ── */
             <div>
               <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">

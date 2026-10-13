@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminCommandMap from '../../components/AdminCommandMap';
 import { adminService } from '../../api/services/adminService';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
+import echo from '../../api/libs/echo';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -139,23 +140,22 @@ export default function DashboardPage() {
         });
 
         (p.posisi_relawan || []).forEach(rel => {
+          const cleanName = rel.nama ? rel.nama.replace(/\s*\(Relawan\)/i, '').trim() : 'Relawan';
           points.push({
             id: rel.id,
             displayId: `REL-${rel.id}`,
             type: 'relawan',
-            label: `${rel.nama ? rel.nama.split(' ')[0] + ' ' + (rel.nama.split(' ')[1] ? rel.nama.split(' ')[1][0] + '.' : '') : 'Relawan'} (${rel.lokasi_user ? rel.lokasi_user : 'Siaga'})`,
-            pelapor: rel.nama,
+            label: cleanName,
+            pelapor: cleanName,
             kategori: rel.kompetensi || 'Relawan Lapangan',
             status: rel.status,
-            lokasi: rel.lokasi_user || 'Posko Yogyakarta',
+            lokasi: rel.lokasi_user ? rel.lokasi_user.replace(/Posko\s+/gi, '').trim() : 'Area Siaga',
             lat: rel.latitude,
             lng: rel.longitude,
           });
         });
 
-        if (points.length > 0) {
-          setMapMarkers(points);
-        }
+        setMapMarkers(points);
 
         setSosCount(summary.total_sos_aktif ?? (p.titik_darurat_sos?.length || 1));
         setLaporanCount(summary.total_laporan_aktif ?? (p.titik_laporan_aktif?.length || 0));
@@ -271,6 +271,66 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // ─── LARAVEL REVERB WEBSOCKET SUBSCRIPTION ──────────────────────
+    const channel = echo.channel('command-center');
+
+    // 1. Relawan Location Real-time Update
+    channel.listen('.RelawanLocationUpdate', (data) => {
+      console.log('[Reverb Real-time] RelawanLocationUpdate:', data);
+      if (!data.relawan_id) return;
+
+      setMapMarkers((prev) => {
+        const index = prev.findIndex(
+          (m) => m.type === 'relawan' && m.id === data.relawan_id
+        );
+
+        const cleanName = data.nama ? data.nama.replace(/\s*\(Relawan\)/i, '').trim() : 'Relawan';
+        const updatedItem = {
+          id: data.relawan_id,
+          displayId: `REL-${data.relawan_id}`,
+          type: 'relawan',
+          label: cleanName,
+          pelapor: cleanName,
+          kategori: 'Relawan Lapangan',
+          status: data.status || 'siaga_bebas',
+          lokasi: data.lokasi_user ? data.lokasi_user.replace(/Posko\s+/gi, '').trim() : 'Area Siaga',
+          lat: parseFloat(data.latitude),
+          lng: parseFloat(data.longitude),
+          heading: data.heading,
+        };
+
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = { ...next[index], ...updatedItem };
+          return next;
+        } else {
+          return [...prev, updatedItem];
+        }
+      });
+    });
+
+    // 2. SOS Baru Dibuat
+    channel.listen('.SOSCreated', (data) => {
+      console.log('[Reverb Real-time] SOSCreated:', data);
+      fetchDashboardData();
+    });
+
+    // 3. Status SOS Diperbarui (Relawan Ambil / Selesai / Batal)
+    channel.listen('.SOSUpdateStatus', (data) => {
+      console.log('[Reverb Real-time] SOSUpdateStatus:', data);
+      fetchDashboardData();
+    });
+
+    // 4. Laporan Warga Baru Dibuat
+    channel.listen('.LaporanCreated', (data) => {
+      console.log('[Reverb Real-time] LaporanCreated:', data);
+      fetchDashboardData();
+    });
+
+    return () => {
+      echo.leaveChannel('command-center');
+    };
   }, []);
 
   const handleCategoryFilterChange = async (label) => {
@@ -339,7 +399,12 @@ export default function DashboardPage() {
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleOpenDetail = (id, type) => {
+  const handleOpenDetail = (id, type, item) => {
+    if (type === 'relawan') {
+      const searchParam = item?.pelapor ? `?search=${encodeURIComponent(item.pelapor)}` : (id ? `?id=${id}` : '');
+      navigate(`/manajemen-user${searchParam}`);
+      return;
+    }
     const tipeParam = (type || 'sos').toLowerCase().includes('sos') ? 'sos' : 'laporan';
     navigate(`/detail-kasus/${id}?tipe=${tipeParam}`);
   };
@@ -386,7 +451,69 @@ export default function DashboardPage() {
 
         {/* ── KOLOM KANAN: Kartu Ringkasan Informasi & Grafik Analitik ── */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* Card 1: Kasus Hari Ini */}
+          {/* Card 1: Grafik SOS Harian (Tren SOS Mingguan) */}
+          <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[13px] font-bold text-slate-800">
+                  Grafik SOS Harian
+                </h3>
+                <p className="text-[11px] font-bold text-slate-900 mt-0.5">
+                  Tren SOS Mingguan
+                </p>
+              </div>
+
+              {/* Badge Total Kasus */}
+              <div className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-extrabold text-[#dc2626]">
+                {weeklyChartData.totalKasus} Total Kasus
+              </div>
+            </div>
+
+            {/* 7-Bar Chart Visual */}
+            <div className="mt-5 flex items-end justify-between gap-2 px-1">
+              {weeklyChartData.harian.map((d, idx) => {
+                const heightPct = Math.max(14, (d.count / maxWeeklyCount) * 100);
+                return (
+                  <div key={idx} className="flex flex-1 flex-col items-center gap-1.5">
+                    {/* Number label above bar */}
+                    <span className="text-[10px] font-bold text-slate-600">
+                      {d.count}
+                    </span>
+                    {/* The bar element */}
+                    <div className="relative flex h-20 w-full items-end justify-center rounded-sm">
+                      <div
+                        className={`w-full max-w-[28px] rounded-sm transition-all duration-500 ${
+                          d.isPeak
+                            ? 'bg-[#dc2626] shadow-sm'
+                            : 'bg-[#fca5a5]/80 hover:bg-[#f87171]'
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                    {/* Day label */}
+                    <span className={`text-[10px] font-semibold ${d.isPeak ? 'font-bold text-slate-900' : 'text-slate-400'}`}>
+                      {d.day}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Insights */}
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] font-semibold text-slate-500">
+              <div className="flex items-center gap-1 text-emerald-600 font-bold">
+                <TrendingUp size={12} />
+                <span>
+                  Puncak insiden: {weeklyChartData.puncakInsiden?.hari || 'Sabtu'} ({weeklyChartData.puncakInsiden?.total || 5} SOS)
+                </span>
+              </div>
+              <div className="text-slate-400 font-medium">
+                Rata-rata: {weeklyChartData.rataRataHarian}/hari
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Kasus Hari Ini */}
           <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -414,7 +541,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 5: Sebaran Kategori Laporan */}
+          {/* Card 3: Sebaran Kategori Laporan */}
           <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
@@ -487,68 +614,6 @@ export default function DashboardPage() {
               <div className="flex items-center gap-1.5 text-slate-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
                 <span>Lainnya: 0 kasus</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 6: Grafik SOS Harian (Tren SOS Mingguan) */}
-          <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-[13px] font-bold text-slate-800">
-                  Grafik SOS Harian
-                </h3>
-                <p className="text-[11px] font-bold text-slate-900 mt-0.5">
-                  Tren SOS Mingguan
-                </p>
-              </div>
-
-              {/* Badge Total Kasus */}
-              <div className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-extrabold text-[#dc2626]">
-                {weeklyChartData.totalKasus} Total Kasus
-              </div>
-            </div>
-
-            {/* 7-Bar Chart Visual */}
-            <div className="mt-5 flex items-end justify-between gap-2 px-1">
-              {weeklyChartData.harian.map((d, idx) => {
-                const heightPct = Math.max(14, (d.count / maxWeeklyCount) * 100);
-                return (
-                  <div key={idx} className="flex flex-1 flex-col items-center gap-1.5">
-                    {/* Number label above bar */}
-                    <span className="text-[10px] font-bold text-slate-600">
-                      {d.count}
-                    </span>
-                    {/* The bar element */}
-                    <div className="relative flex h-20 w-full items-end justify-center rounded-sm">
-                      <div
-                        className={`w-full max-w-[28px] rounded-sm transition-all duration-500 ${
-                          d.isPeak
-                            ? 'bg-[#dc2626] shadow-sm'
-                            : 'bg-[#fca5a5]/80 hover:bg-[#f87171]'
-                        }`}
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    {/* Day label */}
-                    <span className={`text-[10px] font-semibold ${d.isPeak ? 'font-bold text-slate-900' : 'text-slate-400'}`}>
-                      {d.day}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer Insights */}
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] font-semibold text-slate-500">
-              <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                <TrendingUp size={12} />
-                <span>
-                  Puncak insiden: {weeklyChartData.puncakInsiden?.hari || 'Sabtu'} ({weeklyChartData.puncakInsiden?.total || 5} SOS)
-                </span>
-              </div>
-              <div className="text-slate-400 font-medium">
-                Rata-rata: {weeklyChartData.rataRataHarian}/hari
               </div>
             </div>
           </div>

@@ -291,7 +291,7 @@ export default function ModernEmergencyMap({
             <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
               <button
                 onClick={() => {
-                  onOpenDetail?.(selectedItem.id, selectedItem.type);
+                  onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
                   setSelectedItem(null);
                 }}
                 className="btn-base btn-primary text-[12px] w-full py-1.5 h-8 rounded-lg"

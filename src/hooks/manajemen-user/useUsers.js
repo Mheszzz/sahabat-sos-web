@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminService } from '../../api/services/adminService';
 
 export function useUsers() {
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState('relawan');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(querySearch);
+
+  useEffect(() => {
+    const q = searchParams.get('search') || searchParams.get('q');
+    if (q !== null && q !== undefined) {
+      setSearch(q);
+    }
+  }, [searchParams]);
 
   // Data state
   const [pengguna, setPengguna] = useState([]);

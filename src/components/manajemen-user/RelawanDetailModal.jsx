@@ -29,8 +29,14 @@ export default function RelawanDetailModal({ isOpen, onClose, relawan, onVerify 
               <ShieldAlert size={18} />
             </div>
             <div>
-              <h2 className="text-[16px] font-bold text-slate-900 leading-tight">Detail Pengajuan Relawan</h2>
-              <p className="text-[12px] text-slate-500">Tinjau informasi pendaftaran relawan sebelum verifikasi</p>
+              <h2 className="text-[16px] font-bold text-slate-900 leading-tight">
+                {relawan.status_verifikasi === 'pending' ? 'Detail Pengajuan Relawan' : 'Detail Data Relawan'}
+              </h2>
+              <p className="text-[12px] text-slate-500">
+                {relawan.status_verifikasi === 'pending' 
+                  ? 'Tinjau informasi pendaftaran relawan sebelum verifikasi' 
+                  : 'Informasi profil dan ketersediaan relawan'}
+              </p>
             </div>
           </div>
           <button
@@ -55,10 +61,24 @@ export default function RelawanDetailModal({ isOpen, onClose, relawan, onVerify 
           <div className="min-w-0 flex-1">
             <h3 className="text-[15px] font-bold text-slate-900 truncate">{relawan.name}</h3>
             <p className="text-[12px] text-slate-500 truncate">{relawan.email || 'Email tidak tersedia'}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
-                Menunggu Verifikasi
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                relawan.status_verifikasi === 'terverifikasi'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                {relawan.status_verifikasi === 'terverifikasi' ? 'Terverifikasi' : 'Menunggu Verifikasi'}
               </span>
+
+              {relawan.is_active !== undefined && (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                  (relawan.is_active === true || relawan.is_active === 1)
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {(relawan.is_active === true || relawan.is_active === 1) ? 'Aktif' : 'Nonaktif'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -89,15 +109,17 @@ export default function RelawanDetailModal({ isOpen, onClose, relawan, onVerify 
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-slate-100">
-            <Heart size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Alasan Menjadi Relawan</p>
-              <p className="font-medium text-slate-700 whitespace-pre-line text-[12.5px] leading-relaxed">
-                {relawan.alasan_relawan || 'Tidak mencantumkan alasan khusus.'}
-              </p>
+          {relawan.alasan_relawan && (
+            <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-slate-100">
+              <Heart size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Alasan Menjadi Relawan</p>
+                <p className="font-medium text-slate-700 whitespace-pre-line text-[12.5px] leading-relaxed">
+                  {relawan.alasan_relawan}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {relawan.created_at && (
             <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg border border-slate-100">
@@ -117,25 +139,37 @@ export default function RelawanDetailModal({ isOpen, onClose, relawan, onVerify 
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-          <button
-            type="button"
-            disabled={loadingAction !== null}
-            onClick={() => handleAction('ditolak')}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {loadingAction === 'ditolak' ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            <span>Tolak Relawan</span>
-          </button>
+          {relawan.status_verifikasi === 'pending' ? (
+            <>
+              <button
+                type="button"
+                disabled={loadingAction !== null}
+                onClick={() => handleAction('ditolak')}
+                className="px-4 py-2 rounded-xl text-[13px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {loadingAction === 'ditolak' ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                <span>Tolak Relawan</span>
+              </button>
 
-          <button
-            type="button"
-            disabled={loadingAction !== null}
-            onClick={() => handleAction('terverifikasi')}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {loadingAction === 'terverifikasi' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            <span>Setujui Relawan</span>
-          </button>
+              <button
+                type="button"
+                disabled={loadingAction !== null}
+                onClick={() => handleAction('terverifikasi')}
+                className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {loadingAction === 'terverifikasi' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                <span>Setujui Relawan</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-xl text-[13px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+            >
+              Tutup
+            </button>
+          )}
         </div>
       </div>
     </div>
