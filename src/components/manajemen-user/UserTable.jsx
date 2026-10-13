@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   MapPin, Phone, Check, X, Eye, Loader2, MessageSquare,
