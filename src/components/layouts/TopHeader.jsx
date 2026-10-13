@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, ChevronRight, Menu, AlertTriangle } from 'lucide-react';
+import { ChevronRight, Menu, AlertTriangle } from 'lucide-react';
+import NotificationDropdown from './NotificationDropdown';
 
 function getBreadcrumbs(pathname) {
   if (pathname.startsWith('/detail-kasus')) {
