@@ -1,13 +1,23 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminService } from '../../api/services/adminService';
 
 export function useUsers() {
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get('search') || searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState('relawan'); // 'relawan' | 'pending'
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(querySearch);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'aktif' | 'nonaktif'
   const [sortBy, setSortBy] = useState('terbaru'); // 'terbaru' | 'terlama' | 'nama_asc' | 'nama_desc'
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+
+  useEffect(() => {
+    const q = searchParams.get('search') || searchParams.get('q');
+    if (q !== null && q !== undefined) {
+      setSearch(q);
+    }
+  }, [searchParams]);
 
   // Data state
   const [relawan, setRelawan] = useState([]);

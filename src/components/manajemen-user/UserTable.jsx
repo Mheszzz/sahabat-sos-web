@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   MapPin, Phone, Check, X, Eye, Loader2, MessageSquare,
   Copy, CheckCheck, Power, HeartHandshake, UserPlus,
@@ -7,7 +8,6 @@ import {
 import InitialsAvatar from '../global/InitialsAvatar';
 import RelawanDetailModal from './RelawanDetailModal';
 import RelawanStatusConfirmModal from './RelawanStatusConfirmModal';
-
 // ── Skeleton Rows Component ───────────────────────────────────────────
 function TableSkeleton() {
   return (
@@ -66,6 +66,7 @@ export default function UserTable({
   hasActiveFilters = false,
   onResetFilters,
 }) {
+  const [searchParams] = useSearchParams();
   const [selectedRelawan, setSelectedRelawan] = useState(null);
   const [loadingRowId, setLoadingRowId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -77,6 +78,16 @@ export default function UserTable({
     targetStatus: false,
     isLoading: false,
   });
+
+  useEffect(() => {
+    const targetId = searchParams.get('id');
+    if (targetId && data && data.length > 0) {
+      const found = data.find(item => String(item.id) === String(targetId));
+      if (found) {
+        setSelectedRelawan(found);
+      }
+    }
+  }, [searchParams, data]);
 
   const handleRowVerify = async (id, status) => {
     try {
