@@ -87,14 +87,18 @@ export default function KasusAktifPage() {
     if (!raw) return '—';
     if (typeof raw === 'string' && raw.includes('lalu')) return raw;
     try {
-      return new Date(raw).toLocaleString('id-ID', {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return String(raw);
+      const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
+      const isCurrentYear = d.getFullYear() === new Date().getFullYear();
+      const dateStr = d.toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
+        ...(isCurrentYear ? {} : { year: 'numeric' }),
       });
+      return `${timeStr}, ${dateStr}`;
     } catch {
-      return raw;
+      return String(raw);
     }
   };
 
@@ -117,7 +121,7 @@ export default function KasusAktifPage() {
     if (c.kategori_laporan) {
       return c.kategori_laporan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
-    return c._tipeKategori === 'SOS' ? 'Panggilan Darurat SOS' : 'Laporan Warga';
+    return c._tipeKategori === 'SOS' ? 'Panggilan Darurat SOS' : 'Laporan';
   };
 
   // Kategori unik dari list
@@ -157,7 +161,7 @@ export default function KasusAktifPage() {
   const filterTabs = [
     { id: 'semua',           label: 'Semua Kasus',      count: stats.total },
     { id: 'sos',             label: 'Darurat SOS',      count: stats.sosCount, isDanger: true },
-    { id: 'laporan',         label: 'Laporan Warga',    count: stats.laporanCount },
+    { id: 'laporan',         label: 'Laporan',          count: stats.laporanCount },
     { id: 'belum ditangani', label: 'Belum Ditangani',  count: stats.pendingCount, isWarning: true },
     { id: 'ditangani',       label: 'Sedang Ditangani', count: stats.inProgressCount },
   ];
@@ -178,9 +182,11 @@ export default function KasusAktifPage() {
       const relawanStr = c.relawan?.name ?? '';
       const pelaporStr = getPelapor(c);
       const disabilitasStr = getDisabilitas(c) ?? '';
+      const idKasusStr = String(c.id_kasus ?? c.nomor_kasus ?? (c._tipeKategori === 'SOS' ? `SOS-${c.id}` : `LP-${c.id}`)).toLowerCase();
 
       return (
         String(c.id).toLowerCase().includes(q) ||
+        idKasusStr.includes(q) ||
         getKategori(c).toLowerCase().includes(q) ||
         pelaporStr.toLowerCase().includes(q) ||
         disabilitasStr.toLowerCase().includes(q) ||
@@ -397,11 +403,11 @@ export default function KasusAktifPage() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <th className="py-3 px-4 w-12 text-center">Tipe</th>
-                  <th className="py-3 px-4">Kasus / No</th>
+                  <th className="py-3 px-4">Kasus / ID Kasus</th>
                   <th className="py-3 px-4">Status &amp; Urgensi</th>
                   <th className="py-3 px-4">Korban / Pelapor</th>
                   <th className="py-3 px-4">Lokasi Kejadian</th>
-                  <th className="py-3 px-4">Petugas / Relawan</th>
+                  <th className="py-3 px-4">Relawan</th>
                   <th className="py-3 px-4">Waktu</th>
                   <th className="py-3 px-4 text-center w-28">Aksi</th>
                 </tr>
@@ -413,7 +419,7 @@ export default function KasusAktifPage() {
                   const disabilitas = getDisabilitas(kasus);
                   const relawan = kasus.relawan;
                   const alamat = kasus.lokasi?.alamat ?? kasus.lokasi_laporan ?? 'Lokasi Kejadian';
-                  const nomorUrut = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+                  const idKasusDisplay = kasus.id_kasus || kasus.nomor_kasus || (isSos ? `SOS-${kasus.id}` : `LP-${kasus.id}`);
 
                   // Warna baris dinamis:
                   // - SOS belum ditangani: Merah (Rose)
@@ -444,9 +450,7 @@ export default function KasusAktifPage() {
                       <td className="py-3.5 px-4 text-center">
                         <span className={`inline-flex items-center justify-center w-8 h-8 rounded-xl font-bold text-[10px] ${
                           isSos
-                            ? (statusRaw === 'ditangani'
-                                ? 'bg-amber-200 text-amber-900 border border-amber-300 ring-2 ring-amber-500/20'
-                                : 'bg-rose-200 text-rose-800 border border-rose-300 ring-2 ring-rose-500/20')
+                            ? 'bg-rose-200 text-rose-800 border border-rose-300 ring-2 ring-rose-500/20'
                             : 'bg-sky-100 text-sky-700 border border-sky-200'
                         }`}>
                           {isSos ? 'SOS' : 'LAP'}
@@ -455,8 +459,14 @@ export default function KasusAktifPage() {
 
                       {/* Kasus / ID */}
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[11px] font-bold text-slate-400">#{nomorUrut}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg border shadow-2xs ${
+                            isSos
+                              ? 'bg-rose-100/90 text-rose-800 border-rose-300/80'
+                              : 'bg-sky-100/90 text-sky-800 border-sky-300/80'
+                          }`}>
+                            {idKasusDisplay}
+                          </span>
                           <span className="font-bold text-slate-900 group-hover:text-[#0b6f61] transition-colors">
                             {getKategori(kasus)}
                           </span>
@@ -580,88 +590,97 @@ export default function KasusAktifPage() {
       {/* ── Content View: Incident Cards Grid ───────────────────────────────── */}
       {!loading && !error && sortedCases.length > 0 && viewMode === 'grid' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
             {paginatedCases.map((kasus, idx) => {
               const isSos = kasus._tipeKategori === 'SOS';
               const disabilitas = getDisabilitas(kasus);
               const relawan = kasus.relawan;
               const alamat = kasus.lokasi?.alamat ?? kasus.lokasi_laporan ?? 'Lokasi Kejadian';
               const statusRaw = getStatusRaw(kasus);
-              const nomorUrut = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
+              const idKasusDisplay = kasus.id_kasus || kasus.nomor_kasus || (isSos ? `SOS-${kasus.id}` : `LP-${kasus.id}`);
 
               // Status card color theme:
-              // - Belum ditangani: merah (rose)
-              // - Ditangani: kuning (amber)
-              // - Selesai: hijau (emerald)
+              // - Laporan: tetap putih biasa
+              // - SOS belum ditangani: merah (rose)
+              // - SOS ditangani: kuning (amber)
+              // - SOS selesai: hijau (emerald)
               let cardBgBorder = 'bg-white border-slate-200 hover:border-slate-300';
-              if (statusRaw === 'belum ditangani') {
-                cardBgBorder = 'bg-rose-50/35 border-rose-200 hover:border-rose-300 ring-1 ring-rose-500/10';
-              } else if (statusRaw === 'ditangani') {
-                cardBgBorder = 'bg-amber-50/35 border-amber-200 hover:border-amber-300 ring-1 ring-amber-500/10';
-              } else if (statusRaw === 'selesai') {
-                cardBgBorder = 'bg-emerald-50/35 border-emerald-200 hover:border-emerald-300 ring-1 ring-emerald-500/10';
+              if (isSos) {
+                if (statusRaw === 'belum ditangani') {
+                  cardBgBorder = 'bg-rose-50/35 border-rose-200 hover:border-rose-300 ring-1 ring-rose-500/10';
+                } else if (statusRaw === 'ditangani') {
+                  cardBgBorder = 'bg-amber-50/35 border-amber-200 hover:border-amber-300 ring-1 ring-amber-500/10';
+                } else if (statusRaw === 'selesai') {
+                  cardBgBorder = 'bg-emerald-50/35 border-emerald-200 hover:border-emerald-300 ring-1 ring-emerald-500/10';
+                }
               }
 
               return (
                 <div
                   key={`${kasus._tipeKategori}-${kasus.id}`}
                   onClick={() => onOpenDetail(kasus.id, kasus._tipeKategori)}
-                  className={`border rounded-2xl p-5 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-4 ${cardBgBorder}`}
+                  className={`group border rounded-xl p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-2.5 ${cardBgBorder}`}
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wide ${
                           isSos ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-700'
                         }`}>
                           {isSos ? 'DARURAT SOS' : 'LAPORAN'}
                         </span>
-                        <span className="font-mono text-[11px] font-bold text-slate-400">#{nomorUrut}</span>
+                        <span className={`font-mono text-[10.5px] font-bold px-1.5 py-0.2 rounded border ${
+                          isSos
+                            ? 'bg-rose-100 text-rose-700 border-rose-200'
+                            : 'bg-sky-100 text-sky-700 border-sky-200'
+                        }`}>
+                          {idKasusDisplay}
+                        </span>
                       </div>
-                      <Badge variant={getStatusRaw(kasus)} showDot isPill />
+                      <Badge variant={getStatusRaw(kasus)} showDot isPill className="text-[10px] py-0.5 px-2" />
                     </div>
 
                     <div>
-                      <h3 className="text-[15px] font-bold text-slate-900 line-clamp-1">
+                      <h3 className="text-[13.5px] font-bold text-slate-900 line-clamp-1 leading-snug group-hover:text-[#0b6f61] transition-colors">
                         {getKategori(kasus)}
                       </h3>
-                      <p className="text-[12px] text-slate-500 flex items-center gap-1 mt-1 line-clamp-1">
-                        <MapPin size={12} className="text-slate-400 flex-shrink-0" />
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 line-clamp-1" title={alamat}>
+                        <MapPin size={11} className="text-slate-400 flex-shrink-0" />
                         <span>{alamat}</span>
                       </p>
                     </div>
 
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <div className="px-2.5 py-1.5 bg-slate-50/75 rounded-lg border border-slate-100 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <InitialsAvatar name={getPelapor(kasus)} src={getFotoPelapor(kasus)} size={30} />
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-bold text-slate-800 truncate">{getPelapor(kasus)}</p>
-                          <p className="text-[10px] text-slate-400">Pelapor Warga</p>
+                        <InitialsAvatar name={getPelapor(kasus)} src={getFotoPelapor(kasus)} size={24} />
+                        <div className="min-w-0 leading-tight">
+                          <p className="text-[11.5px] font-bold text-slate-800 truncate">{getPelapor(kasus)}</p>
+                          <p className="text-[9.5px] text-slate-400">Pelapor</p>
                         </div>
                       </div>
                       {disabilitas && (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full capitalize">
+                        <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md capitalize shrink-0">
                           {disabilitas}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px] text-slate-500">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="pt-2 border-t border-slate-100/90 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {relawan ? (
                         <>
-                          <InitialsAvatar name={relawan.name} src={getFotoRelawan(relawan)} size={22} bgClass="bg-emerald-700" />
+                          <InitialsAvatar name={relawan.name} src={getFotoRelawan(relawan)} size={20} bgClass="bg-emerald-700" />
                           <span
-                            className="font-semibold text-slate-800 text-[12px] truncate"
+                            className="font-semibold text-slate-800 text-[11.5px] truncate"
                             title={relawan.name}
                           >
                             {relawan.name}
                           </span>
                         </>
                       ) : (
-                        <span className="text-amber-600 font-semibold flex items-center gap-1.5 text-[11px]">
-                          <Clock size={12} />
+                        <span className="text-amber-600 font-semibold flex items-center gap-1 text-[10.5px]">
+                          <Clock size={11} />
                           Belum ditugaskan
                         </span>
                       )}
@@ -669,9 +688,9 @@ export default function KasusAktifPage() {
 
                     <button
                       onClick={e => { e.stopPropagation(); onOpenDetail(kasus.id, kasus._tipeKategori); }}
-                      className="btn-base btn-primary text-[11px] h-7 px-3 shrink-0"
+                      className="btn-base btn-primary text-[10.5px] h-6.5 px-2.5 shrink-0 inline-flex items-center gap-1"
                     >
-                      <Eye size={12} />
+                      <Eye size={11} />
                       <span>Detail</span>
                     </button>
                   </div>

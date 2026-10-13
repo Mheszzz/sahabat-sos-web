@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminCommandMap from '../../components/AdminCommandMap';
+import Badge from '../../components/global/Badge';
 import { adminService } from '../../api/services/adminService';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
 import echo from '../../api/libs/echo';
@@ -125,13 +126,14 @@ export default function DashboardPage() {
         });
 
         (p.titik_laporan_aktif || []).forEach(lap => {
+          const idKasus = lap.id_kasus || lap.id_laporan || `#${lap.id}`;
           points.push({
             id: lap.id,
-            displayId: `#${lap.id}`,
+            displayId: idKasus,
             type: 'laporan',
-            label: `#${lap.id} ${lap.kategori || 'Medis'}`,
+            label: `${idKasus} ${lap.kategori || 'Medis'}`,
             pelapor: lap.pelapor,
-            kategori: lap.kategori || 'Laporan Warga',
+            kategori: lap.kategori || 'Laporan',
             status: lap.status,
             lokasi: 'Area D.I. Yogyakarta',
             lat: lap.latitude,
@@ -210,7 +212,7 @@ export default function DashboardPage() {
 
         const sosCases = activeSos.map(s => ({
           id: s.id,
-          displayId: `#${s.id}`,
+          displayId: s.id_kasus || s.nomor_kasus || `#SOS-${s.id}`,
           tipe: 'SOS',
           status: (s.status_raw || s.status || 'ditangani').toLowerCase(),
           kategori: s.sub_judul || s.jenis_laporan || 'Darurat SOS',
@@ -687,15 +689,7 @@ export default function DashboardPage() {
 
                     {/* STATUS */}
                     <td className="px-3 py-3.5">
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          item.status === 'ditangani' || item.status === 'proses'
-                            ? 'border border-blue-200 bg-blue-50 text-blue-600'
-                            : 'border border-amber-200 bg-amber-50 text-amber-600'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+                      <Badge variant={item.status} showDot isPill />
                     </td>
 
                     {/* KATEGORI / INSIDEN */}

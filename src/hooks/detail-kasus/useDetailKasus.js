@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { laporanService } from '../../api/services/laporanService';
 import { adminService } from '../../api/services/adminService';
@@ -71,8 +71,8 @@ function normaliseKasus(raw, tipe) {
       kategori_laporan: raw.jenis_laporan ?? raw.sub_judul ?? (tipe === 'sos' ? 'Darurat SOS' : 'Laporan'),
       deskripsi:        raw.deskripsi ?? '',
       lokasi_laporan:   raw.lokasi?.alamat ?? '',
-      latitude:         raw.lokasi?.latitude ?? null,
-      longitude:        raw.lokasi?.longitude ?? null,
+      latitude:         raw.lokasi?.latitude ?? raw.latitude ?? raw.lat ?? null,
+      longitude:        raw.lokasi?.longitude ?? raw.longitude ?? raw.lng ?? null,
       waktu_laporan:    raw.waktu ?? null,
       foto_laporan_url: raw.foto_laporan_url ?? null,
       rekam_suara_url:  raw.rekam_suara_url ?? null,
@@ -94,10 +94,12 @@ function normaliseKasus(raw, tipe) {
         kontak_darurat_utama:    kontakUtama,
       } : null,
       relawan: raw.relawan ? {
-        id:       raw.relawan.id,
-        name:     raw.relawan.name,
-        no_telp:  raw.relawan.no_telp,
-        foto_url: raw.relawan.foto_profile ?? null,
+        id:        raw.relawan.id,
+        name:      raw.relawan.name,
+        no_telp:   raw.relawan.no_telp,
+        foto_url:  raw.relawan.foto_profile ?? null,
+        latitude:  raw.relawan.latitude !== null && raw.relawan.latitude !== undefined ? Number(raw.relawan.latitude) : null,
+        longitude: raw.relawan.longitude !== null && raw.relawan.longitude !== undefined ? Number(raw.relawan.longitude) : null,
       } : null,
       device_info: hasSosTelemetry ? {
         battery_level:       raw.battery_level ?? null,
@@ -138,6 +140,8 @@ function normaliseKasus(raw, tipe) {
     ...raw,
     kategori_laporan: raw.kategori_laporan || 'Laporan',
     lokasi_laporan:   raw.lokasi_laporan || '',
+    latitude:         raw.lokasi?.latitude ?? raw.latitude ?? raw.lat ?? null,
+    longitude:        raw.lokasi?.longitude ?? raw.longitude ?? raw.lng ?? null,
     waktu_laporan:    raw.waktu_laporan ?? raw.created_at ?? null,
     foto_laporan_url: raw.foto_laporan_url ?? (raw.foto_laporan ? `/storage/${raw.foto_laporan}` : null),
     rekam_suara_url:  raw.rekam_suara_url ?? (raw.rekam_suara ? `/storage/${raw.rekam_suara}` : null),
@@ -155,7 +159,9 @@ function normaliseKasus(raw, tipe) {
     } : null,
     relawan: raw.relawan ? {
       ...raw.relawan,
-      foto_url: raw.relawan.foto_profile_url ?? raw.relawan.foto_url ?? raw.relawan.foto_profile ?? null,
+      foto_url:  raw.relawan.foto_profile_url ?? raw.relawan.foto_url ?? raw.relawan.foto_profile ?? null,
+      latitude:  raw.relawan.latitude !== null && raw.relawan.latitude !== undefined ? Number(raw.relawan.latitude) : null,
+      longitude: raw.relawan.longitude !== null && raw.relawan.longitude !== undefined ? Number(raw.relawan.longitude) : null,
     } : null,
     device_info: null,
     _tipe: tipe ?? 'laporan',
@@ -179,6 +185,7 @@ export function useDetailKasus() {
   const [kasus, setKasus] = useState(null);
   const [relawanList, setRelawanList] = useState([]);
   const [activities, setActivities] = useState([]);
+  const kasusRef = useRef(null);
 
   // --- Loading State ---
   const [loadingKasus, setLoadingKasus] = useState(true);
@@ -221,11 +228,38 @@ export function useDetailKasus() {
     }
   }, [id]);
 
-  // ─── Fetch Detail Kasus ────────────────────────────────────────────────
-  const fetchKasus = useCallback(async () => {
-    if (!id) return;
+  // ─── Fetch Relawan untuk Dispatch & Peta ──────────────────────────────
+  const fetchRelawanDispatch = useCallback(async (customLat, customLng) => {
     try {
-      setLoadingKasus(true);
+      setLoadingRelawan(true);
+      const latVal = customLat ?? kasusRef.current?.latitude;
+      const lngVal = customLng ?? kasusRef.current?.longitude;
+      const params = {
+        id,
+        tipe,
+        lat: latVal,
+        lng: lngVal,
+      };
+      const res = await adminService.getQuickDispatchRelawan(params);
+      const items = res?.data ?? [];
+      setRelawanList(Array.isArray(items) ? items : []);
+    } catch (err) {
+      console.error('[useDetailKasus] fetchRelawanDispatch:', err);
+      setRelawanList([]);
+    } finally {
+      setLoadingRelawan(false);
+    }
+  }, [id, tipe]);
+
+  // ─── Fetch Detail Kasus ────────────────────────────────────────────────
+  const fetchKasus = useCallback(async (options = {}) => {
+    if (!id) return;
+    const isSilent = typeof options === 'boolean' ? options : Boolean(options?.silent);
+    try {
+      // Hanya aktifkan spinner jika data kasus belum ada di layar
+      if (!isSilent && (!kasusRef.current || String(kasusRef.current.id) !== String(id))) {
+        setLoadingKasus(true);
+      }
       setErrorKasus('');
 
       let raw;
@@ -242,8 +276,11 @@ export function useDetailKasus() {
         }
       }
 
-      setKasus(normaliseKasus(raw, tipe));
+      const normalized = normaliseKasus(raw, tipe);
+      kasusRef.current = normalized;
+      setKasus(normalized);
       await fetchActivities();
+      fetchRelawanDispatch(normalized?.latitude, normalized?.longitude);
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal memuat detail kasus.';
       setErrorKasus(msg);
@@ -251,28 +288,7 @@ export function useDetailKasus() {
     } finally {
       setLoadingKasus(false);
     }
-  }, [id, tipe, fetchActivities]);
-
-  // ─── Fetch Relawan untuk Dispatch ─────────────────────────────────────
-  const fetchRelawanDispatch = useCallback(async () => {
-    try {
-      setLoadingRelawan(true);
-      const params = {
-        id,
-        tipe,
-        lat: kasus?.latitude,
-        lng: kasus?.longitude,
-      };
-      const res = await adminService.getQuickDispatchRelawan(params);
-      const items = res?.data ?? [];
-      setRelawanList(Array.isArray(items) ? items : []);
-    } catch (err) {
-      console.error('[useDetailKasus] fetchRelawanDispatch:', err);
-      setRelawanList([]);
-    } finally {
-      setLoadingRelawan(false);
-    }
-  }, [id, tipe, kasus]);
+  }, [id, tipe, fetchActivities, fetchRelawanDispatch]);
 
   // ─── Action: Dispatch Relawan ──────────────────────────────────────────
   const handleDispatch = async () => {
@@ -283,7 +299,7 @@ export function useDetailKasus() {
       showFeedback('success', 'Relawan berhasil ditugaskan ke kasus ini.');
       setShowDispatchPanel(false);
       setSelectedRelawanId(null);
-      await fetchKasus();
+      await fetchKasus({ silent: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal menugaskan relawan.';
       showFeedback('error', msg);
@@ -299,7 +315,7 @@ export function useDetailKasus() {
       setLoadingTangani(true);
       await kasusAktifService.tanganiKasus(tipe, id, catatan);
       showFeedback('success', 'Kasus berhasil diambil alih dan ditangani.');
-      await fetchKasus();
+      await fetchKasus({ silent: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal mengambil alih kasus.';
       showFeedback('error', msg);
@@ -321,7 +337,7 @@ export function useDetailKasus() {
       showFeedback('success', 'Kasus berhasil ditandai selesai.');
       setShowSelesaiModal(false);
       setCatatanSelesai('');
-      await fetchKasus();
+      await fetchKasus({ silent: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal menyelesaikan kasus.';
       showFeedback('error', msg);
@@ -349,7 +365,7 @@ export function useDetailKasus() {
       setLoadingSelesai(true);
       await laporanService.updateStatus(id, status);
       showFeedback('success', `Status laporan berhasil diubah menjadi "${status}".`);
-      await fetchKasus();
+      await fetchKasus({ silent: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal mengubah status laporan.';
       showFeedback('error', msg);

@@ -265,7 +265,7 @@ export default function AdminCommandMap({
                   selectedItem.type === 'relawan' ? 'bg-emerald-100 text-emerald-700' :
                   'bg-amber-100 text-amber-700'
                 }`}>
-                  {selectedItem.type === 'sos' ? 'Darurat SOS' : selectedItem.type === 'relawan' ? 'Relawan Siaga' : 'Laporan Warga'}
+                  {selectedItem.type === 'sos' ? 'Darurat SOS' : selectedItem.type === 'relawan' ? 'Relawan Siaga' : 'Laporan'}
                 </span>
                 <h4 className="mt-1 text-[13px] font-bold text-slate-900">
                   {selectedItem.label || selectedItem.displayId || `#${selectedItem.id}`}
