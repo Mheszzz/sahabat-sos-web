@@ -243,12 +243,9 @@ export default function AdminCommandMap({
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
             </span>
             <h2 className="text-[15px] font-extrabold tracking-tight text-slate-900">
-              Peta Pemantauan Wilayah — Real-time Command Center
+              Peta Pemantauan Wilayah
             </h2>
           </div>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-400">
-            Cakupan Wilayah: Yogyakarta & Sekitarnya
-          </p>
         </div>
 
         {/* Action Controls */}
