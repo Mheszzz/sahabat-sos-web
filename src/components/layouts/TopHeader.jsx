@@ -1,24 +1,68 @@
-import { ChevronRight, Menu, Home } from 'lucide-react';
-import NotificationDropdown from './NotificationDropdown';
+import { Link, useLocation } from 'react-router-dom';
+import { Bell, ChevronRight, Menu, AlertTriangle } from 'lucide-react';
 
-const breadcrumbMap = {
-  dashboard: ['Beranda', 'Dashboard Utama'],
-  'kasus-aktif': ['Beranda', 'Kasus Aktif'],
-  riwayat: ['Beranda', 'Riwayat Kasus'],
-  peta: ['Beranda', 'Peta Pemantauan'],
-  pengaturan: ['Beranda', 'Profil'],
-  'detail-kasus': ['Kasus Aktif', 'Detail Kasus'],
-  'manajemen-admin': ['Beranda', 'Kelola Admin'],
-  'manajemen-user': ['Beranda', 'Kelola Relawan'],
-  'master-data': ['Beranda', 'Master Data Laporan'],
-};
-
-import { useLocation } from 'react-router-dom';
+function getBreadcrumbs(pathname) {
+  if (pathname.startsWith('/detail-kasus')) {
+    return [
+      { label: 'Kasus Aktif', to: '/kasus-aktif', icon: AlertTriangle },
+      { label: 'Detail Kasus' },
+    ];
+  }
+  if (pathname.startsWith('/kasus-aktif')) {
+    return [
+      { label: 'Kasus Aktif', icon: AlertTriangle },
+    ];
+  }
+  if (pathname.startsWith('/riwayat')) {
+    return [
+      { label: 'Riwayat Kasus' },
+    ];
+  }
+  if (pathname.startsWith('/peta')) {
+    return [
+      { label: 'Peta Pemantauan' },
+    ];
+  }
+  if (pathname.startsWith('/pengaturan')) {
+    return [
+      { label: 'Profil' },
+    ];
+  }
+  if (pathname.startsWith('/manajemen-admin')) {
+    return [
+      { label: 'Kelola Admin' },
+    ];
+  }
+  if (pathname.startsWith('/detail-relawan')) {
+    return [
+      { label: 'Kelola Relawan', to: '/manajemen-user' },
+      { label: 'Detail Relawan' },
+    ];
+  }
+  if (pathname.startsWith('/manajemen-user')) {
+    return [
+      { label: 'Kelola Relawan' },
+    ];
+  }
+  if (pathname.startsWith('/detail-laporan')) {
+    return [
+      { label: 'Master Data Laporan', to: '/master-data' },
+      { label: 'Detail Laporan' },
+    ];
+  }
+  if (pathname.startsWith('/master-data')) {
+    return [
+      { label: 'Master Data Laporan' },
+    ];
+  }
+  return [
+    { label: 'Dashboard Utama' },
+  ];
+}
 
 export default function TopHeader({ onMenuToggle }) {
   const location = useLocation();
-  const pathKey = location.pathname === '/' ? 'dashboard' : location.pathname.split('/')[1];
-  const crumbs = breadcrumbMap[pathKey] || ['Beranda', 'Dashboard Utama'];
+  const crumbs = getBreadcrumbs(location.pathname);
 
   return (
     <header className="sticky top-0 z-50 flex h-[56px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8">
@@ -31,11 +75,35 @@ export default function TopHeader({ onMenuToggle }) {
           <Menu size={18} />
         </button>
 
-        <nav className="flex items-center gap-2 text-[13px] font-medium">
-          <Home size={14} className="text-slate-400" />
-          <span className="text-slate-400">{crumbs[0]}</span>
-          <ChevronRight size={12} className="text-slate-300" />
-          <span className="font-semibold text-slate-700">{crumbs[1]}</span>
+        <nav className="flex items-center gap-1.5 text-[13px] font-medium" aria-label="Breadcrumb">
+          {crumbs.map((crumb, idx) => {
+            const isLast = idx === crumbs.length - 1;
+            const IconComponent = crumb.icon;
+
+            return (
+              <div key={idx} className="flex items-center gap-1.5">
+                {crumb.to && !isLast ? (
+                  <Link
+                    to={crumb.to}
+                    className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-700 transition-colors"
+                  >
+                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
+                    <span>{crumb.label}</span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
+                    <span className={isLast ? "font-semibold text-slate-700" : "text-slate-400"}>
+                      {crumb.label}
+                    </span>
+                  </div>
+                )}
+                {!isLast && (
+                  <ChevronRight size={12} className="text-slate-300 flex-shrink-0" />
+                )}
+              </div>
+            );
+          })}
         </nav>
       </div>
 

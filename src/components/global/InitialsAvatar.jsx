@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getInitials } from '../../utils/theme';
 
 export default function InitialsAvatar({
@@ -8,13 +9,15 @@ export default function InitialsAvatar({
   bgClass = 'bg-[#0d5c52]',
   textClass = 'text-white',
 }) {
+  const [imgError, setImgError] = useState(false);
   const initials = getInitials(name);
 
-  if (src) {
+  if (src && !imgError) {
     return (
       <img
         src={src}
         alt={name || 'Avatar'}
+        onError={() => setImgError(true)}
         className={`rounded-full object-cover flex-shrink-0 ${className}`}
         style={{ width: size, height: size }}
       />

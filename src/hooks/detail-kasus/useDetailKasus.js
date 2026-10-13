@@ -5,25 +5,65 @@ import { adminService } from '../../api/services/adminService';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
 
 /**
+ * Helper memformat nomor HP ke format internasional WhatsApp (62xxx)
+ */
+function formatWhatsAppNumber(phone) {
+  if (!phone) return null;
+  const cleaned = String(phone).replace(/[^0-9]/g, '');
+  if (!cleaned) return null;
+  if (cleaned.startsWith('62')) return cleaned;
+  if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
+  return '62' + cleaned;
+}
+
+/**
  * Normalises different API response formats into a unified shape
  * expected by DetailKasusPage:
  *
- * From GET /laporan/{id}:
- *   raw.pengguna, raw.relawan, raw.kategori_laporan, raw.lokasi_laporan,
- *   raw.latitude, raw.longitude, raw.waktu_laporan, raw.status
- *
- * From GET /tugas-aktif/{tipe}/{id}:
- *   raw.pelapor (= pengguna), raw.relawan, raw.jenis_laporan, raw.lokasi.alamat,
- *   raw.lokasi.latitude, raw.lokasi.longitude, raw.waktu, raw.status_raw,
- *   raw.battery_level, raw.signal_strength, raw.device_info (SOS only)
+ * Supports responses from:
+ *   - GET /tugas-aktif/{tipe}/{id} (KasusAktifController::show)
+ *   - GET /laporan/{id} (LaporanController::show fallback)
  */
 function normaliseKasus(raw, tipe) {
   if (!raw) return null;
 
-  const isTugasAktifFormat = Boolean(raw.lokasi?.alamat !== undefined || raw.pelapor !== undefined || raw.jenis_laporan !== undefined);
+  const isTugasAktifFormat = Boolean(
+    raw.lokasi?.alamat !== undefined ||
+    raw.pelapor !== undefined ||
+    raw.jenis_laporan !== undefined
+  );
 
   if (isTugasAktifFormat) {
     const pelapor = raw.pelapor ?? null;
+    const rawKontak = Array.isArray(pelapor?.kontak_darurat) ? pelapor.kontak_darurat : [];
+    const formattedKontak = rawKontak.map((k) => {
+      const waNumber = formatWhatsAppNumber(k.no_telp);
+      return {
+        id:           k.id,
+        nama:         k.nama,
+        no_telp:      k.no_telp,
+        hubungan:     k.hubungan ?? 'Keluarga',
+        email:        k.email ?? null,
+        tipe:         k.tipe ?? 'utama',
+        is_utama:     k.is_utama ?? (k.tipe === 'utama'),
+        pesan_khusus: k.pesan_khusus ?? k.pesan ?? null,
+        whatsapp_url: k.whatsapp_url || (waNumber ? `https://wa.me/${waNumber}` : null),
+      };
+    });
+
+    const kontakUtama = pelapor?.kontak_darurat_utama ??
+      formattedKontak.find((k) => k.is_utama) ??
+      formattedKontak[0] ??
+      null;
+
+    const userWa = pelapor?.no_telp_wa || formatWhatsAppNumber(pelapor?.no_telp);
+
+    const hasSosTelemetry = tipe === 'sos' && (
+      raw.battery_level != null ||
+      raw.signal_strength != null ||
+      (typeof raw.device_info === 'object' && raw.device_info !== null)
+    );
+
     return {
       id:               raw.id,
       status:           raw.status_raw ?? raw.status,
@@ -36,18 +76,22 @@ function normaliseKasus(raw, tipe) {
       waktu_laporan:    raw.waktu ?? null,
       foto_laporan_url: raw.foto_laporan_url ?? null,
       rekam_suara_url:  raw.rekam_suara_url ?? null,
+      catatan_penanganan: Array.isArray(raw.catatan_penanganan) ? raw.catatan_penanganan : [],
       pengguna: pelapor ? {
         id:                      pelapor.id,
         name:                    pelapor.name,
         email:                   pelapor.email ?? null,
         no_telp:                 pelapor.no_telp,
+        no_telp_wa:              userWa,
+        whatsapp_url:            pelapor.whatsapp_url || (userWa ? `https://wa.me/${userWa}` : null),
         foto_url:                pelapor.foto_profile ?? null,
         kategori_user:           pelapor.kategori_user ?? null,
         jenis_disabilitas:       pelapor.jenis_disabilitas ?? pelapor.kategori_user ?? null,
         metode_komunikasi:       pelapor.metode_komunikasi ?? null,
         kebutuhan_aksesibilitas: pelapor.kebutuhan_aksesibilitas ?? null,
         keterangan_medis:        pelapor.keterangan_medis ?? null,
-        kontak_darurat:          Array.isArray(pelapor.kontak_darurat) ? pelapor.kontak_darurat : [],
+        kontak_darurat:          formattedKontak,
+        kontak_darurat_utama:    kontakUtama,
       } : null,
       relawan: raw.relawan ? {
         id:       raw.relawan.id,
@@ -55,11 +99,10 @@ function normaliseKasus(raw, tipe) {
         no_telp:  raw.relawan.no_telp,
         foto_url: raw.relawan.foto_profile ?? null,
       } : null,
-      // Device info: SOS hanya
-      device_info: tipe === 'sos' ? {
+      device_info: hasSosTelemetry ? {
         battery_level:       raw.battery_level ?? null,
         signal_strength:     raw.signal_strength ?? null,
-        is_online:           raw.is_online ?? null,
+        is_online:           raw.is_online ?? true,
         device_id:           raw.device_id ?? null,
         last_seen:           raw.last_seen ?? null,
         location_updated_at: raw.location_updated_at ?? null,
@@ -69,20 +112,52 @@ function normaliseKasus(raw, tipe) {
     };
   }
 
-  // Format lama dari GET /laporan/{id} — Laporan Eloquent model langsung
+  // Fallback dari GET /laporan/{id} — Laporan Eloquent model langsung
   const pengguna = raw.pengguna ?? null;
+  const rawKontak = Array.isArray(pengguna?.kontak_darurat ?? pengguna?.kontakDarurat)
+    ? (pengguna.kontak_darurat ?? pengguna.kontakDarurat)
+    : [];
+  const formattedKontak = rawKontak.map((k) => {
+    const waNumber = formatWhatsAppNumber(k.no_telp);
+    return {
+      id:           k.id,
+      nama:         k.nama,
+      no_telp:      k.no_telp,
+      hubungan:     k.hubungan ?? 'Keluarga',
+      email:        k.email ?? null,
+      tipe:         k.tipe ?? 'utama',
+      is_utama:     k.is_utama ?? (k.tipe === 'utama'),
+      pesan_khusus: k.pesan_khusus ?? k.pesan ?? null,
+      whatsapp_url: k.whatsapp_url || (waNumber ? `https://wa.me/${waNumber}` : null),
+    };
+  });
+
+  const userWa = formatWhatsAppNumber(pengguna?.no_telp);
+
   return {
     ...raw,
+    kategori_laporan: raw.kategori_laporan || 'Laporan',
+    lokasi_laporan:   raw.lokasi_laporan || '',
+    waktu_laporan:    raw.waktu_laporan ?? raw.created_at ?? null,
+    foto_laporan_url: raw.foto_laporan_url ?? (raw.foto_laporan ? `/storage/${raw.foto_laporan}` : null),
+    rekam_suara_url:  raw.rekam_suara_url ?? (raw.rekam_suara ? `/storage/${raw.rekam_suara}` : null),
+    catatan_penanganan: Array.isArray(raw.catatan_penanganan ?? raw.catatanPenanganan)
+      ? (raw.catatan_penanganan ?? raw.catatanPenanganan)
+      : [],
     pengguna: pengguna ? {
       ...pengguna,
-      foto_url:          pengguna.foto_profile_url ?? pengguna.foto_url ?? null,
+      foto_url:          pengguna.foto_profile_url ?? pengguna.foto_url ?? pengguna.foto_profile ?? null,
       jenis_disabilitas: pengguna.jenis_disabilitas ?? pengguna.kategori_user ?? null,
-      kontak_darurat:    Array.isArray(pengguna.kontak_darurat) ? pengguna.kontak_darurat : [],
+      no_telp_wa:        userWa,
+      whatsapp_url:      userWa ? `https://wa.me/${userWa}` : null,
+      kontak_darurat:    formattedKontak,
+      kontak_darurat_utama: formattedKontak.find((k) => k.is_utama) ?? formattedKontak[0] ?? null,
     } : null,
     relawan: raw.relawan ? {
       ...raw.relawan,
-      foto_url: raw.relawan.foto_profile_url ?? raw.relawan.foto_url ?? null,
+      foto_url: raw.relawan.foto_profile_url ?? raw.relawan.foto_url ?? raw.relawan.foto_profile ?? null,
     } : null,
+    device_info: null,
     _tipe: tipe ?? 'laporan',
   };
 }
@@ -91,14 +166,14 @@ function normaliseKasus(raw, tipe) {
  * useDetailKasus
  * Hook utama untuk halaman DetailKasusPage.
  * Mendukung dua tipe kasus:
- *   - 'laporan'  (default) → GET /laporan/{id}
- *   - 'sos'      (via ?tipe=sos) → GET /tugas-aktif/sos/{id}
+ *   - 'laporan'  (default)
+ *   - 'sos'      (via ?tipe=sos)
  */
 export function useDetailKasus() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const tipe = searchParams.get('tipe') ?? 'laporan'; // 'sos' | 'laporan'
+  const tipe = (searchParams.get('tipe') ?? 'laporan').toLowerCase(); // 'sos' | 'laporan'
 
   // --- Data State ---
   const [kasus, setKasus] = useState(null);
@@ -111,6 +186,7 @@ export function useDetailKasus() {
   const [loadingRelawan, setLoadingRelawan] = useState(false);
   const [loadingDispatch, setLoadingDispatch] = useState(false);
   const [loadingSelesai, setLoadingSelesai] = useState(false);
+  const [loadingTangani, setLoadingTangani] = useState(false);
 
   // --- Error State ---
   const [errorKasus, setErrorKasus] = useState('');
@@ -134,12 +210,11 @@ export function useDetailKasus() {
     if (!id) return;
     try {
       setLoadingActivities(true);
-      // Endpoint aktivitas tersedia untuk SOS; untuk laporan gunakan graceful fallback
       const res = await adminService.getSosActivities(id);
-      const data = res?.data ?? res;
+      const data = res?.data ?? res?.activities ?? (Array.isArray(res) ? res : []);
       setActivities(Array.isArray(data) ? data : []);
     } catch {
-      // Laporan mungkin tidak punya endpoint activities — biarkan kosong
+      // Graceful fallback jika bukan SOS atau belum ada log
       setActivities([]);
     } finally {
       setLoadingActivities(false);
@@ -154,14 +229,17 @@ export function useDetailKasus() {
       setErrorKasus('');
 
       let raw;
-      if (tipe === 'sos') {
-        // SOS: gunakan endpoint tugas-aktif agar dapat device_info & field lengkap
-        const res = await kasusAktifService.getDetail('sos', id);
+      try {
+        const res = await kasusAktifService.getDetail(tipe, id);
         raw = res?.data ?? res;
-      } else {
-        // Laporan: gunakan endpoint /laporan/{id} untuk field profil pengguna lengkap
-        const res = await laporanService.getDetailLaporan(id);
-        raw = res?.data ?? res;
+      } catch (err) {
+        // Fallback untuk laporan lama
+        if (tipe === 'laporan') {
+          const res = await laporanService.getDetailLaporan(id);
+          raw = res?.data ?? res;
+        } else {
+          throw err;
+        }
       }
 
       setKasus(normaliseKasus(raw, tipe));
@@ -179,7 +257,13 @@ export function useDetailKasus() {
   const fetchRelawanDispatch = useCallback(async () => {
     try {
       setLoadingRelawan(true);
-      const res = await adminService.getQuickDispatchRelawan();
+      const params = {
+        id,
+        tipe,
+        lat: kasus?.latitude,
+        lng: kasus?.longitude,
+      };
+      const res = await adminService.getQuickDispatchRelawan(params);
       const items = res?.data ?? [];
       setRelawanList(Array.isArray(items) ? items : []);
     } catch (err) {
@@ -188,14 +272,13 @@ export function useDetailKasus() {
     } finally {
       setLoadingRelawan(false);
     }
-  }, []);
+  }, [id, tipe, kasus]);
 
   // ─── Action: Dispatch Relawan ──────────────────────────────────────────
   const handleDispatch = async () => {
     if (!selectedRelawanId) return;
     try {
       setLoadingDispatch(true);
-      // Gunakan endpoint /tugas-aktif/{tipe}/{id}/dispatch untuk handle SOS & Laporan
       await kasusAktifService.dispatchRelawan(tipe, id, selectedRelawanId);
       showFeedback('success', 'Relawan berhasil ditugaskan ke kasus ini.');
       setShowDispatchPanel(false);
@@ -210,11 +293,26 @@ export function useDetailKasus() {
     }
   };
 
+  // ─── Action: Ambil Alih / Tangani Kasus ─────────────────────────────────
+  const handleTanganiKasus = async (catatan = null) => {
+    try {
+      setLoadingTangani(true);
+      await kasusAktifService.tanganiKasus(tipe, id, catatan);
+      showFeedback('success', 'Kasus berhasil diambil alih dan ditangani.');
+      await fetchKasus();
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Gagal mengambil alih kasus.';
+      showFeedback('error', msg);
+      console.error('[useDetailKasus] handleTanganiKasus:', err);
+    } finally {
+      setLoadingTangani(false);
+    }
+  };
+
   // ─── Action: Selesaikan Kasus ──────────────────────────────────────────
   const handleSelesai = async () => {
     try {
       setLoadingSelesai(true);
-      // Endpoint ini butuh 'catatan' (required di backend)
       await kasusAktifService.selesaikanKasus(
         tipe,
         id,
@@ -264,9 +362,7 @@ export function useDetailKasus() {
   // ─── Toggle Dispatch Panel ─────────────────────────────────────────────
   const handleOpenDispatchPanel = () => {
     setShowDispatchPanel(true);
-    if (relawanList.length === 0) {
-      fetchRelawanDispatch();
-    }
+    fetchRelawanDispatch();
   };
 
   useEffect(() => {
@@ -284,6 +380,7 @@ export function useDetailKasus() {
     loadingRelawan,
     loadingDispatch,
     loadingSelesai,
+    loadingTangani,
     errorKasus,
     selectedRelawanId,
     setSelectedRelawanId,
@@ -297,6 +394,7 @@ export function useDetailKasus() {
     navigate,
     fetchKasus,
     handleDispatch,
+    handleTanganiKasus,
     handleSelesai,
     handleLogAksi,
     handleOpenDispatchPanel,

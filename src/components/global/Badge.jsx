@@ -16,6 +16,16 @@ export default function Badge({
   const paddingClass = isPill ? 'px-2.5 py-1' : 'px-2 py-0.5';
   const shouldPulse = pulsingStatuses.has(variant);
 
+  const displayLabel = children || (
+    typeof variant === 'string'
+      ? (variant === 'belum ditangani' || variant === 'belum tertangani' ? 'Belum Ditangani'
+        : variant === 'ditangani' || variant === 'proses' ? 'Ditangani'
+        : variant === 'selesai' ? 'Selesai'
+        : variant === 'batal' || variant === 'dibatalkan' ? 'Dibatalkan'
+        : variant)
+      : variant
+  );
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 ${paddingClass} ${radiusClass} text-[11px] font-bold border whitespace-nowrap flex-shrink-0 ${baseColor} ${className}`}
@@ -23,7 +33,7 @@ export default function Badge({
       {showDot && (
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor} ${shouldPulse ? 'animate-pulse' : ''}`} />
       )}
-      <span className="whitespace-nowrap">{children || variant}</span>
+      <span className="whitespace-nowrap">{displayLabel}</span>
     </span>
   );
 }
