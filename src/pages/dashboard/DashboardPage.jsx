@@ -330,6 +330,12 @@ export default function DashboardPage() {
       fetchDashboardData();
     });
 
+    // 5. Status Relawan Diperbarui (Aktif / Nonaktif)
+    channel.listen('.RelawanStatusUpdated', (data) => {
+      console.log('[Reverb Real-time] RelawanStatusUpdated:', data);
+      fetchDashboardData();
+    });
+
     return () => {
       echo.leaveChannel('command-center');
     };

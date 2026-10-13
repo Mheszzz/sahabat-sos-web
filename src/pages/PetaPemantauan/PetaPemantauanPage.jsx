@@ -5,6 +5,7 @@ import PageHeader from '../../components/global/PageHeader';
 import Badge from '../../components/global/Badge';
 import { adminService } from '../../api/services/adminService';
 import { useNavigate } from 'react-router-dom';
+import echo from '../../api/libs/echo';
 
 export default function PetaPemantauanPage() {
   const navigate = useNavigate();
@@ -109,6 +110,16 @@ export default function PetaPemantauanPage() {
       }
     };
     fetchMapData();
+
+    const channel = echo.channel('command-center');
+    channel.listen('.RelawanStatusUpdated', () => fetchMapData());
+    channel.listen('.SOSCreated', () => fetchMapData());
+    channel.listen('.SOSUpdateStatus', () => fetchMapData());
+    channel.listen('.LaporanCreated', () => fetchMapData());
+
+    return () => {
+      echo.leaveChannel('command-center');
+    };
   }, []);
 
   const handleSirene = async () => {
