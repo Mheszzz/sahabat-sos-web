@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  AlertTriangle,
   FileText,
   Clock,
   Eye,
@@ -14,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminCommandMap from '../../components/AdminCommandMap';
 import { adminService } from '../../api/services/adminService';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
+import echo from '../../api/libs/echo';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -64,11 +64,8 @@ export default function DashboardPage() {
   });
   const maxWeeklyCount = Math.max(...weeklyChartData.harian.map(d => d.count), 5);
 
-  // ─── TABLE FILTER & PAGINATION STATE ──────────────────────────────
-  const [activeTab, setActiveTab] = useState('semua'); // 'semua' | 'sos' | 'laporan' | 'belum ditangani' | 'ditangani'
+  // ─── TABLE SEARCH & PAGINATION STATE ──────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('terbaru');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
@@ -143,23 +140,22 @@ export default function DashboardPage() {
         });
 
         (p.posisi_relawan || []).forEach(rel => {
+          const cleanName = rel.nama ? rel.nama.replace(/\s*\(Relawan\)/i, '').trim() : 'Relawan';
           points.push({
             id: rel.id,
             displayId: `REL-${rel.id}`,
             type: 'relawan',
-            label: `${rel.nama ? rel.nama.split(' ')[0] + ' ' + (rel.nama.split(' ')[1] ? rel.nama.split(' ')[1][0] + '.' : '') : 'Relawan'} (${rel.lokasi_user ? rel.lokasi_user : 'Siaga'})`,
-            pelapor: rel.nama,
+            label: cleanName,
+            pelapor: cleanName,
             kategori: rel.kompetensi || 'Relawan Lapangan',
             status: rel.status,
-            lokasi: rel.lokasi_user || 'Posko Yogyakarta',
+            lokasi: rel.lokasi_user ? rel.lokasi_user.replace(/Posko\s+/gi, '').trim() : 'Area Siaga',
             lat: rel.latitude,
             lng: rel.longitude,
           });
         });
 
-        if (points.length > 0) {
-          setMapMarkers(points);
-        }
+        setMapMarkers(points);
 
         setSosCount(summary.total_sos_aktif ?? (p.titik_darurat_sos?.length || 1));
         setLaporanCount(summary.total_laporan_aktif ?? (p.titik_laporan_aktif?.length || 0));
@@ -202,56 +198,32 @@ export default function DashboardPage() {
         }
       }
 
-      // Process Cases Table (Tugas Aktif)
+      // Process Cases Table (Hanya Kasus SOS Aktif)
       if (tugasRes.status === 'fulfilled' && tugasRes.value?.data) {
         const d = tugasRes.value.data;
-        const rawLaporan = d.laporan?.data || (Array.isArray(d.laporan) ? d.laporan : []);
         const rawSos = d.sos?.data || (Array.isArray(d.sos) ? d.sos : []);
 
-        const combined = [
-          ...rawSos.map(s => ({
-            id: s.id,
-            displayId: `#${s.id}`,
-            tipe: 'SOS',
-            status: (s.status_raw || s.status || 'ditangani').toLowerCase(),
-            kategori: s.sub_judul || s.jenis_laporan || 'Darurat',
-            kategoriDotColor: 'bg-[#dc2626]',
-            pelapor: s.pelapor?.name || 'Ahmad Fauzi',
-            kontak: s.pelapor?.no_telp || '0812-3456-7890',
-            kontakWa: s.pelapor?.no_telp_wa || '6281234567890',
-            whatsappUrl: s.pelapor?.whatsapp_url,
-            waktu: formatWaktu(s.waktu),
-            rawDate: s.waktu || new Date().toISOString(),
-          })),
-          ...rawLaporan.map(l => {
-            const kat = l.sub_judul || l.jenis_laporan || l.kategori_laporan || 'Kondisi Medis';
-            let dot = 'bg-[#f43f5e]';
-            if (kat.toLowerCase().includes('pendamping')) dot = 'bg-[#10b981]';
-            else if (kat.toLowerCase().includes('sesat')) dot = 'bg-[#3b82f6]';
-            else if (kat.toLowerCase().includes('medis')) dot = 'bg-[#f43f5e]';
+        const activeSos = rawSos.filter(s => {
+          const st = (s.status_raw || s.status || '').toLowerCase();
+          return st !== 'selesai' && st !== 'batal';
+        });
 
-            return {
-              id: l.id,
-              displayId: `#${l.id}`,
-              tipe: 'Laporan',
-              status: (l.status_raw || l.status || 'ditangani').toLowerCase(),
-              kategori: kat,
-              kategoriDotColor: dot,
-              pelapor: l.pelapor?.name || 'Dewi Lestari',
-              kontak: l.pelapor?.no_telp || '0821-9876-5432',
-              kontakWa: l.pelapor?.no_telp_wa || '6282198765432',
-              whatsappUrl: l.pelapor?.whatsapp_url,
-              waktu: formatWaktu(l.waktu),
-              rawDate: l.waktu || new Date().toISOString(),
-            };
-          }),
-        ];
+        const sosCases = activeSos.map(s => ({
+          id: s.id,
+          displayId: `#${s.id}`,
+          tipe: 'SOS',
+          status: (s.status_raw || s.status || 'ditangani').toLowerCase(),
+          kategori: s.sub_judul || s.jenis_laporan || 'Darurat SOS',
+          kategoriDotColor: 'bg-[#dc2626]',
+          pelapor: s.pelapor?.name || 'Ahmad Fauzi',
+          kontak: s.pelapor?.no_telp || '0812-3456-7890',
+          kontakWa: s.pelapor?.no_telp_wa || '6281234567890',
+          whatsappUrl: s.pelapor?.whatsapp_url,
+          waktu: formatWaktu(s.waktu),
+          rawDate: s.waktu || new Date().toISOString(),
+        }));
 
-        if (combined.length > 0) {
-          setCasesList(combined);
-        } else {
-          setCasesList(getDefaultCases());
-        }
+        setCasesList(sosCases);
       } else {
         setCasesList(getDefaultCases());
       }
@@ -280,14 +252,14 @@ export default function DashboardPage() {
     }
   };
 
-  // Default Mock cases matching the user image screenshot exactly
+  // Default Mock cases: Hanya kasus SOS Aktif
   const getDefaultCases = () => [
     {
       id: 4,
       displayId: '#4',
       tipe: 'SOS',
       status: 'ditangani',
-      kategori: 'Darurat',
+      kategori: 'Darurat SOS',
       kategoriDotColor: 'bg-[#dc2626]',
       pelapor: 'Ahmad Fauzi',
       kontak: '0812-3456-7890',
@@ -295,49 +267,70 @@ export default function DashboardPage() {
       waktu: '10 Okt • 14:20 WIB',
       rawDate: '2026-10-10T14:20:00Z',
     },
-    {
-      id: 5,
-      displayId: '#5',
-      tipe: 'Laporan',
-      status: 'ditangani',
-      kategori: 'Kondisi Medis',
-      kategoriDotColor: 'bg-[#f43f5e]',
-      pelapor: 'Dewi Lestari',
-      kontak: '0821-9876-5432',
-      kontakWa: '6282198765432',
-      waktu: '10 Okt • 13:45 WIB',
-      rawDate: '2026-10-10T13:45:00Z',
-    },
-    {
-      id: 6,
-      displayId: '#6',
-      tipe: 'Laporan',
-      status: 'ditangani',
-      kategori: 'Butuh Pendamping',
-      kategoriDotColor: 'bg-[#10b981]',
-      pelapor: 'Budi Santoso',
-      kontak: '0878-1122-3344',
-      kontakWa: '6287811223344',
-      waktu: '10 Okt • 11:15 WIB',
-      rawDate: '2026-10-10T11:15:00Z',
-    },
-    {
-      id: 7,
-      displayId: '#7',
-      tipe: 'Laporan',
-      status: 'belum ditangani',
-      kategori: 'Tersesat',
-      kategoriDotColor: 'bg-[#3b82f6]',
-      pelapor: 'Siti Rahma',
-      kontak: '0856-7788-9900',
-      kontakWa: '6285677889900',
-      waktu: '10 Okt • 09:50 WIB',
-      rawDate: '2026-10-10T09:50:00Z',
-    },
   ];
 
   useEffect(() => {
     fetchDashboardData();
+
+    // ─── LARAVEL REVERB WEBSOCKET SUBSCRIPTION ──────────────────────
+    const channel = echo.channel('command-center');
+
+    // 1. Relawan Location Real-time Update
+    channel.listen('.RelawanLocationUpdate', (data) => {
+      console.log('[Reverb Real-time] RelawanLocationUpdate:', data);
+      if (!data.relawan_id) return;
+
+      setMapMarkers((prev) => {
+        const index = prev.findIndex(
+          (m) => m.type === 'relawan' && m.id === data.relawan_id
+        );
+
+        const cleanName = data.nama ? data.nama.replace(/\s*\(Relawan\)/i, '').trim() : 'Relawan';
+        const updatedItem = {
+          id: data.relawan_id,
+          displayId: `REL-${data.relawan_id}`,
+          type: 'relawan',
+          label: cleanName,
+          pelapor: cleanName,
+          kategori: 'Relawan Lapangan',
+          status: data.status || 'siaga_bebas',
+          lokasi: data.lokasi_user ? data.lokasi_user.replace(/Posko\s+/gi, '').trim() : 'Area Siaga',
+          lat: parseFloat(data.latitude),
+          lng: parseFloat(data.longitude),
+          heading: data.heading,
+        };
+
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = { ...next[index], ...updatedItem };
+          return next;
+        } else {
+          return [...prev, updatedItem];
+        }
+      });
+    });
+
+    // 2. SOS Baru Dibuat
+    channel.listen('.SOSCreated', (data) => {
+      console.log('[Reverb Real-time] SOSCreated:', data);
+      fetchDashboardData();
+    });
+
+    // 3. Status SOS Diperbarui (Relawan Ambil / Selesai / Batal)
+    channel.listen('.SOSUpdateStatus', (data) => {
+      console.log('[Reverb Real-time] SOSUpdateStatus:', data);
+      fetchDashboardData();
+    });
+
+    // 4. Laporan Warga Baru Dibuat
+    channel.listen('.LaporanCreated', (data) => {
+      console.log('[Reverb Real-time] LaporanCreated:', data);
+      fetchDashboardData();
+    });
+
+    return () => {
+      echo.leaveChannel('command-center');
+    };
   }, []);
 
   const handleCategoryFilterChange = async (label) => {
@@ -369,56 +362,25 @@ export default function DashboardPage() {
     }
   };
 
-  // ─── FILTER & TAB COUNTS ──────────────────────────────────────────
-  const counts = useMemo(() => {
-    const total = casesList.length;
-    const sos = casesList.filter(c => c.tipe === 'SOS').length;
-    const laporan = casesList.filter(c => c.tipe === 'Laporan').length;
-    const belum = casesList.filter(c => c.status === 'belum ditangani').length;
-    const sedang = casesList.filter(c => c.status === 'ditangani' || c.status === 'proses').length;
-    return { total, sos, laporan, belum, sedang };
-  }, [casesList]);
-
-  // Filtered & Sorted Cases for the Data Table
+  // Filtered & Sorted Cases for the Data Table (Hanya Kasus SOS Aktif)
   const filteredCases = useMemo(() => {
     return casesList
       .filter(item => {
-        // Tab filter
-        if (activeTab === 'sos' && item.tipe !== 'SOS') return false;
-        if (activeTab === 'laporan' && item.tipe !== 'Laporan') return false;
-        if (activeTab === 'belum ditangani' && item.status !== 'belum ditangani') return false;
-        if (activeTab === 'ditangani' && item.status !== 'ditangani' && item.status !== 'proses') return false;
+        if (item.tipe !== 'SOS') return false;
+        if (item.status === 'selesai' || item.status === 'batal') return false;
 
-        // Category dropdown filter
-        if (selectedCategory && item.kategori.toLowerCase() !== selectedCategory.toLowerCase()) {
-          return false;
-        }
-
-        // Search bar
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
-          const matchId = String(item.id).toLowerCase().includes(q) || item.displayId.toLowerCase().includes(q);
-          const matchPelapor = item.pelapor.toLowerCase().includes(q);
-          const matchKategori = item.kategori.toLowerCase().includes(q);
+          const matchId = String(item.id).toLowerCase().includes(q) || item.displayId?.toLowerCase().includes(q);
+          const matchPelapor = item.pelapor?.toLowerCase().includes(q);
+          const matchKategori = item.kategori?.toLowerCase().includes(q);
           return matchId || matchPelapor || matchKategori;
         }
 
         return true;
       })
-      .sort((a, b) => {
-        if (sortBy === 'terlama') {
-          return new Date(a.rawDate) - new Date(b.rawDate);
-        }
-        if (sortBy === 'id-asc') {
-          return a.id - b.id;
-        }
-        if (sortBy === 'id-desc') {
-          return b.id - a.id;
-        }
-        // Default: terbaru
-        return new Date(b.rawDate) - new Date(a.rawDate);
-      });
-  }, [casesList, activeTab, selectedCategory, searchQuery, sortBy]);
+      .sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
+  }, [casesList, searchQuery]);
 
   // Paginated Cases
   const paginatedCases = useMemo(() => {
@@ -437,7 +399,12 @@ export default function DashboardPage() {
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleOpenDetail = (id, type) => {
+  const handleOpenDetail = (id, type, item) => {
+    if (type === 'relawan') {
+      const searchParam = item?.pelapor ? `?search=${encodeURIComponent(item.pelapor)}` : (id ? `?id=${id}` : '');
+      navigate(`/manajemen-user${searchParam}`);
+      return;
+    }
     const tipeParam = (type || 'sos').toLowerCase().includes('sos') ? 'sos' : 'laporan';
     navigate(`/detail-kasus/${id}?tipe=${tipeParam}`);
   };
@@ -452,9 +419,6 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
             Dashboard Admin
           </h1>
-          <p className="mt-1 text-[13px] font-medium text-slate-500">
-            Pemantauan real-time status tanggap darurat, insiden aktif, dan relawan siaga wilayah DIY.
-          </p>
         </div>
 
         {/* Refresh button */}
@@ -487,7 +451,69 @@ export default function DashboardPage() {
 
         {/* ── KOLOM KANAN: Kartu Ringkasan Informasi & Grafik Analitik ── */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* Card 1: Kasus Hari Ini */}
+          {/* Card 1: Grafik SOS Harian (Tren SOS Mingguan) */}
+          <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[13px] font-bold text-slate-800">
+                  Grafik SOS Harian
+                </h3>
+                <p className="text-[11px] font-bold text-slate-900 mt-0.5">
+                  Tren SOS Mingguan
+                </p>
+              </div>
+
+              {/* Badge Total Kasus */}
+              <div className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-extrabold text-[#dc2626]">
+                {weeklyChartData.totalKasus} Total Kasus
+              </div>
+            </div>
+
+            {/* 7-Bar Chart Visual */}
+            <div className="mt-5 flex items-end justify-between gap-2 px-1">
+              {weeklyChartData.harian.map((d, idx) => {
+                const heightPct = Math.max(14, (d.count / maxWeeklyCount) * 100);
+                return (
+                  <div key={idx} className="flex flex-1 flex-col items-center gap-1.5">
+                    {/* Number label above bar */}
+                    <span className="text-[10px] font-bold text-slate-600">
+                      {d.count}
+                    </span>
+                    {/* The bar element */}
+                    <div className="relative flex h-20 w-full items-end justify-center rounded-sm">
+                      <div
+                        className={`w-full max-w-[28px] rounded-sm transition-all duration-500 ${
+                          d.isPeak
+                            ? 'bg-[#dc2626] shadow-sm'
+                            : 'bg-[#fca5a5]/80 hover:bg-[#f87171]'
+                        }`}
+                        style={{ height: `${heightPct}%` }}
+                      />
+                    </div>
+                    {/* Day label */}
+                    <span className={`text-[10px] font-semibold ${d.isPeak ? 'font-bold text-slate-900' : 'text-slate-400'}`}>
+                      {d.day}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Insights */}
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] font-semibold text-slate-500">
+              <div className="flex items-center gap-1 text-emerald-600 font-bold">
+                <TrendingUp size={12} />
+                <span>
+                  Puncak insiden: {weeklyChartData.puncakInsiden?.hari || 'Sabtu'} ({weeklyChartData.puncakInsiden?.total || 5} SOS)
+                </span>
+              </div>
+              <div className="text-slate-400 font-medium">
+                Rata-rata: {weeklyChartData.rataRataHarian}/hari
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Kasus Hari Ini */}
           <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -515,71 +541,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Darurat SOS Aktif (Highlight Merah - Prioritas Tinggi) */}
-          <div className="relative overflow-hidden rounded-[20px] border border-red-200 bg-[#fff5f5] p-5 shadow-xs transition-shadow hover:shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-red-700">
-                    Darurat SOS Aktif
-                  </span>
-                  <span className="rounded-md bg-red-100/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-red-600">
-                    PRIORITAS TINGGI
-                  </span>
-                </div>
-                <div className="mt-1.5 flex items-baseline gap-2">
-                  <span className="text-3xl font-black tracking-tight text-[#dc2626]">
-                    {stats.daruratSosAktif}
-                  </span>
-                  <span className="text-[12px] font-bold text-red-600">
-                    Butuh respon segera
-                  </span>
-                </div>
-              </div>
-
-              {/* Red Alert Icon */}
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-100 text-[#dc2626]">
-                <AlertTriangle size={20} />
-              </div>
-            </div>
-          </div>
-
-          {/* Row: 2 Small Cards (Laporan Aktif & Relawan Aktif) */}
-          <div className="grid grid-cols-2 gap-3.5">
-            {/* Laporan Aktif */}
-            <div className="rounded-[20px] border border-slate-200/80 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500">
-                  Laporan Aktif
-                </span>
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-              </div>
-              <div className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
-                {stats.laporanAktif}
-              </div>
-              <div className="mt-1 text-[11px] font-medium text-slate-400">
-                Sedang ditangani tim
-              </div>
-            </div>
-
-            {/* Relawan Aktif */}
-            <div className="rounded-[20px] border border-slate-200/80 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500">
-                  Relawan Aktif
-                </span>
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              </div>
-              <div className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
-                {stats.relawanAktif}
-              </div>
-              <div className="mt-1 text-[11px] font-medium text-slate-400">
-                siaga
-              </div>
-            </div>
-          </div>
-
-          {/* Card 5: Sebaran Kategori Laporan */}
+          {/* Card 3: Sebaran Kategori Laporan */}
           <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
@@ -655,68 +617,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
-          {/* Card 6: Grafik SOS Harian (Tren SOS Mingguan) */}
-          <div className="rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-[13px] font-bold text-slate-800">
-                  Grafik SOS Harian
-                </h3>
-                <p className="text-[11px] font-bold text-slate-900 mt-0.5">
-                  Tren SOS Mingguan
-                </p>
-              </div>
-
-              {/* Badge Total Kasus */}
-              <div className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-extrabold text-[#dc2626]">
-                {weeklyChartData.totalKasus} Total Kasus
-              </div>
-            </div>
-
-            {/* 7-Bar Chart Visual */}
-            <div className="mt-5 flex items-end justify-between gap-2 px-1">
-              {weeklyChartData.harian.map((d, idx) => {
-                const heightPct = Math.max(14, (d.count / maxWeeklyCount) * 100);
-                return (
-                  <div key={idx} className="flex flex-1 flex-col items-center gap-1.5">
-                    {/* Number label above bar */}
-                    <span className="text-[10px] font-bold text-slate-600">
-                      {d.count}
-                    </span>
-                    {/* The bar element */}
-                    <div className="relative flex h-20 w-full items-end justify-center rounded-sm">
-                      <div
-                        className={`w-full max-w-[28px] rounded-sm transition-all duration-500 ${
-                          d.isPeak
-                            ? 'bg-[#dc2626] shadow-sm'
-                            : 'bg-[#fca5a5]/80 hover:bg-[#f87171]'
-                        }`}
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    {/* Day label */}
-                    <span className={`text-[10px] font-semibold ${d.isPeak ? 'font-bold text-slate-900' : 'text-slate-400'}`}>
-                      {d.day}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer Insights */}
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] font-semibold text-slate-500">
-              <div className="flex items-center gap-1 text-emerald-600 font-bold">
-                <TrendingUp size={12} />
-                <span>
-                  Puncak insiden: {weeklyChartData.puncakInsiden?.hari || 'Sabtu'} ({weeklyChartData.puncakInsiden?.total || 5} SOS)
-                </span>
-              </div>
-              <div className="text-slate-400 font-medium">
-                Rata-rata: {weeklyChartData.rataRataHarian}/hari
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -724,125 +624,27 @@ export default function DashboardPage() {
           5. BAGIAN BAWAH: TABEL MANAJEMEN DATA (Kasus & Relawan)
       ══════════════════════════════════════════════════════════════════ */}
       <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-xs">
-        {/* ── Toolbar: Tabs & Search/Filter Controls ── */}
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 xl:flex-row xl:items-center xl:justify-between">
-          {/* Filter Cepat (Tabs) */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => { setActiveTab('semua'); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
-                activeTab === 'semua'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>Semua</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[9px] ${activeTab === 'semua' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {counts.total}
-              </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('sos'); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
-                activeTab === 'sos'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>SOS</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[9px] ${activeTab === 'sos' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {counts.sos}
-              </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('laporan'); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
-                activeTab === 'laporan'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>Laporan</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[9px] ${activeTab === 'laporan' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {counts.laporan}
-              </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('belum ditangani'); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
-                activeTab === 'belum ditangani'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>Belum Ditangani</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[9px] ${activeTab === 'belum ditangani' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {counts.belum}
-              </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab('ditangani'); setCurrentPage(1); }}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
-                activeTab === 'ditangani'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>Sedang Ditangani</span>
-              <span className={`rounded-full px-1.5 py-0.2 text-[9px] ${activeTab === 'ditangani' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                {counts.sedang}
-              </span>
-            </button>
+        {/* ── Header Tabel: Kasus Darurat SOS Aktif ── */}
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-4.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-[15px] font-extrabold tracking-tight text-slate-900">
+              Daftar Kasus Darurat SOS Aktif
+            </h2>
+            <span className="rounded-full bg-red-50 border border-red-200/80 px-2.5 py-0.5 text-[11px] font-bold text-red-600">
+              {filteredCases.length} Kasus Aktif
+            </span>
           </div>
 
-          {/* Bilah Pencarian & Pengurutan */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input */}
-            <div className="relative min-w-[220px] flex-1 sm:flex-initial">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                placeholder="Cari ID, pelapor, kategori..."
-                className="h-9 w-full rounded-xl border border-slate-200 bg-white pr-3 pl-9 text-[12px] font-medium text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Dropdown Kategori */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={e => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 pr-8 text-[12px] font-semibold text-slate-600 focus:border-emerald-500 focus:outline-none appearance-none cursor-pointer"
-              >
-                <option value="">Semua Kategori</option>
-                <option value="Darurat">Darurat</option>
-                <option value="Kondisi Medis">Kondisi Medis</option>
-                <option value="Butuh Pendamping">Butuh Pendamping</option>
-                <option value="Tersesat">Tersesat</option>
-              </select>
-              <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            {/* Dropdown Pengurutan (Terbaru) */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
-                className="h-9 rounded-xl border border-slate-200 bg-white px-3 pr-8 text-[12px] font-semibold text-slate-600 focus:border-emerald-500 focus:outline-none appearance-none cursor-pointer"
-              >
-                <option value="terbaru">Terbaru</option>
-                <option value="terlama">Terlama</option>
-                <option value="id-asc">ID (Kecil ke Besar)</option>
-                <option value="id-desc">ID (Besar ke Kecil)</option>
-              </select>
-              <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
+          {/* Bilah Pencarian */}
+          <div className="relative min-w-[240px]">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Cari ID, pelapor, atau insiden..."
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white pr-3 pl-9 text-[12px] font-medium text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
+            />
           </div>
         </div>
 
@@ -947,7 +749,7 @@ export default function DashboardPage() {
               ) : (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-slate-400 font-semibold">
-                    Tidak ada kasus yang sesuai dengan filter atau pencarian.
+                    Tidak ada kasus darurat SOS aktif saat ini.
                   </td>
                 </tr>
               )}
@@ -958,7 +760,7 @@ export default function DashboardPage() {
         {/* ── Table Footer & Pagination ── */}
         <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between text-[11px] font-medium text-slate-500">
           <div>
-            Menampilkan {paginatedCases.length} dari {filteredCases.length} kasus aktif saat ini
+            Menampilkan {paginatedCases.length} dari {filteredCases.length} darurat SOS aktif saat ini
           </div>
 
           <div className="flex items-center gap-1">

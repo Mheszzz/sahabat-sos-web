@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import MainLayout from '../components/layouts/MainLayout';
 import LoginPage from '../pages/Login/LoginPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
@@ -10,6 +10,11 @@ import ManajemenAdminPage from '../pages/ManajemenAdmin/ManajemenAdminPage';
 import ManajemenUserPage from '../pages/ManajemenUser/ManajemenUserPage';
 import DetailKasusPage from '../pages/DetailKasus/DetailKasusPage';
 import MasterDataPage from '../pages/MasterData/MasterDataPage';
+
+function DetailRelawanRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/manajemen-user?id=${id}`} replace />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -62,7 +67,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'detail-relawan/:id',
-        element: <div className="p-10"><h1 className="text-2xl font-bold">Halaman Detail Relawan (Belum Dibuat)</h1><p className="mt-2 text-slate-500">Routing berhasil! Silakan buat komponen halamannya nanti.</p></div>
+        element: <DetailRelawanRedirect />
       },
       {
         path: 'detail-laporan/:id',
