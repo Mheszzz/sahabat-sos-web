@@ -284,7 +284,7 @@ export default function DashboardPage() {
 
       setMapMarkers((prev) => {
         const index = prev.findIndex(
-          (m) => m.type === 'relawan' && m.id === data.relawan_id
+          (m) => m.type === 'relawan' && String(m.id) === String(data.relawan_id)
         );
 
         const cleanName = data.nama ? data.nama.replace(/\s*\(Relawan\)/i, '').trim() : 'Relawan';

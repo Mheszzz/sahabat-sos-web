@@ -112,6 +112,7 @@ export default function PetaPemantauanPage() {
     fetchMapData();
 
     const channel = echo.channel('command-center');
+    channel.listen('.RelawanLocationUpdate', () => fetchMapData());
     channel.listen('.RelawanStatusUpdated', () => fetchMapData());
     channel.listen('.SOSCreated', () => fetchMapData());
     channel.listen('.SOSUpdateStatus', () => fetchMapData());

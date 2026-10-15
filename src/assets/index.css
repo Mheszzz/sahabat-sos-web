@@ -417,6 +417,13 @@ button, input, select { font: inherit; }
 /* ═══════════════════════════════════════════════
    COMMAND MAP MARKERS & PILLS
 ═══════════════════════════════════════════════ */
+.leaflet-div-icon,
+.custom-command-center-icon,
+.custom-emergency-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 .command-map-marker {
   position: relative;
   display: flex;

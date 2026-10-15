@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Plus, Minus, Users, Eye, X, Radio, MapPin } from 'lucide-react';
+import { Plus, Minus, Users, Eye, X, Radio, MapPin, Maximize2 } from 'lucide-react';
 
 // Pusat Yogyakarta (Malioboro / Tugu / Depok Sleman)
 const YOGYAKARTA_CENTER = [-7.7956, 110.3695];
@@ -165,11 +165,15 @@ export default function AdminCommandMap({
 
   // Focus on Volunteers
   const handleFocusVolunteers = () => {
-    const volunteers = (mapData || []).filter(i => i.type === 'relawan');
+    const volunteers = (mapData || []).filter(i => i.type === 'relawan' && i.lat && i.lng);
     if (volunteers.length > 0 && mapInstanceRef.current) {
+      if (volunteers.length === 1) {
+        mapInstanceRef.current.flyTo([volunteers[0].lat, volunteers[0].lng], 15, { duration: 0.8 });
+        return;
+      }
       const vBounds = L.latLngBounds();
       volunteers.forEach(v => {
-        if (v.lat && v.lng) vBounds.extend([v.lat, v.lng]);
+        vBounds.extend([v.lat, v.lng]);
       });
       if (vBounds.isValid()) {
         mapInstanceRef.current.fitBounds(vBounds, { padding: [70, 70], maxZoom: 14 });
@@ -178,6 +182,21 @@ export default function AdminCommandMap({
     }
     // Fallback to center
     mapInstanceRef.current?.flyTo(YOGYAKARTA_CENTER, 13);
+  };
+
+  // Fit all markers (SOS, Laporan, Relawan)
+  const handleFitAll = () => {
+    if (!mapInstanceRef.current) return;
+    const items = (mapData || []).filter(i => i.lat && i.lng);
+    if (items.length > 0) {
+      const bounds = L.latLngBounds();
+      items.forEach(i => bounds.extend([i.lat, i.lng]));
+      if (bounds.isValid()) {
+        mapInstanceRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+        return;
+      }
+    }
+    mapInstanceRef.current.flyTo(YOGYAKARTA_CENTER, 13);
   };
 
   return (
@@ -248,10 +267,17 @@ export default function AdminCommandMap({
           </button>
           <button
             onClick={handleZoomOut}
-            className="flex h-8 w-8 items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"
+            className="flex h-8 w-8 items-center justify-center border-b border-slate-100 text-slate-700 hover:bg-slate-50 transition-colors"
             title="Perkecil"
           >
             <Minus size={15} />
+          </button>
+          <button
+            onClick={handleFitAll}
+            className="flex h-8 w-8 items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors"
+            title="Tampilkan Semua Titik & Relawan"
+          >
+            <Maximize2 size={13} />
           </button>
         </div>
 
