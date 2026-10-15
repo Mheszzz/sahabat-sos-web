@@ -420,5 +420,16 @@ Sebelum mengerjakan revisi ini, konfirmasi hal-hal berikut:
 
 ---
 
-*Dokumen ini dibuat berdasarkan audit kode pada 15 Oktober 2026.*
-*Kerjakan berurutan Fase 1 → 2 → 3 → 4. Konfirmasi checklist sebelum memulai.*
+## 📌 Update Revisi Terbaru (Permintaan Khusus User)
+
+| # | Permintaan | Status | Detail Implementasi |
+|---|------------|--------|---------------------|
+| 1 | **Ubah judul "KONTAK DARURAT" menjadi "KONTAK PELAPOR"** | ✅ Selesai | Diubah di header tabel `DashboardPage.jsx` baris 756 |
+| 2 | **Ganti judul "Grafik SOS Harian" menjadi "Grafik SOS pekan ini" & hapus subjudul "Tren SOS Mingguan"** | ✅ Selesai | Diperbarui di Card 1 `DashboardPage.jsx` |
+| 3 | **Pecah "Kasus Hari Ini" menjadi 3 metrik: Hari Ini, Minggu Lalu, Bulan Lalu** | ✅ Selesai | Tampilan Card 2 diubah menjadi 3 kolom: **Hari Ini**, **Minggu Lalu**, dan **Bulan Lalu**. Backend `DashboardAdminController.php` telah ditambahkan kalkulasi query untuk `kasus_periode` (Hari Ini, Minggu Lalu via Carbon `subWeek()`, dan Bulan Lalu via `subMonth()`). |
+| 4 | **Hapus tulisan tren "+100% dibanding kemarin" (Gambar 2)** | ✅ Selesai | Ikon dan teks persentase tren perbandingan kemarin telah dihapus sepenuhnya dari Card 2. |
+
+---
+
+*Dokumen ini dibuat berdasarkan audit kode pada 15 Oktober 2026 dan diperbarui setelah revisi diterapkan.*
+

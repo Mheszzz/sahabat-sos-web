@@ -102,15 +102,17 @@ export default function DashboardPage() {
         const totalToday = sosHariIni + lapHariIni;
 
         setStats({
-          kasusHariIni: totalToday,
-          kasusTrend: d.kpi?.panggilan_sos_hari_ini?.tren ?? null,
+          kasusHariIni: d.kpi?.kasus_periode?.hari_ini ?? d.kpi?.total_kasus_hari_ini ?? totalToday,
+          kasusMingguLalu: d.kpi?.kasus_periode?.minggu_lalu ?? d.kpi?.total_kasus_minggu_lalu ?? 0,
+          kasusBulanLalu: d.kpi?.kasus_periode?.bulan_lalu ?? d.kpi?.total_kasus_bulan_lalu ?? 0,
           daruratSosAktif: d.kpi?.darurat_sos_aktif?.total ?? 0,
           relawanAktif: d.kpi?.relawan_siaga_aktif?.siaga_bebas ?? d.kpi?.relawan_siaga_aktif?.total_personel ?? 0,
         });
       } else {
         setStats(prev => prev ?? {
           kasusHariIni: 0,
-          kasusTrend: null,
+          kasusMingguLalu: 0,
+          kasusBulanLalu: 0,
           daruratSosAktif: 0,
           relawanAktif: 0,
         });
@@ -494,11 +496,8 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-[13px] font-bold text-slate-800">
-                      Grafik SOS Harian
+                      Grafik SOS pekan ini
                     </h3>
-                    <p className="text-[11px] font-bold text-slate-900 mt-0.5">
-                      Tren SOS Mingguan
-                    </p>
                   </div>
 
                   {/* Badge Total Kasus */}
@@ -553,46 +552,67 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Card 2: Kasus Hari Ini */}
+          {/* Card 2: Statistik Kasus (Hari Ini, Minggu Lalu, Bulan Lalu) */}
           <div className="relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
             {loading && !stats ? (
-              <div className="flex items-start justify-between animate-pulse">
-                <div className="space-y-2">
-                  <div className="h-3.5 w-24 rounded bg-slate-200" />
-                  <div className="h-8 w-16 rounded bg-slate-200" />
-                  <div className="h-3 w-36 rounded bg-slate-100" />
+              <div className="animate-pulse space-y-4">
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                  <div className="space-y-1.5">
+                    <div className="h-4 w-28 rounded bg-slate-200" />
+                    <div className="h-3 w-36 rounded bg-slate-100" />
+                  </div>
+                  <div className="h-9 w-9 rounded-xl bg-slate-100" />
                 </div>
-                <div className="h-11 w-11 rounded-2xl bg-slate-100" />
+                <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="px-1.5 space-y-1">
+                      <div className="mx-auto h-3 w-14 rounded bg-slate-100" />
+                      <div className="mx-auto h-7 w-10 rounded bg-slate-200" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-[13px] font-semibold text-slate-500">
-                    Kasus Hari Ini
-                  </span>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                      {stats?.kasusHariIni ?? 0}
-                    </span>
-                    <span className="text-[12px] font-medium text-slate-400">
-                      Total laporan & SOS
-                    </span>
+              <div>
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-[13px] font-bold text-slate-800">
+                      Statistik Kasus
+                    </h3>
+                    <p className="text-[11px] font-bold text-slate-900 mt-0.5">
+                      Total Laporan & SOS
+                    </p>
                   </div>
-                  <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-emerald-600">
-                    {stats?.kasusTrend ? (
-                      <>
-                        <TrendingUp size={13} />
-                        <span>{stats.kasusTrend} dibanding kemarin</span>
-                      </>
-                    ) : (
-                      <span className="text-slate-400 font-medium">Belum ada perbandingan tren</span>
-                    )}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200/90 bg-[#ecfdf5] text-emerald-600">
+                    <FileText size={18} />
                   </div>
                 </div>
 
-                {/* Icon Container */}
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200/90 bg-[#ecfdf5] text-emerald-600">
-                  <FileText size={20} />
+                <div className="mt-4 grid grid-cols-3 divide-x divide-slate-100 text-center">
+                  <div className="px-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 block">
+                      Hari Ini
+                    </span>
+                    <span className="text-2xl font-black tracking-tight text-slate-900 mt-1 block">
+                      {stats?.kasusHariIni ?? 0}
+                    </span>
+                  </div>
+                  <div className="px-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 block">
+                      Minggu Lalu
+                    </span>
+                    <span className="text-2xl font-black tracking-tight text-slate-900 mt-1 block">
+                      {stats?.kasusMingguLalu ?? 0}
+                    </span>
+                  </div>
+                  <div className="px-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 block">
+                      Bulan Lalu
+                    </span>
+                    <span className="text-2xl font-black tracking-tight text-slate-900 mt-1 block">
+                      {stats?.kasusBulanLalu ?? 0}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -733,7 +753,7 @@ export default function DashboardPage() {
                 <th className="px-3 py-3.5">STATUS</th>
                 <th className="px-3 py-3.5">KATEGORI / INSIDEN</th>
                 <th className="px-3 py-3.5">PELAPOR</th>
-                <th className="px-3 py-3.5">KONTAK DARURAT</th>
+                <th className="px-3 py-3.5">KONTAK PELAPOR</th>
                 <th className="px-3 py-3.5">WAKTU</th>
                 <th className="py-3.5 pl-3 pr-6 text-right">AKSI</th>
               </tr>
