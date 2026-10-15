@@ -86,14 +86,33 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
   };
   const [navItems, setNavItems] = useState(initialNavItems);
 
+  const isUnhandledStatus = (status) => {
+    const s = (status || '').toLowerCase().trim();
+    return ['aktif', 'pending', 'menunggu', 'belum ditangani', 'belum_ditangani', 'belum tertangani', 'belum_tertangani'].includes(s);
+  };
+
   useEffect(() => {
     const fetchActiveCount = async () => {
       try {
         const res = await adminService.getPetaKasus();
-        if (res?.data) {
-          const totalActive = (res.data.titik_darurat_sos?.length || 0) + (res.data.titik_laporan_aktif?.length || 0);
+        if (res) {
+          let count = 0;
+          if (res.summary?.total_belum_tertangani !== undefined) {
+            count = res.summary.total_belum_tertangani;
+          } else if (res.summary?.total_kasus_belum_tertangani !== undefined) {
+            count = res.summary.total_kasus_belum_tertangani;
+          } else if (res.data) {
+            const sosBelum = (res.data.titik_darurat_sos || []).filter(item => 
+              isUnhandledStatus(item.status)
+            ).length;
+            const lapBelum = (res.data.titik_laporan_aktif || []).filter(item => 
+              isUnhandledStatus(item.status)
+            ).length;
+            count = sosBelum + lapBelum;
+          }
+
           setNavItems(prev => prev.map(item => 
-            item.id === 'kasus-aktif' ? { ...item, badge: totalActive } : item
+            item.id === 'kasus-aktif' ? { ...item, badge: count } : item
           ));
         }
       } catch (err) {
@@ -102,10 +121,16 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
     };
     fetchActiveCount();
     
-    // Opsional: fetch periodic (e.g. every 60s)
-    const interval = setInterval(fetchActiveCount, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    // Auto-refresh berkala & saat ada trigger update status kasus
+    const interval = setInterval(fetchActiveCount, 30000);
+    const handleUpdate = () => fetchActiveCount();
+    window.addEventListener('kasus-updated', handleUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('kasus-updated', handleUpdate);
+    };
+  }, [currentPath]);
   return (
     <>
       {/* Mobile overlay */}

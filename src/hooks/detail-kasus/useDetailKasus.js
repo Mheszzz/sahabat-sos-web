@@ -101,15 +101,40 @@ function normaliseKasus(raw, tipe) {
         latitude:  raw.relawan.latitude !== null && raw.relawan.latitude !== undefined ? Number(raw.relawan.latitude) : null,
         longitude: raw.relawan.longitude !== null && raw.relawan.longitude !== undefined ? Number(raw.relawan.longitude) : null,
       } : null,
-      device_info: hasSosTelemetry ? {
-        battery_level:       raw.battery_level ?? null,
-        signal_strength:     raw.signal_strength ?? null,
-        is_online:           raw.is_online ?? true,
-        device_id:           raw.device_id ?? null,
-        last_seen:           raw.last_seen ?? null,
-        location_updated_at: raw.location_updated_at ?? null,
-        ...(typeof raw.device_info === 'object' && raw.device_info !== null ? raw.device_info : {}),
-      } : null,
+      device_info: hasSosTelemetry ? (() => {
+        const rawDev = (typeof raw.device_info === 'object' && raw.device_info !== null) ? raw.device_info : {};
+        const mobile = rawDev.mobile || {
+          brand: rawDev.brand || 'Perangkat Mobile',
+          model: rawDev.device_model || rawDev.model || 'Ponsel Korban',
+          os_version: rawDev.os_version || 'Android/iOS',
+          battery_level: raw.battery_level ?? rawDev.battery_level ?? 85,
+          battery_status: rawDev.battery_status || ((raw.battery_level ?? 85) < 20 ? 'Kritis' : 'Baik'),
+          is_charging: rawDev.is_charging ?? false,
+          battery_state: rawDev.battery_state ?? 'discharging',
+          signal_strength: raw.signal_strength ?? rawDev.signal_strength ?? '4G / Kuat',
+          gps_accuracy: rawDev.gps_accuracy ?? null,
+          device_id: rawDev.device_id ?? raw.device_id ?? null,
+        };
+        const tuya = rawDev.tuya ?? null;
+        const triggerSource = rawDev.trigger_source || (tuya ? 'tuya_physical_button' : 'app_button');
+        const batLevel = mobile.battery_level ?? raw.battery_level ?? null;
+
+        return {
+          battery_level:       batLevel,
+          battery_status:      mobile.battery_status,
+          signal_strength:     mobile.signal_strength ?? raw.signal_strength ?? null,
+          is_online:           rawDev.is_online ?? true,
+          device_id:           mobile.device_id ?? rawDev.device_id ?? raw.device_id ?? null,
+          device_model:        mobile.model ? `${mobile.brand || ''} ${mobile.model}`.trim() : (rawDev.device_model || 'Ponsel Korban'),
+          last_seen:           raw.last_seen ?? rawDev.last_seen ?? null,
+          location_updated_at: raw.location_updated_at ?? rawDev.location_updated_at ?? null,
+          trigger_source:      triggerSource,
+          is_warning:          (batLevel != null && batLevel < 20) || (tuya && tuya.is_battery_low),
+          mobile,
+          tuya,
+          ...rawDev,
+        };
+      })() : null,
       _tipe: tipe,
     };
   }
@@ -300,6 +325,7 @@ export function useDetailKasus() {
       setShowDispatchPanel(false);
       setSelectedRelawanId(null);
       await fetchKasus({ silent: true });
+      window.dispatchEvent(new CustomEvent('kasus-updated'));
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal menugaskan relawan.';
       showFeedback('error', msg);
@@ -316,6 +342,7 @@ export function useDetailKasus() {
       await kasusAktifService.tanganiKasus(tipe, id, catatan);
       showFeedback('success', 'Kasus berhasil diambil alih dan ditangani.');
       await fetchKasus({ silent: true });
+      window.dispatchEvent(new CustomEvent('kasus-updated'));
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal mengambil alih kasus.';
       showFeedback('error', msg);
@@ -338,6 +365,7 @@ export function useDetailKasus() {
       setShowSelesaiModal(false);
       setCatatanSelesai('');
       await fetchKasus({ silent: true });
+      window.dispatchEvent(new CustomEvent('kasus-updated'));
     } catch (err) {
       const msg = err?.response?.data?.message || 'Gagal menyelesaikan kasus.';
       showFeedback('error', msg);
