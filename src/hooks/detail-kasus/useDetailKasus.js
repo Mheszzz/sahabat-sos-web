@@ -116,7 +116,8 @@ function normaliseKasus(raw, tipe) {
           device_id: rawDev.device_id ?? raw.device_id ?? null,
         };
         const tuya = rawDev.tuya ?? null;
-        const triggerSource = rawDev.trigger_source || (tuya ? 'tuya_physical_button' : 'app_button');
+        const smartwatch = rawDev.smartwatch ?? null;
+        const triggerSource = rawDev.trigger_source || (tuya ? 'tuya_physical_button' : (smartwatch ? (smartwatch.fall_detected ? 'smartwatch_fall_detection' : 'smartwatch_button') : 'app_button'));
         const batLevel = mobile.battery_level ?? raw.battery_level ?? null;
 
         return {
@@ -129,9 +130,10 @@ function normaliseKasus(raw, tipe) {
           last_seen:           raw.last_seen ?? rawDev.last_seen ?? null,
           location_updated_at: raw.location_updated_at ?? rawDev.location_updated_at ?? null,
           trigger_source:      triggerSource,
-          is_warning:          (batLevel != null && batLevel < 20) || (tuya && tuya.is_battery_low),
+          is_warning:          (batLevel != null && batLevel < 20) || (tuya && tuya.is_battery_low) || (smartwatch && smartwatch.is_battery_low),
           mobile,
           tuya,
+          smartwatch,
           ...rawDev,
         };
       })() : null,
