@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   X, Check, ShieldAlert, Phone, MapPin, Briefcase, Heart, Calendar,
-  Loader2, MessageSquare, Copy, CheckCheck, Power, ShieldCheck, UserCheck
+  Loader2, MessageSquare, Copy, CheckCheck, Power, ShieldCheck, UserCheck,
+  FileText, ExternalLink, AlertCircle
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 
@@ -14,16 +15,20 @@ export default function RelawanDetailModal({
 }) {
   const [loadingAction, setLoadingAction] = useState(null);
   const [copiedPhone, setCopiedPhone] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   if (!isOpen || !relawan) return null;
 
   const isPending = relawan.status_verifikasi === 'pending';
   const isActive = relawan.is_active === true || relawan.is_active === 1;
 
-  const handleAction = async (status) => {
+  const handleAction = async (status, reason = null) => {
     try {
       setLoadingAction(status);
-      await onVerify(relawan.id, status);
+      await onVerify(relawan.id, status, reason);
+      setIsRejecting(false);
+      setRejectionReason('');
       onClose();
     } catch {
       // Handled by hook
@@ -241,6 +246,96 @@ export default function RelawanDetailModal({
               &ldquo;{relawan.alasan_relawan || 'Tidak mencantumkan pesan khusus saat mendaftar.'}&rdquo;
             </p>
           </div>
+
+          {/* KYC Document Section */}
+          <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-2">
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <FileText size={14} className="text-[#0b6f61]" />
+              <p className="text-[11.5px] font-bold uppercase tracking-wider text-slate-600">
+                Berkas Identitas & Kualifikasi (KYC)
+              </p>
+            </div>
+            {relawan.dokumen_kyc ? (
+              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/70">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-[#0b6f61] shrink-0">
+                    <FileText size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12.5px] font-semibold text-slate-800 truncate">
+                      {relawan.dokumen_kyc.split('/').pop()}
+                    </p>
+                    <p className="text-[10.5px] text-slate-400">Dokumen berkas terlampir</p>
+                  </div>
+                </div>
+                <a
+                  href={relawan.dokumen_kyc.startsWith('http') ? relawan.dokumen_kyc : `/storage-file/${relawan.dokumen_kyc}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0b6f61] text-[11.5px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>Lihat Berkas</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            ) : (
+              <div className="p-3 bg-white rounded-xl border border-dashed border-slate-200 text-center">
+                <p className="text-[12px] text-slate-400 italic">
+                  Belum ada berkas dokumen KYC yang diunggah pendaftar.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Rejection Note if rejected */}
+          {relawan.status_verifikasi === 'ditolak' && relawan.alasan_penolakan && (
+            <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200/80 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-rose-700">
+                <AlertCircle size={14} />
+                <p className="text-[11.5px] font-bold uppercase tracking-wider">
+                  Alasan Penolakan Berkas
+                </p>
+              </div>
+              <p className="font-medium text-rose-800 text-[12.5px] leading-relaxed bg-white p-3 rounded-xl border border-rose-200/60">
+                {relawan.alasan_penolakan}
+              </p>
+            </div>
+          )}
+
+          {/* Reject Reason Input Dialog if rejecting */}
+          {isRejecting && (
+            <div className="p-4 bg-rose-50/90 rounded-2xl border border-rose-200 space-y-3 animate-fade-in">
+              <div className="flex items-center gap-1.5 text-rose-700">
+                <AlertCircle size={15} />
+                <h4 className="text-[12.5px] font-bold">Masukkan Alasan Penolakan Pendaftaran</h4>
+              </div>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Tuliskan alasan penolakan (misal: Foto KTP buram, kualifikasi belum sesuai persyaratan)..."
+                rows={2}
+                className="w-full p-2.5 bg-white border border-rose-300 rounded-xl text-[12.5px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder:text-slate-400"
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRejecting(false)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={loadingAction !== null}
+                  onClick={() => handleAction('ditolak', rejectionReason)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-rose-600 hover:bg-rose-700 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  {loadingAction === 'ditolak' ? <Loader2 size={12} className="animate-spin" /> : <X size={13} />}
+                  <span>Kirim Penolakan</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer Actions */}
@@ -254,27 +349,29 @@ export default function RelawanDetailModal({
           </button>
 
           {isPending ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={loadingAction !== null}
-                onClick={() => handleAction('ditolak')}
-                className="px-4 h-10 rounded-xl text-[13px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-              >
-                {loadingAction === 'ditolak' ? <Loader2 size={14} className="animate-spin" /> : <X size={15} />}
-                <span>Tolak Pengajuan</span>
-              </button>
+            !isRejecting && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={loadingAction !== null}
+                  onClick={() => setIsRejecting(true)}
+                  className="px-4 h-10 rounded-xl text-[13px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <X size={15} />
+                  <span>Tolak Pengajuan</span>
+                </button>
 
-              <button
-                type="button"
-                disabled={loadingAction !== null}
-                onClick={() => handleAction('terverifikasi')}
-                className="px-4 h-10 rounded-xl text-[13px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-              >
-                {loadingAction === 'terverifikasi' ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
-                <span>Setujui Relawan</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  disabled={loadingAction !== null}
+                  onClick={() => handleAction('terverifikasi')}
+                  className="px-4 h-10 rounded-xl text-[13px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {loadingAction === 'terverifikasi' ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
+                  <span>Setujui Relawan</span>
+                </button>
+              </div>
+            )
           ) : (
             typeof onToggleStatus === 'function' && (
               <button

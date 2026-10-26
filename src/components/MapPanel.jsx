@@ -10,7 +10,7 @@ export default function MapPanel({ relawanCount = 54, onOpenDetail, mapData = []
             <h2 className="text-[15px] font-bold text-slate-900">Peta Pemantauan Wilayah</h2>
             <span className="h-2.5 w-2.5 rounded-full bg-[#10b981] pulse-soft" />
           </div>
-          <p className="mt-1 text-[11px] font-medium text-slate-400">Jakarta & Sekitarnya — Real-time Command Center</p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400">D.I. Yogyakarta & Sekitarnya — Real-time Command Center</p>
         </div>
 
         <div className="inline-flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-3 py-1.5 text-[11px] font-bold text-[#0f766e]">

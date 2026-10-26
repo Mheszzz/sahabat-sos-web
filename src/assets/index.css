@@ -395,23 +395,55 @@ button, input, select { font: inherit; }
   box-shadow: var(--shadow-md) !important;
 }
 .leaflet-container a.leaflet-popup-close-button {
-  right: 10px !important;
-  top: 10px !important;
-  color: var(--color-muted) !important;
+  right: 8px !important;
+  top: 8px !important;
+  width: 22px !important;
+  height: 22px !important;
+  line-height: 20px !important;
+  color: #94a3b8 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: all 0.15s ease !important;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #334155 !important;
+  background: #f1f5f9 !important;
+}
+.leaflet-container a.leaflet-popup-close-button:focus,
+.leaflet-container a.leaflet-popup-close-button:active {
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.leaflet-popup-content a {
+  text-decoration: none !important;
 }
 
 .emergency-beacon-ripple {
   position: absolute;
   inset: -6px;
-  border-radius: var(--radius-full);
-  background: rgba(239, 68, 68, 0.35);
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  background: rgba(239, 68, 68, 0.28);
+  border: 1px solid rgba(239, 68, 68, 0.45);
   animation: emergencyPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
   pointer-events: none;
 }
+.emergency-beacon-ripple.warning-ripple {
+  background: rgba(249, 115, 22, 0.3);
+  border-color: rgba(249, 115, 22, 0.5);
+}
+.emergency-beacon-ripple.success-ripple {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: rgba(16, 185, 129, 0.5);
+}
 @keyframes emergencyPulse {
-  0%   { transform: scale(0.8); opacity: 0.7; }
-  60%  { transform: scale(1.5); opacity: 0.2; }
-  100% { transform: scale(2);   opacity: 0; }
+  0%   { transform: scale(0.85); opacity: 0.8; }
+  60%  { transform: scale(1.6);  opacity: 0.25; }
+  100% { transform: scale(2.2);  opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -431,6 +463,33 @@ button, input, select { font: inherit; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.marker-beacon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.command-map-marker.sos-marker .marker-beacon-wrapper {
+  width: 36px;
+  height: 36px;
+}
+.command-map-marker.laporan-marker .marker-beacon-wrapper {
+  width: 32px;
+  height: 32px;
+}
+
+/* Fallback jika ripple ditaruh langsung di dalam command-map-marker tanpa wrapper */
+.command-map-marker > .emergency-beacon-ripple {
+  inset: auto;
+  top: 18px;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  margin-left: -22px;
 }
 
 .command-map-marker .marker-circle {
@@ -478,21 +537,57 @@ button, input, select { font: inherit; }
   color: #ffffff;
 }
 
-.command-map-marker.laporan-marker .marker-circle {
+/* SOS yang sedang ditangani oleh relawan -> Warna Hijau */
+.command-map-marker.sos-marker.sos-ditangani .marker-circle {
+  background: #10b981;
+  color: #ffffff;
+}
+.command-map-marker.sos-marker.sos-ditangani .marker-tag {
+  background: #047857;
+  color: #ffffff;
+}
+
+/* Laporan Belum Ditangani -> Warna Orange */
+.command-map-marker.laporan-marker .marker-circle,
+.command-map-marker.laporan-marker.laporan-belum-ditangani .marker-circle {
   background: #ea580c;
   color: #ffffff;
 }
-.command-map-marker.laporan-marker .marker-tag {
+.command-map-marker.laporan-marker .marker-tag,
+.command-map-marker.laporan-marker.laporan-belum-ditangani .marker-tag {
   background: #c2410c;
   color: #ffffff;
 }
 
-.command-map-marker.relawan-marker .marker-circle {
+/* Laporan yang sedang ditangani oleh relawan -> Warna Hijau */
+.command-map-marker.laporan-marker.laporan-ditangani .marker-circle {
+  background: #10b981;
+  color: #ffffff;
+}
+.command-map-marker.laporan-marker.laporan-ditangani .marker-tag {
+  background: #047857;
+  color: #ffffff;
+}
+
+/* Relawan Siaga -> Warna Hijau */
+.command-map-marker.relawan-marker .marker-circle,
+.command-map-marker.relawan-marker.relawan-siaga .marker-circle {
   background: #059669;
   color: #ffffff;
 }
-.command-map-marker.relawan-marker .marker-tag {
+.command-map-marker.relawan-marker .marker-tag,
+.command-map-marker.relawan-marker.relawan-siaga .marker-tag {
   background: #047857;
+  color: #ffffff;
+}
+
+/* Relawan yang baru / sedang menangani kasus -> Warna Orange */
+.command-map-marker.relawan-marker.relawan-menangani .marker-circle {
+  background: #ea580c;
+  color: #ffffff;
+}
+.command-map-marker.relawan-marker.relawan-menangani .marker-tag {
+  background: #c2410c;
   color: #ffffff;
 }
 
@@ -523,3 +618,92 @@ table, thead, tbody, tr, th, td {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* ═══════════════════════════════════════════════
+   PRINT STYLESHEET
+   Format cetak dokumen resmi lembar laporan & insiden
+═══════════════════════════════════════════════ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /* Sembunyikan elemen navigasi browser, header aplikasi, sidebar, dan kontrol interaktif */
+  aside,
+  nav,
+  footer,
+  header.no-print,
+  .no-print,
+  .leaflet-control-container,
+  [role="tooltip"] {
+    display: none !important;
+  }
+
+  /* Reset container root aplikasi ke background putih bersih tanpa scrolling constraint */
+  html,
+  body,
+  #root,
+  .flex.h-screen.w-screen,
+  main,
+  .page-shell,
+  .print-report-container {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Hilangkan clipping scrollbar pada semua subcard */
+  .overflow-hidden,
+  .overflow-y-auto,
+  .overflow-x-hidden {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Ubah layout 3 kolom menjadi format cetak dokumen yang proporsional */
+  .print-report-container .grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .print-report-container .col-span-12 {
+    width: 100% !important;
+  }
+
+  /* Kartu berlatar putih dengan border tipis formal dan hindari pemotongan halaman di tengah kartu */
+  .bg-white,
+  .bg-slate-50,
+  .bg-emerald-50,
+  .bg-rose-50,
+  .bg-amber-50 {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Teks kontras tajam untuk kejelasan cetak */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    text-shadow: none !important;
+  }
+
+  /* Sembunyikan popover dan modal tetap */
+  .fixed:not(.print-include) {
+    display: none !important;
+  }
+}
+

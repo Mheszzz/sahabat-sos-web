@@ -3,42 +3,85 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   Navigation, Plus, Minus, RotateCcw, Eye, Phone,
-  AlertTriangle, Shield, HeartPulse, Clock, X, Radio
+  AlertTriangle, Shield, HeartPulse, Clock, X, Radio,
+  MessageCircle, MapPin, Layers
 } from 'lucide-react';
+
+// Pusat Default Wilayah D.I. Yogyakarta (Tugu / Malioboro)
+export const DEFAULT_MAP_CENTER = [-7.7956, 110.3695];
+export const DEFAULT_STREET_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+export const DEFAULT_SATELLITE_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 export default function ModernEmergencyMap({
   height = '300px',
+  fullscreen = false,
+  popupClassName = '',
   onOpenDetail,
+  onSelectMarker,
+  focusTarget = null,
   showFilterBar = true,
   showLegend = true,
+  showControls = true,
+  controlsPosition = 'top-right', // 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
   className = '',
   mapData = [],
+  center = DEFAULT_MAP_CENTER,
+  streetTileUrl = DEFAULT_STREET_TILE_URL,
+  satelliteTileUrl = DEFAULT_SATELLITE_TILE_URL,
+  activeFilter: controlledActiveFilter,
+  onFilterChange,
+  mapMode: controlledMapMode,
+  onMapModeChange,
+  selectedItem: controlledSelectedItem,
+  onSelectItem,
+  children
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const hasInitialBoundsRef = useRef(false);
 
-  const [activeFilter, setActiveFilter] = useState('semua');
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [internalMapMode, setInternalMapMode] = useState('street'); // 'street' | 'satellite'
+  const [internalActiveFilter, setInternalActiveFilter] = useState('semua');
+  const [internalSelectedItem, setInternalSelectedItem] = useState(null);
 
-  const activeMapData = mapData || [];
+  const activeFilter = controlledActiveFilter !== undefined ? controlledActiveFilter : internalActiveFilter;
+  const prevFilterRef = useRef(activeFilter);
+  const mapMode = controlledMapMode !== undefined ? controlledMapMode : internalMapMode;
+  const selectedItem = controlledSelectedItem !== undefined ? controlledSelectedItem : internalSelectedItem;
 
-  // Initialize Leaflet Map
+  const handleSetFilter = (newFilter) => {
+    if (onFilterChange) onFilterChange(newFilter);
+    else setInternalActiveFilter(newFilter);
+  };
+
+  const handleSetMapMode = (newMode) => {
+    if (onMapModeChange) onMapModeChange(newMode);
+    else setInternalMapMode(newMode);
+  };
+
+  const handleSetSelectedItem = (item) => {
+    if (onSelectItem) onSelectItem(item);
+    else setInternalSelectedItem(item);
+  };
+
+  const activeMapData = Array.isArray(mapData) ? mapData : [];
+
+  // 1. Initialize Leaflet Map (Centered on Yogyakarta)
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    // Center on Jakarta Central & South (-6.215, 106.825)
     const map = L.map(mapContainerRef.current, {
-      center: [-6.2150, 106.8250],
+      center: center,
       zoom: 13,
       zoomControl: false,
       attributionControl: false,
       scrollWheelZoom: true,
     });
 
-    // Esri World Street Map — Desain Modern & Cocok untuk Command Center
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    tileLayerRef.current = L.tileLayer(streetTileUrl, {
       maxZoom: 19,
       attribution: 'Tiles &copy; Esri',
     }).addTo(map);
@@ -46,70 +89,219 @@ export default function ModernEmergencyMap({
     markersLayerRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
+    // Invalidate size once rendered
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
     return () => {
+      clearTimeout(timer);
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
 
-  // Update Markers whenever filter changes
+  // 2. Auto-Resize Observer: Mencegah peta abu-abu / rusak saat panel samping di-toggle atau layar berubah
+  useEffect(() => {
+    if (!mapContainerRef.current || !mapInstanceRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      mapInstanceRef.current?.invalidateSize();
+    });
+
+    observer.observe(mapContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 3. Handle Mode Layer Toggle (Peta Jalan vs Satelit)
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    if (tileLayerRef.current) {
+      mapInstanceRef.current.removeLayer(tileLayerRef.current);
+    }
+
+    const currentUrl = mapMode === 'satellite' ? satelliteTileUrl : streetTileUrl;
+    tileLayerRef.current = L.tileLayer(currentUrl, {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri',
+    }).addTo(mapInstanceRef.current);
+  }, [mapMode]);
+
+  // 4. Handle focusTarget (e.g. Relawan atau Kasus diklik dari panel samping)
+  useEffect(() => {
+    if (!mapInstanceRef.current || !focusTarget) return;
+
+    const lat = focusTarget.lat ?? focusTarget.latitude;
+    const lng = focusTarget.lng ?? focusTarget.longitude;
+
+    if (lat && lng && !Number.isNaN(Number(lat)) && !Number.isNaN(Number(lng))) {
+      const targetZoom = focusTarget.zoom || 15;
+      mapInstanceRef.current.flyTo([Number(lat), Number(lng)], targetZoom, { duration: 0.8 });
+
+      // Temukan item terkait dari mapData jika ada
+      const targetId = focusTarget.id;
+      const foundItem = activeMapData.find(d =>
+        (targetId && (d.id === targetId || d.id === `REL-${targetId}` || d.displayId === targetId)) ||
+        (Math.abs(d.lat - Number(lat)) < 0.0001 && Math.abs(d.lng - Number(lng)) < 0.0001)
+      );
+
+      if (foundItem) {
+        handleSetSelectedItem(foundItem);
+      } else {
+        // Fallback item info dari focusTarget
+        handleSetSelectedItem({
+          id: focusTarget.id ? `REL-${focusTarget.id}` : 'FOCUS-ITEM',
+          displayId: focusTarget.nama || focusTarget.label || 'Relawan',
+          type: focusTarget.type || 'relawan',
+          label: focusTarget.nama || focusTarget.label || 'Relawan Siaga',
+          kategori: focusTarget.peran || focusTarget.kompetensi || focusTarget.kategori || 'Relawan Siaga',
+          prioritas: focusTarget.status === 'Bertugas' ? 'Bertugas' : 'Siaga',
+          pelapor: focusTarget.nama || 'Unit Relawan',
+          lokasi: focusTarget.lokasi || focusTarget.lokasi_user || 'Area Siaga D.I. Yogyakarta',
+          status: focusTarget.status || 'Siaga',
+          relawan: focusTarget.nama,
+          eta: focusTarget.eta || 'Siaga Aktif',
+          lat: Number(lat),
+          lng: Number(lng),
+          kontak: focusTarget.kontak || focusTarget.no_telp,
+        });
+      }
+    }
+  }, [focusTarget, activeMapData]);
+
+  // 5. Update Markers whenever filter or mapData changes
   useEffect(() => {
     if (!mapInstanceRef.current || !markersLayerRef.current) return;
 
     markersLayerRef.current.clearLayers();
-    
     const bounds = L.latLngBounds();
 
     const filtered = activeMapData.filter(item => {
       if (activeFilter === 'semua') return true;
       if (activeFilter === 'sos') return item.type === 'sos';
       if (activeFilter === 'relawan') return item.type === 'relawan';
-      if (activeFilter === 'posko') return item.type === 'posko';
       if (activeFilter === 'laporan') return item.type === 'laporan';
+
+      const isSos = item.type === 'sos';
+      const isRelawan = item.type === 'relawan';
+      const isLaporan = item.type === 'laporan' || (!isSos && !isRelawan);
+
+      if (isSos) {
+        const itemStatus = String(item.status || '').toLowerCase().trim();
+        const isDitangani = itemStatus === 'ditangani' || itemStatus === 'proses' || Boolean(item.relawan && item.relawan !== 'Menunggu Penugasan' && item.relawan !== '-');
+        if (activeFilter === 'sos_belum') return !isDitangani;
+        if (activeFilter === 'sos_ditangani') return isDitangani;
+        return false;
+      }
+
+      if (isRelawan) {
+        const itemStatus = String(item.status || '').toLowerCase().trim();
+        const isMenangani = itemStatus === 'dalam_misi' || itemStatus === 'sedang_bertugas' || itemStatus === 'bertugas' || Boolean(item.misi && (item.misi.id || item.misi.id_kasus));
+        if (activeFilter === 'relawan_menangani') return isMenangani;
+        if (activeFilter === 'relawan_siaga') return !isMenangani;
+        return false;
+      }
+
+      if (isLaporan) {
+        const itemStatus = String(item.status || '').toLowerCase().trim();
+        const isDitangani = itemStatus === 'ditangani' || itemStatus === 'proses' || Boolean(item.relawan && item.relawan !== 'Menunggu Penugasan' && item.relawan !== '-');
+        if (activeFilter === 'laporan_belum') return !isDitangani;
+        if (activeFilter === 'laporan_ditangani') return isDitangani;
+        return false;
+      }
+
       return true;
     });
 
     filtered.forEach(item => {
+      if (!item.lat || !item.lng) return;
+
       let iconHtml = '';
 
       if (item.type === 'sos') {
-        // 🔴 SOS Marker with subtle pulse/ripple animation
+        const itemStatus = (selectedItem && selectedItem.id === item.id && selectedItem.type === 'sos')
+          ? selectedItem.status
+          : item.status;
+        const statusLower = String(itemStatus || '').toLowerCase().trim();
+        const isSosDitangani = statusLower === 'ditangani' || statusLower === 'proses' || Boolean(item.relawan && item.relawan !== 'Menunggu Penugasan' && item.relawan !== '-');
+        const markerClass = isSosDitangani ? 'command-map-marker sos-marker sos-ditangani group' : 'command-map-marker sos-marker sos-belum-ditangani group';
+        const rippleClass = isSosDitangani ? 'emergency-beacon-ripple success-ripple' : 'emergency-beacon-ripple';
+        const subStatusText = isSosDitangani ? 'Ditangani' : 'Belum Ditangani';
+
+        // SOS Marker
         iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer group" style="width: 38px; height: 38px;">
-            <div class="emergency-beacon-ripple"></div>
-            <div class="w-8 h-8 rounded-full bg-[#ef4444] border-2 border-white shadow-lg flex items-center justify-center text-white text-[11px] font-black z-10 transition-transform group-hover:scale-110">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div class="${markerClass}">
+            <div class="marker-beacon-wrapper">
+              <div class="${rippleClass}"></div>
+              <div class="marker-circle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
             </div>
-            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-[#ef4444] text-white text-[9px] font-bold px-1.5 py-0.2 rounded shadow-xs whitespace-nowrap z-10">
-              ${item.displayId || item.id}
-            </div>
+            <div class="marker-tag">${item.displayId || item.id || '#SOS'}</div>
           </div>
         `;
       } else if (item.type === 'relawan') {
-        // 🟢 Relawan Marker
+        // Relawan: Orange ketika baru menangani, Hijau ketika siaga
+        const itemStatus = (selectedItem && selectedItem.id === item.id && selectedItem.type === 'relawan')
+          ? selectedItem.status
+          : item.status;
+        const statusLower = String(itemStatus || '').toLowerCase().trim();
+        const isRelawanMenangani = statusLower === 'dalam_misi' ||
+          statusLower === 'sedang_bertugas' ||
+          statusLower === 'bertugas' ||
+          Boolean(item.misi && (item.misi.id || item.misi.id_kasus));
+        const markerClass = isRelawanMenangani
+          ? 'command-map-marker relawan-marker relawan-menangani group'
+          : 'command-map-marker relawan-marker relawan-siaga group';
+        const rippleClass = isRelawanMenangani ? 'emergency-beacon-ripple warning-ripple' : '';
+
         iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer group" style="width: 32px; height: 32px;">
-            <div class="w-7 h-7 rounded-full bg-[#10b981] border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold z-10 transition-transform group-hover:scale-110">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div class="${markerClass}">
+            <div class="marker-beacon-wrapper">
+              ${isRelawanMenangani ? `<div class="${rippleClass}"></div>` : ''}
+              <div class="marker-circle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
             </div>
-          </div>
-        `;
-      } else if (item.type === 'posko') {
-        // 🔵 Posko Marker
-        iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer group" style="width: 32px; height: 32px;">
-            <div class="w-7 h-7 rounded-lg bg-[#2563eb] border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold z-10 transition-transform group-hover:scale-110">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </div>
+            <div class="marker-tag">${item.label || item.pelapor || item.displayId || 'Relawan'}</div>
           </div>
         `;
       } else {
-        // 🟠 Laporan Pending Marker
+        // Laporan: Orange ketika belum ditangani, Hijau ketika ditangani
+        const itemStatus = (selectedItem && selectedItem.id === item.id && selectedItem.type === 'laporan')
+          ? selectedItem.status
+          : item.status;
+        const statusLower = String(itemStatus || '').toLowerCase().trim();
+        const isLaporanDitangani = statusLower === 'ditangani' ||
+          statusLower === 'proses' ||
+          Boolean(item.relawan && item.relawan !== 'Menunggu Penugasan' && item.relawan !== '-');
+        const isLaporanAktif = statusLower !== 'selesai' && statusLower !== 'batal';
+
+        const markerClass = isLaporanDitangani
+          ? 'command-map-marker laporan-marker laporan-ditangani group'
+          : 'command-map-marker laporan-marker laporan-belum-ditangani group';
+        const rippleClass = isLaporanDitangani ? 'emergency-beacon-ripple success-ripple' : 'emergency-beacon-ripple warning-ripple';
+
         iconHtml = `
-          <div class="relative flex items-center justify-center cursor-pointer group" style="width: 32px; height: 32px;">
-            <div class="w-7 h-7 rounded-full bg-[#f97316] border-2 border-white shadow-md flex items-center justify-center text-white text-[10px] font-bold z-10 transition-transform group-hover:scale-110">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div class="${markerClass}">
+            <div class="marker-beacon-wrapper">
+              ${isLaporanAktif ? `<div class="${rippleClass}"></div>` : ''}
+              <div class="marker-circle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
             </div>
+            <div class="marker-tag">${item.displayId || item.label || item.id || '#Laporan'}</div>
           </div>
         `;
       }
@@ -117,39 +309,60 @@ export default function ModernEmergencyMap({
       const customIcon = L.divIcon({
         className: 'custom-emergency-div-icon',
         html: iconHtml,
-        iconSize: [38, 38],
-        iconAnchor: [19, 19],
+        iconSize: [140, 56],
+        iconAnchor: [70, 18],
       });
 
       const marker = L.marker([item.lat, item.lng], { icon: customIcon });
 
       marker.on('click', () => {
-        setSelectedItem(item);
-        mapInstanceRef.current?.flyTo([item.lat, item.lng], 14, { duration: 0.8 });
+        handleSetSelectedItem(item);
+        mapInstanceRef.current?.flyTo([item.lat, item.lng], 15, { duration: 0.8 });
+        onSelectMarker?.(item);
       });
 
       markersLayerRef.current.addLayer(marker);
       bounds.extend([item.lat, item.lng]);
     });
 
-    if (filtered.length > 0 && bounds.isValid()) {
+    // Responsif fokus batas peta saat filter status dipilih atau saat pertama kali render
+    if (prevFilterRef.current !== activeFilter) {
+      prevFilterRef.current = activeFilter;
+      if (filtered.length > 0 && bounds.isValid()) {
+        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      }
+    } else if (!hasInitialBoundsRef.current && filtered.length > 0 && bounds.isValid()) {
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      hasInitialBoundsRef.current = true;
     }
-  }, [activeFilter, activeMapData]);
+  }, [activeFilter, activeMapData, onSelectMarker, selectedItem?.status, selectedItem?.id]);
 
   // Map Navigation Functions
   const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
   const handleZoomOut = () => mapInstanceRef.current?.zoomOut();
+
   const handleResetView = () => {
-    mapInstanceRef.current?.flyTo([-6.2150, 106.8250], 13, { duration: 0.6 });
-    setSelectedItem(null);
+    if (activeMapData.length > 0) {
+      const bounds = L.latLngBounds();
+      activeMapData.forEach(item => {
+        if (item.lat && item.lng) bounds.extend([item.lat, item.lng]);
+      });
+      if (bounds.isValid()) {
+        mapInstanceRef.current?.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+        handleSetSelectedItem(null);
+        return;
+      }
+    }
+    mapInstanceRef.current?.flyTo(YOGYAKARTA_CENTER, 13, { duration: 0.6 });
+    handleSetSelectedItem(null);
   };
+
   const handleCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
-          mapInstanceRef.current?.flyTo([latitude, longitude], 14, { duration: 0.8 });
+          mapInstanceRef.current?.flyTo([latitude, longitude], 15, { duration: 0.8 });
         },
         () => {
           handleResetView();
@@ -165,35 +378,58 @@ export default function ModernEmergencyMap({
   const countRelawan = activeMapData.filter(d => d.type === 'relawan').length;
   const countLaporan = activeMapData.filter(d => d.type === 'laporan').length;
 
+  const countSosBelum = activeMapData.filter(d => d.type === 'sos' && d.status !== 'ditangani' && d.status !== 'proses' && !(d.relawan && d.relawan !== 'Menunggu Penugasan' && d.relawan !== '-')).length;
+  const countSosDitangani = activeMapData.filter(d => d.type === 'sos' && (d.status === 'ditangani' || d.status === 'proses' || (d.relawan && d.relawan !== 'Menunggu Penugasan' && d.relawan !== '-'))).length;
+
+  const countLaporanBelum = activeMapData.filter(d => d.type === 'laporan' && d.status !== 'ditangani' && d.status !== 'proses' && !(d.relawan && d.relawan !== 'Menunggu Penugasan' && d.relawan !== '-')).length;
+  const countLaporanDitangani = activeMapData.filter(d => d.type === 'laporan' && (d.status === 'ditangani' || d.status === 'proses' || (d.relawan && d.relawan !== 'Menunggu Penugasan' && d.relawan !== '-'))).length;
+
+  const countRelawanMenangani = activeMapData.filter(d => {
+    if (d.type !== 'relawan') return false;
+    return d.status === 'dalam_misi' || d.status === 'sedang_bertugas' || d.status === 'Bertugas' || d.status === 'Sedang Bertugas' || Boolean(d.misi && (d.misi.id || d.misi.id_kasus));
+  }).length;
+  const countRelawanSiaga = Math.max(0, countRelawan - countRelawanMenangani);
+
+  const controlsPosClasses = {
+    'top-right': 'top-4 right-4',
+    'top-left': 'top-20 left-4',
+    'bottom-right': 'bottom-6 right-4',
+    'bottom-left': 'bottom-16 left-4',
+  }[controlsPosition] || 'top-4 right-4';
+
   return (
-    <div className={`relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#eaedf1] bg-white shadow-xs ${className}`}>
-      {/* ── Top Header Controls & Filter Bar ── */}
+    <div className={`relative flex w-full min-w-0 flex-col overflow-hidden ${
+      fullscreen
+        ? 'h-full border-0 rounded-none bg-slate-900 shadow-none'
+        : 'rounded-2xl border border-[#eaedf1] bg-white shadow-xs'
+    } ${className}`}>
+      {/* ── Top Header Controls & Filter Bar (Only shown if showFilterBar is true) ── */}
       {showFilterBar && (
-        <div className="p-3.5 border-b border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3 bg-white z-10">
+        <div className="p-3.5 border-b border-[#f1f5f9] flex flex-wrap items-center justify-between gap-3 bg-white z-10 shrink-0">
           {/* Filter Pills */}
-          <div className="filter-pills flex-1">
+          <div className="filter-pills flex-1 flex flex-wrap gap-1.5">
             <button
-              onClick={() => setActiveFilter('semua')}
+              onClick={() => handleSetFilter('semua')}
               className={`filter-pill ${activeFilter === 'semua' ? 'is-active' : ''}`}
             >
               Semua ({activeMapData.length})
             </button>
             <button
-              onClick={() => setActiveFilter('sos')}
+              onClick={() => handleSetFilter('sos')}
               className={`filter-pill tone-danger ${activeFilter === 'sos' ? 'is-active' : ''}`}
             >
               <span className="status-dot bg-red-500 animate-pulse" />
               SOS Aktif ({countSos})
             </button>
             <button
-              onClick={() => setActiveFilter('relawan')}
+              onClick={() => handleSetFilter('relawan')}
               className={`filter-pill tone-success ${activeFilter === 'relawan' ? 'is-active' : ''}`}
             >
               <span className="status-dot bg-emerald-500" />
               Relawan ({countRelawan})
             </button>
             <button
-              onClick={() => setActiveFilter('laporan')}
+              onClick={() => handleSetFilter('laporan')}
               className={`filter-pill tone-warning ${activeFilter === 'laporan' ? 'is-active' : ''}`}
             >
               <span className="status-dot bg-amber-500" />
@@ -201,130 +437,366 @@ export default function ModernEmergencyMap({
             </button>
           </div>
 
+          {/* Segmented Button: Peta Jalan / Satelit */}
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-600 shrink-0">
+            <button
+              onClick={() => handleSetMapMode('street')}
+              className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                mapMode === 'street'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Peta Jalan
+            </button>
+            <button
+              onClick={() => handleSetMapMode('satellite')}
+              className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                mapMode === 'satellite'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Satelit
+            </button>
+          </div>
         </div>
       )}
 
       {/* ── Map Canvas Container ── */}
-      <div className="relative w-full overflow-hidden" style={{ height }}>
+      <div
+        className="relative w-full h-full flex-1 overflow-hidden"
+        style={!fullscreen && height ? { height } : undefined}
+      >
         {/* Leaflet container */}
-        <div ref={mapContainerRef} className="w-full h-full" />
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-        {/* Map Controls Floating Right */}
-        <div className="absolute right-4 top-4 flex flex-col bg-white border border-[#cbd5e1] rounded-xl shadow-md overflow-hidden z-20">
-          <button
-            onClick={handleZoomIn}
-            className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-            title="Perbesar"
-          >
-            <Plus size={15} />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-            title="Perkecil"
-          >
-            <Minus size={15} />
-          </button>
-          <button
-            onClick={handleCurrentLocation}
-            className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-            title="Lokasi Anda"
-          >
-            <Navigation size={13} />
-          </button>
-          <button
-            onClick={handleResetView}
-            className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
-            title="Pusatkan Map"
-          >
-            <RotateCcw size={13} />
-          </button>
-        </div>
+        {/* Floating Zoom & Center Controls */}
+        {showControls && (
+          <div className={`absolute ${controlsPosClasses} flex flex-col bg-white/95 backdrop-blur-xs border border-slate-200/90 rounded-xl shadow-md overflow-hidden z-20`}>
+            <button
+              onClick={handleZoomIn}
+              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
+              title="Perbesar Peta"
+            >
+              <Plus size={15} />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
+              title="Perkecil Peta"
+            >
+              <Minus size={15} />
+            </button>
+            <button
+              onClick={handleCurrentLocation}
+              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
+              title="Lokasi Anda Sekarang"
+            >
+              <Navigation size={13} />
+            </button>
+            <button
+              onClick={handleResetView}
+              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+              title="Pusatkan Peta ke D.I. Yogyakarta"
+            >
+              <RotateCcw size={13} />
+            </button>
+          </div>
+        )}
+
+        {/* Arbitrary Child Overlays */}
+        {children}
 
         {/* ── Interactive Popup / Detail Card when marker is clicked ── */}
         {selectedItem && (
-          <div className="absolute left-4 bottom-4 z-[1000] max-w-[340px] w-[calc(100%-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 p-4 animate-fade-in">
+          <div className={`absolute z-30 max-w-85 w-[calc(100%-1.75rem)] bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-4 animate-fade-in max-h-[calc(100%-70px)] overflow-y-auto ${
+            popupClassName || (fullscreen ? 'left-3.5 bottom-14.5' : 'left-3.5 bottom-3.5')
+          }`}>
             {/* Header */}
             <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-[13px] text-slate-900">{selectedItem.displayId || selectedItem.id}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${
+                  <span className="font-black text-[13px] text-slate-900">{selectedItem.displayId || selectedItem.label || selectedItem.id}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     selectedItem.type === 'sos' ? 'bg-red-500 text-white' :
                     selectedItem.type === 'relawan' ? 'bg-emerald-600 text-white' :
                     'bg-amber-500 text-white'
                   }`}>
-                    {selectedItem.status}
+                    {selectedItem.type === 'relawan'
+                      ? (selectedItem.status === 'Bertugas' || selectedItem.status === 'sedang_bertugas' ? 'Bertugas' : 'Siaga')
+                      : selectedItem.status}
                   </span>
                 </div>
                 <h4 className="text-[13px] font-bold text-slate-800 mt-1 leading-snug">{selectedItem.kategori}</h4>
               </div>
               <button
-                onClick={() => setSelectedItem(null)}
-                className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                onClick={() => handleSetSelectedItem(null)}
+                aria-label="Tutup jendela detail"
+                className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
               >
                 <X size={14} />
               </button>
             </div>
 
             {/* Info Body */}
-            <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Prioritas:</span>
-                <span className="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded text-[11px]">{selectedItem.prioritas}</span>
+            {selectedItem.type === 'relawan' ? (
+              <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Nama Relawan:</span>
+                  <strong className="text-slate-900 text-[13px]">{selectedItem.relawan || selectedItem.label}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Keahlian / Spesialisasi:</span>
+                  <span className="text-slate-700 font-medium">{selectedItem.kategori}</span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <MapPin size={13} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <span className="text-slate-500">Status Operasi:</span>
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                    {selectedItem.status === 'Bertugas' || selectedItem.status === 'sedang_bertugas' || selectedItem.status === 'dalam_misi' ? 'Sedang Bertugas' : 'Siaga Aktif'}
+                  </span>
+                </div>
+                {selectedItem.misi && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-900 mt-1 space-y-1">
+                    <div className="flex items-center justify-between font-bold text-blue-950">
+                      <span>Misi Tanggap Darurat</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
+                          handleSetSelectedItem(null);
+                        }}
+                        className="underline text-blue-700 hover:text-blue-900 cursor-pointer font-extrabold"
+                      >
+                        {selectedItem.misi.id_kasus}
+                      </button>
+                    </div>
+                    {selectedItem.misi.pelapor && (
+                      <div className="text-[10.5px] text-slate-600">
+                        Korban/Pelapor: <strong className="text-slate-800">{selectedItem.misi.pelapor}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div>
-                <span className="text-slate-400 block text-[11px]">Nama Pengguna / Pelapor:</span>
-                <strong className="text-slate-800">{selectedItem.pelapor}</strong>
+            ) : (
+              <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Prioritas:</span>
+                  <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    selectedItem.prioritas === 'DARURAT' || selectedItem.type === 'sos'
+                      ? 'text-red-700 bg-red-50'
+                      : 'text-amber-700 bg-amber-50'
+                  }`}>
+                    {selectedItem.prioritas || 'Prioritas'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Nama Pelapor / Korban:</span>
+                  <strong className="text-slate-800">{selectedItem.pelapor}</strong>
+                </div>
+                <div className="flex items-start gap-1">
+                  <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                  <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <span className="text-slate-500">Relawan: <strong className="text-slate-800">{selectedItem.relawan}</strong></span>
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                    ETA {selectedItem.eta}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-slate-400 block text-[11px]">Lokasi:</span>
-                <span className="text-slate-700">{selectedItem.lokasi}</span>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                <span className="text-slate-500">Relawan: <strong className="text-slate-800">{selectedItem.relawan}</strong></span>
-                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">ETA {selectedItem.eta}</span>
-              </div>
-            </div>
+            )}
 
-            {/* Action button */}
+            {/* Action buttons */}
             <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+              {selectedItem.type === 'relawan' && selectedItem.kontak && (
+                <>
+                  <a
+                    href={`tel:${selectedItem.kontak}`}
+                    className="flex-1 btn-base bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold"
+                    title={`Panggil ${selectedItem.relawan || selectedItem.label}`}
+                  >
+                    <Phone size={12} />
+                    <span>Telepon</span>
+                  </a>
+                  <a
+                    href={`https://wa.me/${String(selectedItem.kontak).replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(`Halo ${selectedItem.relawan || selectedItem.label}, kami dari Command Center Sahabat SOS D.I. Yogyakarta.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 btn-base bg-teal-600 hover:bg-teal-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold"
+                    title={`WhatsApp ${selectedItem.relawan || selectedItem.label}`}
+                  >
+                    <MessageCircle size={12} />
+                    <span>WhatsApp</span>
+                  </a>
+                </>
+              )}
               <button
                 onClick={() => {
                   onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
-                  setSelectedItem(null);
+                  handleSetSelectedItem(null);
                 }}
-                className="btn-base btn-primary text-[12px] w-full py-1.5 h-8 rounded-lg"
+                className={`btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg ${
+                  selectedItem.type === 'relawan' && selectedItem.kontak ? 'w-auto px-3' : 'w-full'
+                }`}
               >
                 <Eye size={12} />
-                <span>Lihat Detail</span>
+                <span>{selectedItem.type === 'relawan' ? 'Kelola Relawan' : 'Lihat Detail'}</span>
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Bottom Legend ── */}
+      {/* ── Bottom Legend (Only shown if showLegend is true) ── */}
       {showLegend && (
-        <div className="px-5 py-3 bg-[#f8fafc] border-t border-[#eaedf1] flex items-center justify-center text-[11px] font-semibold text-slate-600 flex-wrap gap-6 z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#ef4444] border border-white shadow-sm flex items-center justify-center text-white">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <span>SOS Aktif ({countSos})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-sm flex items-center justify-center text-white">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <span>Relawan Aktif ({countRelawan})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-[#f97316] border border-white shadow-sm flex items-center justify-center text-white">
+        <div className="px-4 py-2 bg-[#f8fafc] border-t border-[#eaedf1] flex items-center justify-center text-[11px] font-semibold text-slate-600 flex-wrap gap-1.5 sm:gap-2 z-10 shrink-0">
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'laporan_belum' ? 'semua' : 'laporan_belum')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'laporan_belum'
+                ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya Laporan Belum Ditangani"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             </div>
-            <span>Laporan Pending ({countLaporan})</span>
-          </div>
+            <span>Laporan Belum Ditangani</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'laporan_belum' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countLaporanBelum}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'laporan_ditangani' ? 'semua' : 'laporan_ditangani')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'laporan_ditangani'
+                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya Laporan Ditangani"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <span>Laporan Ditangani</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'laporan_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countLaporanDitangani}
+            </span>
+          </button>
+
+          <span className="hidden md:inline-block w-px h-4 bg-slate-200" />
+
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'relawan_siaga' ? 'semua' : 'relawan_siaga')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'relawan_siaga'
+                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-600 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya Relawan Siaga"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#059669] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span>Relawan Siaga</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'relawan_siaga' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countRelawanSiaga}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'relawan_menangani' ? 'semua' : 'relawan_menangani')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'relawan_menangani'
+                ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya Relawan Menangani"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span>Relawan Menangani</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'relawan_menangani' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countRelawanMenangani}
+            </span>
+          </button>
+
+          <span className="hidden md:inline-block w-px h-4 bg-slate-200" />
+
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'sos_belum' ? 'semua' : 'sos_belum')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'sos_belum'
+                ? 'bg-red-100 text-red-950 ring-2 ring-red-500 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya SOS Belum Ditangani"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#ef4444] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <span>SOS Belum Ditangani</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'sos_belum' ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countSosBelum}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSetFilter(activeFilter === 'sos_ditangani' ? 'semua' : 'sos_ditangani')}
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+              activeFilter === 'sos_ditangani'
+                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
+                : activeFilter !== 'semua'
+                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                : 'hover:bg-white hover:shadow-xs text-slate-700'
+            }`}
+            title="Klik untuk memfilter: Hanya SOS Ditangani"
+          >
+            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <span>SOS Ditangani</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              activeFilter === 'sos_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {countSosDitangani}
+            </span>
+          </button>
         </div>
       )}
     </div>

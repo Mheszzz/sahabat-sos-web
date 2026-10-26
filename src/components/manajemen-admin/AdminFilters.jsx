@@ -28,10 +28,12 @@ export default function AdminFilters({
           onChange={setStatusFilter}
           options={[
             { value: 'Semua', label: 'Semua Status' },
+            { value: 'Aktif', label: 'Akun Aktif' },
+            { value: 'Nonaktif', label: 'Akun Nonaktif' },
             { value: 'Punya Akses', label: 'Punya Hak Akses' },
             { value: 'Tanpa Akses', label: 'Belum Ada Akses' },
           ]}
-          placeholder="Status Hak Akses"
+          placeholder="Status Akun & Izin"
           icon={<Filter size={13} />}
           menuWidth="w-48"
         />

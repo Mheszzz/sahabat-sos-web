@@ -20,16 +20,34 @@ export const adminService = {
   },
 
   /**
-   * Menugaskan relawan ke kasus SOS tertentu
-   * @param {number|string} sosId - ID SOS
+   * Menugaskan relawan ke kasus SOS atau Laporan tertentu
+   * @param {number|string} kasusId - ID SOS atau Laporan
    * @param {number|string} relawanId - ID Relawan yang akan di-dispatch
+   * @param {string} tipe - 'sos' | 'laporan'
    * @returns {Promise}
    */
-  dispatchRelawan: async (sosId, relawanId) => {
-    const response = await api.post('/admin/dashboard/dispatch', {
-      sos_id: sosId,
+  dispatchRelawan: async (kasusId, relawanId, tipe = 'sos') => {
+    const payload = {
       relawan_id: relawanId,
-    });
+      tipe: tipe,
+      target_id: kasusId,
+    };
+    if (tipe === 'laporan') {
+      payload.laporan_id = kasusId;
+    } else {
+      payload.sos_id = kasusId;
+    }
+    const response = await api.post('/admin/dashboard/dispatch', payload);
+    return response.data;
+  },
+
+  /**
+   * Bunyikan Sirene Posko (Alarm Massal Darurat)
+   * @param {Object} data - { action: 'on'|'off'|'trigger', pesan, sos_id, radius_km }
+   * @returns {Promise}
+   */
+  triggerSirenePosko: async (data = {}) => {
+    const response = await api.post('/admin/posko/sirene', data);
     return response.data;
   },
 
@@ -56,12 +74,15 @@ export const adminService = {
    * Menyetujui atau menolak relawan
    * @param {number|string} id - ID Relawan
    * @param {string} status - 'terverifikasi' | 'ditolak'
+   * @param {string} [alasanPenolakan] - Alasan penolakan jika status ditolak
    * @returns {Promise}
    */
-  verifikasiRelawan: async (id, status) => {
-    const response = await api.put(`/admin/relawan/${id}/verifikasi`, {
-      status_verifikasi: status,
-    });
+  verifikasiRelawan: async (id, status, alasanPenolakan = null) => {
+    const payload = { status_verifikasi: status };
+    if (alasanPenolakan) {
+      payload.alasan_penolakan = alasanPenolakan;
+    }
+    const response = await api.put(`/admin/relawan/${id}/verifikasi`, payload);
     return response.data;
   },
 
@@ -76,20 +97,32 @@ export const adminService = {
   },
 
   /**
-   * Membunyikan sirene posko secara massal
-   * @returns {Promise}
+   * Mendownload export laporan CSV (mengembalikan file blob)
+   * @param {Object} [params] - Query params (status, start_date, end_date)
+   * @returns {Promise<Blob>}
    */
-  triggerSirenePosko: async () => {
-    const response = await api.post('/admin/posko/sirene');
+  exportLaporanCsv: async (params = {}) => {
+    const response = await api.get('/admin/laporan/export', { params, responseType: 'blob' });
     return response.data;
   },
 
   /**
-   * Mendownload export laporan CSV (mengembalikan file blob)
+   * Mendownload export kasus darurat SOS CSV (mengembalikan file blob)
+   * @param {Object} [params] - Query params (status, start_date, end_date)
    * @returns {Promise<Blob>}
    */
-  exportLaporanCsv: async () => {
-    const response = await api.get('/admin/laporan/export', { responseType: 'blob' });
+  exportSosCsv: async (params = {}) => {
+    const response = await api.get('/admin/sos/export', { params, responseType: 'blob' });
+    return response.data;
+  },
+
+  /**
+   * Mendownload export rekapitulasi semua kasus (SOS & Laporan) CSV (mengembalikan file blob)
+   * @param {Object} [params] - Query params (start_date, end_date)
+   * @returns {Promise<Blob>}
+   */
+  exportKasusCsv: async (params = {}) => {
+    const response = await api.get('/admin/kasus/export', { params, responseType: 'blob' });
     return response.data;
   },
 
@@ -152,6 +185,40 @@ export const adminService = {
    */
   createAdmin: async (adminData) => {
     const response = await api.post('/superadmin/admins', adminData);
+    return response.data;
+  },
+
+  /**
+   * Mengambil detail lengkap Admin
+   * @param {number|string} id - ID Admin
+   * @returns {Promise}
+   */
+  getAdminDetail: async (id) => {
+    const response = await api.get(`/superadmin/admins/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Mengupdate data akun Admin
+   * @param {number|string} id - ID Admin
+   * @param {Object} adminData - { name, email, password, no_telp, alamat }
+   * @returns {Promise}
+   */
+  updateAdmin: async (id, adminData) => {
+    const response = await api.put(`/superadmin/admins/${id}`, adminData);
+    return response.data;
+  },
+
+  /**
+   * Mengaktifkan atau menonaktifkan akun Admin
+   * @param {number|string} id - ID Admin
+   * @param {boolean} isActive - Status keaktifan (true/false)
+   * @returns {Promise}
+   */
+  updateAdminStatus: async (id, isActive) => {
+    const response = await api.put(`/superadmin/admins/${id}/status`, {
+      is_active: isActive,
+    });
     return response.data;
   },
 

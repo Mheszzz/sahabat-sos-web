@@ -1,4 +1,4 @@
-import { Eye, Shield, Power, Clock, CheckCircle2, XCircle, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { Eye, Shield, Power, Clock, CheckCircle2, XCircle, AlertCircle, ShieldCheck, Sparkles, Edit2 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 
 /**
@@ -84,7 +84,7 @@ function SkeletonRow() {
   );
 }
 
-export default function AdminTable({ admins, isLoading, error, onDetail, onPermissions, onToggleStatus }) {
+export default function AdminTable({ admins, isLoading, error, onDetail, onEdit, onPermissions, onToggleStatus }) {
   // ── Loading State ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -183,18 +183,32 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                         <p className="text-[12px] text-slate-500 truncate">
                           {admin.email || admin.accounts?.[0]?.email || '—'}
                         </p>
-                        {/* Role Badge (Pembeda Jelas Super Admin vs Admin) */}
-                        {isSuperAdmin ? (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-                            <ShieldCheck size={11} className="text-purple-600" />
-                            Super Admin
-                          </span>
-                        ) : (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                            <Shield size={11} className="text-slate-500" />
-                            Admin
-                          </span>
-                        )}
+                        {/* Role & Status Badge */}
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {isSuperAdmin ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                              <ShieldCheck size={11} className="text-purple-600" />
+                              Super Admin
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                              <Shield size={11} className="text-slate-500" />
+                              Admin
+                            </span>
+                          )}
+
+                          {admin.is_active === false ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                              Nonaktif
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Aktif
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -259,14 +273,33 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                   {/* ── Kolom 4: Aksi ── */}
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Lihat Aktivitas */}
+                      {/* Lihat Detail Admin */}
                       <button
                         onClick={() => onDetail(admin)}
                         className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 flex items-center justify-center transition-all cursor-pointer"
-                        title="Lihat Aktivitas"
+                        title="Lihat Detail Profil & Izin"
                       >
                         <Eye size={14} />
                       </button>
+
+                      {/* Edit Akun Admin */}
+                      {isSuperAdmin ? (
+                        <button
+                          disabled
+                          className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-300 flex items-center justify-center cursor-not-allowed"
+                          title="Data Super Admin dikelola melalui halaman Pengaturan Profil Pribadi"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onEdit(admin)}
+                          className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 flex items-center justify-center transition-all cursor-pointer"
+                          title="Edit Data Admin"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      )}
 
                       {/* Kelola Hak Akses */}
                       {isSuperAdmin ? (
@@ -281,18 +314,18 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                         <button
                           onClick={() => onPermissions(admin)}
                           className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center transition-all cursor-pointer"
-                          title="Kelola Hak Akses"
+                          title="Kelola Hak Akses Modul"
                         >
                           <Shield size={14} />
                         </button>
                       )}
 
-                      {/* Cabut Hak Akses */}
+                      {/* Aktifkan / Nonaktifkan Akun (Power Toggle) */}
                       {isSuperAdmin ? (
                         <button
                           disabled
                           className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-300 flex items-center justify-center cursor-not-allowed"
-                          title="Akses Super Admin bersifat permanen dan tidak dapat dicabut"
+                          title="Akun Super Admin bersifat permanen dan tidak dapat dinonaktifkan"
                         >
                           <Power size={14} />
                         </button>
@@ -300,11 +333,11 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onPermi
                         <button
                           onClick={() => onToggleStatus(admin)}
                           className={`w-8 h-8 rounded-lg bg-white border flex items-center justify-center transition-all cursor-pointer ${
-                            hasPermissions
-                              ? 'border-slate-200 text-slate-500 hover:text-amber-600 hover:border-amber-200 hover:bg-amber-50'
-                              : 'border-slate-200 text-slate-300 hover:text-slate-500'
+                            admin.is_active === false
+                              ? 'border-emerald-200 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-300'
+                              : 'border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50'
                           }`}
-                          title={hasPermissions ? 'Cabut Seluruh Hak Akses' : 'Belum Ada Hak Akses untuk Dicabut'}
+                          title={admin.is_active === false ? 'Aktifkan Kembali Akun Admin' : 'Nonaktifkan Akun Admin'}
                         >
                           <Power size={14} />
                         </button>

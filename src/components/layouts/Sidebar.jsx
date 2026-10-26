@@ -131,6 +131,38 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
       window.removeEventListener('kasus-updated', handleUpdate);
     };
   }, [currentPath]);
+
+  // Evaluasi hak akses granular untuk filter navigasi sidebar
+  const isSuperAdmin = (currentUser?.role || '').toLowerCase() === 'superadmin' || currentUser?.role === 'Super Admin';
+  const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const hasPerm = (perm) => isSuperAdmin || permissions.includes(perm);
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.id === 'kasus-aktif' || item.id === 'riwayat') {
+      return isSuperAdmin || hasPerm('kelola_laporan') || hasPerm('pantau_peta');
+    }
+    if (item.id === 'peta') {
+      return isSuperAdmin || hasPerm('pantau_peta');
+    }
+    return true; // 'dashboard', 'pengaturan'
+  });
+
+  const visibleManajemenItems = manajemenItems.filter((item) => {
+    if (item.id === 'manajemen-admin') {
+      return isSuperAdmin || hasPerm('kelola_admin');
+    }
+    if (item.id === 'manajemen-user') {
+      return isSuperAdmin || hasPerm('kelola_relawan') || hasPerm('verifikasi_relawan');
+    }
+    if (item.id === 'master-data') {
+      return isSuperAdmin || hasPerm('kelola_admin');
+    }
+    return true;
+  });
+
+  const displayName = currentUser?.name || currentUser?.nama || 'Admin';
+  const displayRole = isSuperAdmin ? 'Super Admin' : (currentUser?.role || 'Admin');
+
   return (
     <>
       {/* Mobile overlay */}
@@ -171,22 +203,24 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
             Menu Utama
           </p>
           <div className="space-y-0.5">
-            {navItems.map(item => (
+            {visibleNavItems.map(item => (
               <NavButton key={item.id} {...item} isActive={isItemActive(item.id)} />
             ))}
           </div>
 
           {/* Manajemen Section */}
-          <div className="mt-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30 px-2.5 mb-2">
-              Manajemen
-            </p>
-            <div className="space-y-0.5">
-              {manajemenItems.map(item => (
-                <NavButton key={item.id} {...item} isActive={isItemActive(item.id)} />
-              ))}
+          {visibleManajemenItems.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30 px-2.5 mb-2">
+                Manajemen
+              </p>
+              <div className="space-y-0.5">
+                {visibleManajemenItems.map(item => (
+                  <NavButton key={item.id} {...item} isActive={isItemActive(item.id)} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex-1" />
         </div>
@@ -195,10 +229,10 @@ export default function Sidebar({ isOpen, onToggle, currentUser, onLogout }) {
         {currentUser && (
           <div className="px-3 pb-3 pt-2 border-t border-white/[0.07] flex-shrink-0">
             <div className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-white/[0.06] transition-colors">
-              <InitialsAvatar name={currentUser.nama} src={currentUser.foto_profile || currentUser.avatar_url || currentUser.foto_url} size={34} bgClass="bg-[#0b6f61]" />
+              <InitialsAvatar name={displayName} src={currentUser.foto_profile || currentUser.avatar_url || currentUser.foto_url} size={34} bgClass="bg-[#0b6f61]" />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-[13px] font-bold truncate leading-tight">{currentUser.nama}</p>
-                <p className="text-white/40 text-[11px] truncate leading-tight mt-0.5">{currentUser.role}</p>
+                <p className="text-white text-[13px] font-bold truncate leading-tight">{displayName}</p>
+                <p className="text-white/40 text-[11px] truncate leading-tight mt-0.5">{displayRole}</p>
               </div>
               <button
                 onClick={onLogout}

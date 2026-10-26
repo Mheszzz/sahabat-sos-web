@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Menu, AlertTriangle } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
+import AudioSirenController from '../AudioSirenController';
+import GlobalSearchModal from '../global/GlobalSearchModal';
 
 function getBreadcrumbs(pathname) {
   if (pathname.startsWith('/detail-kasus')) {
@@ -64,51 +67,79 @@ function getBreadcrumbs(pathname) {
 export default function TopHeader({ onMenuToggle }) {
   const location = useLocation();
   const crumbs = getBreadcrumbs(location.pathname);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+
+  // Global shortcut Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex h-[56px] flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onMenuToggle}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden"
-          aria-label="Toggle Navigation"
-        >
-          <Menu size={18} />
-        </button>
+    <>
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8 no-print gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onMenuToggle}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden shrink-0"
+            aria-label="Toggle Navigation"
+          >
+            <Menu size={18} />
+          </button>
 
-        <nav className="flex items-center gap-1.5 text-[13px] font-medium" aria-label="Breadcrumb">
-          {crumbs.map((crumb, idx) => {
-            const isLast = idx === crumbs.length - 1;
-            const IconComponent = crumb.icon;
+          <nav className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium truncate" aria-label="Breadcrumb">
+            {crumbs.map((crumb, idx) => {
+              const isLast = idx === crumbs.length - 1;
+              const IconComponent = crumb.icon;
 
-            return (
-              <div key={idx} className="flex items-center gap-1.5">
-                {crumb.to && !isLast ? (
-                  <Link
-                    to={crumb.to}
-                    className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-700 transition-colors"
-                  >
-                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
-                    <span>{crumb.label}</span>
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    {IconComponent && <IconComponent size={14} className="text-slate-400" />}
-                    <span className={isLast ? "font-semibold text-slate-700" : "text-slate-400"}>
-                      {crumb.label}
-                    </span>
-                  </div>
-                )}
-                {!isLast && (
-                  <ChevronRight size={12} className="text-slate-300 flex-shrink-0" />
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
+              return (
+                <div key={idx} className="flex items-center gap-1.5 truncate">
+                  {crumb.to && !isLast ? (
+                    <Link
+                      to={crumb.to}
+                      className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-700 transition-colors truncate"
+                    >
+                      {IconComponent && <IconComponent size={14} className="text-slate-400 shrink-0" />}
+                      <span className="truncate">{crumb.label}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center gap-1.5 truncate">
+                      {IconComponent && <IconComponent size={14} className="text-slate-400 shrink-0" />}
+                      <span className={isLast ? "font-semibold text-slate-700 truncate" : "text-slate-400 truncate"}>
+                        {crumb.label}
+                      </span>
+                    </div>
+                  )}
+                  {!isLast && (
+                    <ChevronRight size={12} className="text-slate-300 shrink-0" />
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
 
-      <NotificationDropdown />
-    </header>
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Audio Siren Controller */}
+          <AudioSirenController />
+
+          {/* Notification Dropdown */}
+          <NotificationDropdown />
+        </div>
+      </header>
+
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
+    </>
   );
 }

@@ -1,22 +1,38 @@
-import {  useState  } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Siren, AlertCircle, Loader2, ShieldCheck, Activity } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, Activity, Info, X } from 'lucide-react';
 import { useAuthForm } from '../../hooks/login/useAuthForm';
 import { s } from './LoginStyles';
 
-// Shape yang nantinya bisa diisi dari API response
-// { nama, email, role, avatar }
 export default function LoginPage() {
-  const { email, setEmail, password, setPassword, showPassword, setShowPassword, loading, error, setError, shake, handleSubmit } = useAuthForm();
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
+    loading,
+    error,
+    setError,
+    shake,
+    modalInfo,
+    openInfoModal,
+    closeModal,
+    fillDemoCredentials,
+    handleSubmit,
+  } = useAuthForm();
 
   return (
-    <div style={s.root}>
-      {/* Left panel */}
-      <div style={s.leftPanel}>
+    <div style={s.root} className="login-root">
+      {/* Left panel - Branding & Ikhtisar Platform */}
+      <div style={s.leftPanel} className="login-left-panel">
         <div style={s.leftTop}>
           <div style={s.logoWrap}>
             <div style={s.logoBox}>
-              <img src="/logo.png" alt="Sahabat SOS Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img
+                src="/logo.png"
+                alt="Sahabat SOS Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              />
             </div>
             <div>
               <p style={s.brandName}>Sahabat SOS</p>
@@ -58,10 +74,12 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p style={s.leftFooter}>Â© 2026 Sahabat SOS â€” Inklusi &amp; Tanggap Darurat Difabel</p>
+        <p style={s.leftFooter}>
+          &copy; 2026 Sahabat SOS &mdash; Inklusi &amp; Tanggap Darurat Difabel
+        </p>
       </div>
 
-      {/* Right panel */}
+      {/* Right panel - Form Login */}
       <div style={s.rightPanel}>
         <div
           style={s.formCard}
@@ -79,7 +97,7 @@ export default function LoginPage() {
                 id="login-email"
                 type="email"
                 style={{ ...s.input, ...(error ? s.inputErr : {}) }}
-                placeholder="contoh @sahabatsos.com"
+                placeholder="contoh: admin@sahabatsos.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 autoComplete="username"
@@ -91,7 +109,14 @@ export default function LoginPage() {
             <div style={s.fieldGroup}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label htmlFor="login-password" style={s.label}>Kata Sandi</label>
-                <button type="button" style={s.forgotBtn}>Lupa kata sandi?</button>
+                <button
+                  type="button"
+                  style={s.forgotBtn}
+                  onClick={() => openInfoModal('forgot')}
+                  className="hover-underline"
+                >
+                  Lupa kata sandi?
+                </button>
               </div>
               <div style={s.pwWrap}>
                 <input
@@ -109,8 +134,9 @@ export default function LoginPage() {
                   type="button"
                   style={s.eyeBtn}
                   onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                  aria-label="Toggle password visibility"
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  className="login-eye-btn"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -119,7 +145,7 @@ export default function LoginPage() {
 
             {error && (
               <div style={s.errorBox} role="alert">
-                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
                 <span>{error}</span>
               </div>
             )}
@@ -144,11 +170,31 @@ export default function LoginPage() {
 
           <div style={s.divider}>
             <div style={s.dividerLine} />
-            <span style={s.dividerText}></span>
+            <span style={s.dividerText}>Akun Demo Pengujian</span>
             <div style={s.dividerLine} />
           </div>
 
-          <div style={s.demoBox}>
+          <div
+            style={s.demoBox}
+            className="login-demo-box"
+            onClick={() => fillDemoCredentials('superadmin@sahabatsos.com', 'password123')}
+            title="Klik untuk mengisi form otomatis"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fillDemoCredentials('superadmin@sahabatsos.com', 'password123');
+              }
+            }}
+          >
+            <div style={s.demoHeader}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Info size={12} color="#059669" />
+                Superadmin Default
+              </span>
+              <span style={s.demoBadge}>Klik untuk Gunakan</span>
+            </div>
             <div style={s.demoRow}>
               <span style={s.demoKey}>Email</span>
               <code style={s.demoVal}>superadmin@sahabatsos.com</code>
@@ -162,9 +208,43 @@ export default function LoginPage() {
 
         <p style={s.rightFooter}>
           Mengalami masalah akses?{' '}
-          <button type="button" style={s.contactLink}>Hubungi Administrator</button>
+          <button
+            type="button"
+            style={s.contactLink}
+            onClick={() => openInfoModal('contact')}
+          >
+            Hubungi Administrator
+          </button>
         </p>
       </div>
+
+      {/* Modal Bantuan / Info */}
+      {modalInfo.isOpen && (
+        <div style={s.modalOverlay} onClick={closeModal} role="dialog" aria-modal="true">
+          <div style={s.modalCard} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={s.modalTitle}>{modalInfo.title}</h3>
+              <button
+                type="button"
+                onClick={closeModal}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                aria-label="Tutup modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p style={s.modalContent}>{modalInfo.message}</p>
+            <button
+              type="button"
+              style={s.modalCloseBtn}
+              onClick={closeModal}
+              className="login-submit-btn"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spinAnim {
@@ -192,6 +272,7 @@ export default function LoginPage() {
           box-shadow: 0 0 0 3px rgba(5,150,105,0.12) !important;
         }
         .login-input:disabled { opacity: 0.55; cursor: not-allowed; }
+        .login-eye-btn:hover { color: #111827 !important; }
         .login-submit-btn {
           transition: background-color 0.15s, transform 0.1s;
         }
@@ -201,11 +282,21 @@ export default function LoginPage() {
         }
         .login-submit-btn:active:not(:disabled) { transform: translateY(0); }
         .login-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .login-demo-box:hover {
+          background-color: #f1f5f9 !important;
+          border-color: #cbd5e1 !important;
+          transform: translateY(-1px);
+        }
+        .hover-underline:hover { text-decoration: underline; }
+        @media (max-width: 860px) {
+          .login-left-panel {
+            display: none !important;
+          }
+          .login-root {
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );
 }
-
-;
-
-

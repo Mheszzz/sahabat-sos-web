@@ -126,13 +126,13 @@ export default function ManajemenUserPage() {
             onClick={refreshAll}
             disabled={isRefreshing || isLoading}
             className="h-8.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-[12.5px] font-semibold transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-60 cursor-pointer"
-            title="Perbarui data dari server"
+            title="Refresh data dari server"
           >
             <RefreshCw
               size={13}
               className={`text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`}
             />
-            <span className="hidden sm:inline">Perbarui</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
           {/* + Tambah Relawan Primary Button */}

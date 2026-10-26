@@ -9,23 +9,13 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
-
-const DEFAULT_SOS_NOTIFICATIONS = [
-  {
-    id: 4,
-    type: 'sos',
-    title: 'Darurat SOS #4 - Ahmad Fauzi',
-    message: 'Kawasan Kota Yogyakarta • Butuh respon segera',
-    time: '10 Okt • 14:20 WIB',
-    read: false,
-    path: '/detail-kasus/4?tipe=sos',
-  },
-];
+import { parseSafeDate } from '../../utils/dateHelper';
+import echo from '../../api/libs/echo';
 
 export default function NotificationDropdown() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(DEFAULT_SOS_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
 
   const dropdownRef = useRef(null);
 
@@ -39,28 +29,26 @@ export default function NotificationDropdown() {
         return st !== 'selesai' && st !== 'batal';
       });
 
-      if (activeSos.length > 0) {
-        const mapped = activeSos.map(s => ({
-          id: s.id,
-          type: 'sos',
-          title: `Darurat SOS #${s.id} - ${s.pelapor?.nama || s.pelapor?.name || 'Ahmad Fauzi'}`,
-          message: `${s.lokasi?.alamat || 'Kawasan Kota Yogyakarta'} • Butuh respon segera`,
-          time: s.waktu ? formatWaktu(s.waktu) : 'Baru saja',
-          read: false,
-          path: `/detail-kasus/${s.id}?tipe=sos`,
-        }));
-        setNotifications(mapped);
-      }
-    } catch {
-      // Keep DEFAULT_SOS_NOTIFICATIONS on network error
+      const mapped = activeSos.map(s => ({
+        id: s.id,
+        type: 'sos',
+        title: `Darurat SOS #${s.id} - ${s.pelapor?.nama || s.pelapor?.name || 'Warga SOS'}`,
+        message: `${s.lokasi?.alamat || 'Wilayah Operasional'} • Butuh respon segera`,
+        time: s.waktu ? formatWaktu(s.waktu) : 'Baru saja',
+        read: false,
+        path: `/detail-kasus/${s.id}?tipe=sos`,
+      }));
+      setNotifications(mapped);
+    } catch (err) {
+      console.warn('Gagal memuat notifikasi SOS:', err);
     }
   };
 
   const formatWaktu = (dateStr) => {
     if (!dateStr) return 'Baru saja';
     try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
+      const d = parseSafeDate(dateStr);
+      if (!d) return dateStr;
       const day = d.getDate();
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       const month = monthNames[d.getMonth()];
@@ -74,6 +62,18 @@ export default function NotificationDropdown() {
 
   useEffect(() => {
     fetchActiveSos();
+
+    const channel = echo.channel('command-center');
+    channel.listen('.SOSCreated', () => {
+      fetchActiveSos();
+    });
+    channel.listen('.SOSUpdateStatus', () => {
+      fetchActiveSos();
+    });
+
+    return () => {
+      echo.leaveChannel('command-center');
+    };
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -112,7 +112,7 @@ export default function NotificationDropdown() {
   };
 
   const handleReset = () => {
-    setNotifications(DEFAULT_SOS_NOTIFICATIONS);
+    fetchActiveSos();
   };
 
   const handleItemClick = (item) => {
@@ -276,14 +276,14 @@ export default function NotificationDropdown() {
                 Tidak ada panggilan darurat SOS aktif saat ini. Semua panggilan darurat baru akan muncul di sini secara real-time.
               </p>
 
-              {/* Tombol Simulasikan Notifikasi Baru */}
+              {/* Tombol Refresh Notifikasi */}
               <button
                 onClick={handleReset}
-                className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-[11.5px] font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-                title="Tampilkan kembali notifikasi simulasi SOS"
+                className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-[11.5px] font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                title="Refresh daftar notifikasi darurat"
               >
                 <RotateCcw size={13} className="text-slate-500" />
-                <span>Simulasikan SOS Aktif (+1)</span>
+                <span>Refresh Notifikasi</span>
               </button>
             </div>
           )}

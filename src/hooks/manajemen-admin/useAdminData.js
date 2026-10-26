@@ -52,11 +52,17 @@ export function useAdminData() {
   // ── Filter & Sort ────────────────────────────────────────────────────────────
   const filteredAdmins = admins
     .filter((a) => {
-      // Filter berdasarkan kepemilikan akses (bukan status aktif/nonaktif — tidak ada di backend)
-      const hasPerms = Array.isArray(a.permissions) && a.permissions.length > 0;
+      // Filter status keaktifan & hak akses
+      const hasPerms = (a.role || '').toLowerCase() === 'superadmin' || (Array.isArray(a.permissions) && a.permissions.length > 0);
+      const isActive = a.is_active !== false;
+
       const matchStatus =
         statusFilter === 'Semua'
           ? true
+          : statusFilter === 'Aktif'
+          ? isActive
+          : statusFilter === 'Nonaktif'
+          ? !isActive
           : statusFilter === 'Punya Akses'
           ? hasPerms
           : statusFilter === 'Tanpa Akses'

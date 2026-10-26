@@ -40,7 +40,11 @@ export const authService = {
    * Ambil data user yang sedang login
    */
   getUser: () => {
-    const user = localStorage.getItem('admin_user_data');
-    return user ? JSON.parse(user) : null;
+    try {
+      const user = localStorage.getItem('admin_user_data');
+      return user ? JSON.parse(user) : null;
+    } catch {
+      return null;
+    }
   }
 };

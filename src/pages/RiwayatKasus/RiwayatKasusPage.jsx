@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, RefreshCw, Eye, ArrowUpDown, Loader2, AlertTriangle,
   Filter, ChevronLeft, ChevronRight, LayoutGrid, List,
-  MapPin, X, Calendar, ShieldCheck
+  MapPin, X, Calendar, ShieldCheck, Download, FileSpreadsheet
 } from 'lucide-react';
 import Badge from '../../components/global/Badge';
 import InitialsAvatar from '../../components/global/InitialsAvatar';
 import CustomSelect from '../../components/global/CustomSelect';
+import PaginationBar from '../../components/global/PaginationBar';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
+import { adminService } from '../../api/services/adminService';
+import { formatKasusTime, getSafeTimestamp } from '../../utils/dateHelper';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,22 +19,7 @@ const ITEMS_PER_PAGE = 10;
  * Helper format tanggal dan jam lokal Indonesia
  */
 function formatDateRow(dt) {
-  if (!dt) return '—';
-  if (typeof dt === 'string' && dt.includes('lalu')) return dt;
-  try {
-    const d = new Date(dt);
-    if (isNaN(d.getTime())) return String(dt);
-    const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
-    const isCurrentYear = d.getFullYear() === new Date().getFullYear();
-    const dateStr = d.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      ...(isCurrentYear ? {} : { year: 'numeric' }),
-    });
-    return `${timeStr}, ${dateStr}`;
-  } catch {
-    return String(dt);
-  }
+  return formatKasusTime(dt);
 }
 
 /**
@@ -52,11 +40,51 @@ export default function RiwayatKasusPage() {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportChoice, setExportChoice] = useState('semua');
 
   // Navigasi ke detail kasus (mendukung tipe 'sos' dan 'laporan')
   const onOpenDetail = (id, tipeKategori) => {
     const tipe = tipeKategori === 'SOS' ? 'sos' : 'laporan';
     navigate(`/detail-kasus/${id}?tipe=${tipe}`);
+  };
+
+  const handleDownloadCsv = async (choice = 'semua') => {
+    try {
+      setIsExporting(true);
+      let blobData = null;
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      let defaultFilename = `rekap_semua_kasus_${dateStamp}.csv`;
+
+      if (choice === 'sos') {
+        blobData = await adminService.exportSosCsv();
+        defaultFilename = `rekap_kasus_sos_${dateStamp}.csv`;
+      } else if (choice === 'laporan') {
+        blobData = await adminService.exportLaporanCsv();
+        defaultFilename = `rekap_laporan_kasus_${dateStamp}.csv`;
+      } else {
+        blobData = await adminService.exportKasusCsv();
+        defaultFilename = `rekap_semua_kasus_${dateStamp}.csv`;
+      }
+
+      if (blobData) {
+        const url = window.URL.createObjectURL(new Blob([blobData], { type: 'text/csv;charset=utf-8;' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', defaultFilename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
+      setShowExportModal(false);
+    } catch (err) {
+      console.error('Gagal mengekspor data CSV:', err);
+      alert('Gagal mengunduh file CSV. Pastikan koneksi server backend tersedia.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const fetchRiwayat = async () => {
@@ -125,9 +153,7 @@ export default function RiwayatKasusPage() {
 
   const getRawTimestamp = (c) => {
     const raw = c.waktu ?? c.waktu_laporan ?? c.waktu_sos ?? c.updated_at ?? c.created_at;
-    if (!raw) return 0;
-    const t = new Date(raw).getTime();
-    return isNaN(t) ? 0 : t;
+    return getSafeTimestamp(raw);
   };
 
   // Kategori unik untuk dropdown filter
@@ -285,16 +311,26 @@ export default function RiwayatKasusPage() {
             })}
           </div>
 
-          {/* Actions: Sinkronkan Data & View Mode */}
+          {/* Actions: Ekspor CSV, Refresh Data & View Mode */}
           <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
+            <button
+              onClick={() => setShowExportModal(true)}
+              disabled={isExporting}
+              className="flex h-8 items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 hover:border-teal-300 px-3 text-[12px] font-semibold text-[#0b6f61] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+              title="Ekspor rekapitulasi data kasus ke CSV"
+            >
+              {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={13} />}
+              <span>Ekspor CSV</span>
+            </button>
+
             <button
               onClick={fetchRiwayat}
               disabled={loading}
               className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 px-3 text-[12px] font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer"
-              title="Muat ulang seluruh data riwayat"
+              title="Refresh seluruh data riwayat"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin text-[#0b6f61]' : ''} />
-              <span>Sinkronkan Data</span>
+              <span>Refresh</span>
             </button>
 
             <div className="h-4 w-px bg-slate-200 hidden sm:block" />
@@ -583,44 +619,15 @@ export default function RiwayatKasusPage() {
           </div>
 
           {/* Pagination Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500 gap-3">
-            <span>
-              Menampilkan <strong>{paginatedCases.length}</strong> dari <strong>{sortedCases.length}</strong> riwayat kasus (Total: {cases.length})
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Sebelumnya"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold cursor-pointer transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-[#0b6f61] text-white shadow-xs'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Selanjutnya"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-          </div>
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            showingCount={paginatedCases.length}
+            filteredCount={sortedCases.length}
+            totalCount={cases.length}
+            label="riwayat kasus"
+          />
         </div>
       )}
 
@@ -709,43 +716,97 @@ export default function RiwayatKasusPage() {
           </div>
 
           {/* Pagination Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500 gap-3 bg-white rounded-2xl border border-slate-200">
-            <span>
-              Menampilkan <strong>{paginatedCases.length}</strong> dari <strong>{sortedCases.length}</strong> riwayat kasus
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Sebelumnya"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold cursor-pointer transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-[#0b6f61] text-white shadow-xs'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showingCount={paginatedCases.length}
+              filteredCount={sortedCases.length}
+              totalCount={cases.length}
+              label="riwayat kasus"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Dialog Pilihan Ekspor CSV ── */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-teal-100 text-[#0b6f61] flex items-center justify-center">
+                  <FileSpreadsheet size={16} />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-slate-900 leading-tight">Ekspor Rekapitulasi CSV</h3>
+                  <p className="text-[11.5px] text-slate-500">Unduh data kasus dalam format spreadsheet CSV</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-[12.5px] text-slate-600">
+                Pilih jenis data kasus yang ingin diekspor ke dalam file CSV:
+              </p>
+
+              <div className="space-y-2">
+                {[
+                  { id: 'semua', label: 'Semua Kasus Terpadu', desc: 'Rekapitulasi gabungan kasus Darurat SOS & Laporan Masuk' },
+                  { id: 'sos', label: 'Khusus Kasus Darurat SOS', desc: 'Hanya riwayat sinyal darurat SOS dan durasi penanganannya' },
+                  { id: 'laporan', label: 'Khusus Laporan Warga', desc: 'Hanya data laporan kejadian masuk dan status penyelesaian' },
+                ].map(opt => (
+                  <label
+                    key={opt.id}
+                    onClick={() => setExportChoice(opt.id)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      exportChoice === opt.id
+                        ? 'bg-teal-50/60 border-[#0b6f61] ring-1 ring-[#0b6f61]/20'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    {i + 1}
-                  </button>
+                    <input
+                      type="radio"
+                      name="exportChoice"
+                      value={opt.id}
+                      checked={exportChoice === opt.id}
+                      onChange={() => setExportChoice(opt.id)}
+                      className="mt-0.5 text-[#0b6f61] focus:ring-[#0b6f61]"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-bold text-slate-900 leading-snug">{opt.label}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</p>
+                    </div>
+                  </label>
                 ))}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Selanjutnya"
-                >
-                  <ChevronRight size={14} />
-                </button>
               </div>
-            )}
+            </div>
+
+            <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowExportModal(false)}
+                className="px-3.5 py-2 rounded-xl text-[12.5px] font-semibold text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={() => handleDownloadCsv(exportChoice)}
+                className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white bg-[#0b6f61] hover:bg-[#09594e] flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={14} />}
+                <span>{isExporting ? 'Memproses Ekspor...' : 'Unduh Berkas CSV'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
