@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import {
   Navigation, Plus, Minus, RotateCcw, Eye, Phone,
   AlertTriangle, Shield, HeartPulse, Clock, X, Radio,
-  MessageCircle, MapPin, Layers
+  MessageCircle, MapPin, Layers, Users
 } from 'lucide-react';
 
 // Pusat Default Wilayah D.I. Yogyakarta (Tugu / Malioboro)
@@ -196,7 +196,11 @@ export default function ModernEmergencyMap({
 
       if (isRelawan) {
         const itemStatus = String(item.status || '').toLowerCase().trim();
-        const isMenangani = itemStatus === 'dalam_misi' || itemStatus === 'sedang_bertugas' || itemStatus === 'bertugas' || Boolean(item.misi && (item.misi.id || item.misi.id_kasus));
+        const isMenangani = itemStatus === 'dalam_misi' ||
+          itemStatus === 'sedang_bertugas' ||
+          itemStatus === 'bertugas' ||
+          itemStatus === 'sedang bertugas' ||
+          Boolean(item.misi && (item.misi.id || item.misi.id_kasus));
         if (activeFilter === 'relawan_menangani') return isMenangani;
         if (activeFilter === 'relawan_siaga') return !isMenangani;
         return false;
@@ -253,6 +257,7 @@ export default function ModernEmergencyMap({
         const isRelawanMenangani = statusLower === 'dalam_misi' ||
           statusLower === 'sedang_bertugas' ||
           statusLower === 'bertugas' ||
+          statusLower === 'sedang bertugas' ||
           Boolean(item.misi && (item.misi.id || item.misi.id_kasus));
         const markerClass = isRelawanMenangani
           ? 'command-map-marker relawan-marker relawan-menangani group'
@@ -509,148 +514,211 @@ export default function ModernEmergencyMap({
         {children}
 
         {/* ── Interactive Popup / Detail Card when marker is clicked ── */}
-        {selectedItem && (
-          <div className={`absolute z-30 max-w-85 w-[calc(100%-1.75rem)] bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-4 animate-fade-in max-h-[calc(100%-70px)] overflow-y-auto ${
-            popupClassName || (fullscreen ? 'left-3.5 bottom-14.5' : 'left-3.5 bottom-3.5')
-          }`}>
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-[13px] text-slate-900">{selectedItem.displayId || selectedItem.label || selectedItem.id}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    selectedItem.type === 'sos' ? 'bg-red-500 text-white' :
-                    selectedItem.type === 'relawan' ? 'bg-emerald-600 text-white' :
-                    'bg-amber-500 text-white'
-                  }`}>
-                    {selectedItem.type === 'relawan'
-                      ? (selectedItem.status === 'Bertugas' || selectedItem.status === 'sedang_bertugas' ? 'Bertugas' : 'Siaga')
-                      : selectedItem.status}
-                  </span>
-                </div>
-                <h4 className="text-[13px] font-bold text-slate-800 mt-1 leading-snug">{selectedItem.kategori}</h4>
-              </div>
-              <button
-                onClick={() => handleSetSelectedItem(null)}
-                aria-label="Tutup jendela detail"
-                className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
+        {selectedItem && (() => {
+          const s = String(selectedItem.status || '').toLowerCase().trim();
+          const isSelectedRelawanBusy = selectedItem.type === 'relawan' && (
+            s === 'bertugas' ||
+            s === 'sedang bertugas' ||
+            s === 'sedang_bertugas' ||
+            s === 'dalam_misi' ||
+            Boolean(selectedItem.misi && (selectedItem.misi.id || selectedItem.misi.id_kasus))
+          );
 
-            {/* Info Body */}
-            {selectedItem.type === 'relawan' ? (
-              <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+          return (
+            <div className={`absolute z-30 max-w-85 w-[calc(100%-1.75rem)] bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 p-4 animate-fade-in max-h-[calc(100%-70px)] overflow-y-auto ${
+              popupClassName || (fullscreen ? 'left-3.5 bottom-14.5' : 'left-3.5 bottom-3.5')
+            }`}>
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Nama Relawan:</span>
-                  <strong className="text-slate-900 text-[13px]">{selectedItem.relawan || selectedItem.label}</strong>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-[13px] text-slate-900">{selectedItem.displayId || selectedItem.label || selectedItem.id}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      selectedItem.type === 'sos' ? 'bg-red-500 text-white' :
+                      selectedItem.type === 'relawan'
+                        ? (isSelectedRelawanBusy ? 'bg-orange-600 text-white' : 'bg-emerald-600 text-white')
+                        : 'bg-amber-500 text-white'
+                    }`}>
+                      {selectedItem.type === 'relawan'
+                        ? (isSelectedRelawanBusy ? 'Bertugas' : 'Siaga')
+                        : selectedItem.status}
+                    </span>
+                  </div>
+                  <h4 className="text-[13px] font-bold text-slate-800 mt-1 leading-snug">{selectedItem.kategori}</h4>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[11px]">Keahlian / Spesialisasi:</span>
-                  <span className="text-slate-700 font-medium">{selectedItem.kategori}</span>
+                <button
+                  onClick={() => handleSetSelectedItem(null)}
+                  aria-label="Tutup jendela detail"
+                  className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Info Body */}
+              {selectedItem.type === 'relawan' ? (
+                <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Nama Relawan:</span>
+                    <strong className="text-slate-900 text-[13px]">{selectedItem.relawan || selectedItem.label}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Keahlian / Spesialisasi:</span>
+                    <span className="text-slate-700 font-medium">{selectedItem.kategori}</span>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <MapPin size={13} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="text-slate-500">Status Operasi:</span>
+                    <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                      isSelectedRelawanBusy
+                        ? 'text-orange-700 bg-orange-50 border border-orange-200'
+                        : 'text-emerald-700 bg-emerald-50'
+                    }`}>
+                      {isSelectedRelawanBusy ? 'Sedang Bertugas' : 'Siaga Aktif'}
+                    </span>
+                  </div>
+                  {selectedItem.misi && (
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-900 mt-1 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-blue-950">
+                        <span>Misi Tanggap Darurat</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
+                            handleSetSelectedItem(null);
+                          }}
+                          className="underline text-blue-700 hover:text-blue-900 cursor-pointer font-extrabold"
+                        >
+                          {selectedItem.misi.id_kasus}
+                        </button>
+                      </div>
+                      {selectedItem.misi.pelapor && (
+                        <div className="text-[10.5px] text-slate-600">
+                          Korban/Pelapor: <strong className="text-slate-800">{selectedItem.misi.pelapor}</strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-start gap-1">
-                  <MapPin size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
+              ) : (
+                <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Prioritas:</span>
+                    <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                      selectedItem.prioritas === 'DARURAT' || selectedItem.type === 'sos'
+                        ? 'text-red-700 bg-red-50'
+                        : 'text-amber-700 bg-amber-50'
+                    }`}>
+                      {selectedItem.prioritas || 'Prioritas'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Nama Pelapor / Korban:</span>
+                    <strong className="text-slate-800">{selectedItem.pelapor}</strong>
+                  </div>
+                  <div className="flex items-start gap-1">
+                    <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                    <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="text-slate-500">Relawan: <strong className="text-slate-800">{selectedItem.relawan}</strong></span>
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                      ETA {selectedItem.eta}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                  <span className="text-slate-500">Status Operasi:</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
-                    {selectedItem.status === 'Bertugas' || selectedItem.status === 'sedang_bertugas' || selectedItem.status === 'dalam_misi' ? 'Sedang Bertugas' : 'Siaga Aktif'}
-                  </span>
-                </div>
-                {selectedItem.misi && (
-                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-900 mt-1 space-y-1">
-                    <div className="flex items-center justify-between font-bold text-blue-950">
-                      <span>Misi Tanggap Darurat</span>
+              )}
+
+              {/* Action buttons */}
+              <div className="pt-2.5 border-t border-slate-100 space-y-2">
+                {/* Baris 1: Tombol Panggilan Seluler & WhatsApp jika ada kontak */}
+                {selectedItem.type === 'relawan' && selectedItem.kontak && (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`tel:${selectedItem.kontak}`}
+                      className="flex-1 btn-base bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs"
+                      title={`Panggil ${selectedItem.relawan || selectedItem.label}`}
+                    >
+                      <Phone size={12} />
+                      <span>Telepon</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${String(selectedItem.kontak).replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(`Halo ${selectedItem.relawan || selectedItem.label}, kami dari Command Center Sahabat SOS D.I. Yogyakarta.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 btn-base bg-teal-600 hover:bg-teal-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs"
+                      title={`WhatsApp ${selectedItem.relawan || selectedItem.label}`}
+                    >
+                      <MessageCircle size={12} />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+
+                {/* Baris 2: Tombol Navigasi Kasus & Kelola */}
+                {selectedItem.type === 'relawan' ? (
+                  <div className="flex items-center gap-2">
+                    {selectedItem.misi ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
+                            handleSetSelectedItem(null);
+                          }}
+                          className="flex-1 btn-base bg-[#0b6f61] hover:bg-[#095c52] text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold shadow-2xs transition-colors cursor-pointer"
+                          title={`Buka detail kasus ${selectedItem.misi.id_kasus || 'aktif'}`}
+                        >
+                          <Eye size={12} />
+                          <span className="truncate">Detail Kasus ({selectedItem.misi.id_kasus || 'Misi'})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onOpenDetail?.(selectedItem.id, 'relawan', selectedItem);
+                            handleSetSelectedItem(null);
+                          }}
+                          className="btn-base bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[11px] py-1.5 h-8 px-2.5 rounded-lg flex items-center justify-center gap-1 font-semibold transition-colors cursor-pointer shrink-0"
+                          title="Buka data relawan di halaman Kelola Relawan"
+                        >
+                          <Users size={12} className="text-slate-500" />
+                          <span>Kelola Relawan</span>
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
                         onClick={() => {
-                          onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
+                          onOpenDetail?.(selectedItem.id, 'relawan', selectedItem);
                           handleSetSelectedItem(null);
                         }}
-                        className="underline text-blue-700 hover:text-blue-900 cursor-pointer font-extrabold"
+                        className="w-full btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5"
                       >
-                        {selectedItem.misi.id_kasus}
+                        <Eye size={12} />
+                        <span>Kelola Relawan</span>
                       </button>
-                    </div>
-                    {selectedItem.misi.pelapor && (
-                      <div className="text-[10.5px] text-slate-600">
-                        Korban/Pelapor: <strong className="text-slate-800">{selectedItem.misi.pelapor}</strong>
-                      </div>
                     )}
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
+                      handleSetSelectedItem(null);
+                    }}
+                    className="w-full btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5"
+                  >
+                    <Eye size={12} />
+                    <span>Lihat Detail</span>
+                  </button>
                 )}
               </div>
-            ) : (
-              <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Prioritas:</span>
-                  <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                    selectedItem.prioritas === 'DARURAT' || selectedItem.type === 'sos'
-                      ? 'text-red-700 bg-red-50'
-                      : 'text-amber-700 bg-amber-50'
-                  }`}>
-                    {selectedItem.prioritas || 'Prioritas'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[11px]">Nama Pelapor / Korban:</span>
-                  <strong className="text-slate-800">{selectedItem.pelapor}</strong>
-                </div>
-                <div className="flex items-start gap-1">
-                  <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
-                  <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi}</span>
-                </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                  <span className="text-slate-500">Relawan: <strong className="text-slate-800">{selectedItem.relawan}</strong></span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
-                    ETA {selectedItem.eta}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-              {selectedItem.type === 'relawan' && selectedItem.kontak && (
-                <>
-                  <a
-                    href={`tel:${selectedItem.kontak}`}
-                    className="flex-1 btn-base bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold"
-                    title={`Panggil ${selectedItem.relawan || selectedItem.label}`}
-                  >
-                    <Phone size={12} />
-                    <span>Telepon</span>
-                  </a>
-                  <a
-                    href={`https://wa.me/${String(selectedItem.kontak).replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(`Halo ${selectedItem.relawan || selectedItem.label}, kami dari Command Center Sahabat SOS D.I. Yogyakarta.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 btn-base bg-teal-600 hover:bg-teal-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold"
-                    title={`WhatsApp ${selectedItem.relawan || selectedItem.label}`}
-                  >
-                    <MessageCircle size={12} />
-                    <span>WhatsApp</span>
-                  </a>
-                </>
-              )}
-              <button
-                onClick={() => {
-                  onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
-                  handleSetSelectedItem(null);
-                }}
-                className={`btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg ${
-                  selectedItem.type === 'relawan' && selectedItem.kontak ? 'w-auto px-3' : 'w-full'
-                }`}
-              >
-                <Eye size={12} />
-                <span>{selectedItem.type === 'relawan' ? 'Kelola Relawan' : 'Lihat Detail'}</span>
-              </button>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* ── Bottom Legend (Only shown if showLegend is true) ── */}

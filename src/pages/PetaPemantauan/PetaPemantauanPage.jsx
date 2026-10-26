@@ -222,18 +222,19 @@ export default function PetaPemantauanPage() {
         // 3. Titik Relawan Siaga & Bertugas
         volList.forEach(r => {
           const lokasiRiil = r.lokasi_user ? r.lokasi_user.replace(/Posko\s+/gi, '').trim() : 'Area Siaga D.I. Yogyakarta';
+          const isBertugas = r.status === 'sedang_bertugas' || r.status === 'dalam_misi' || Boolean(r.misi && (r.misi.id || r.misi.id_kasus));
           mappedData.push({
             id: 'REL-' + r.id,
             displayId: r.nama,
             type: 'relawan',
             label: r.nama,
             kategori: r.kompetensi || 'Relawan Siaga',
-            prioritas: (r.status === 'sedang_bertugas' || r.status === 'dalam_misi') ? 'Bertugas' : 'Siaga',
+            prioritas: isBertugas ? 'Bertugas' : 'Siaga',
             pelapor: 'Unit Relawan',
             lokasi: lokasiRiil,
-            status: (r.status === 'sedang_bertugas' || r.status === 'dalam_misi') ? 'Sedang Bertugas' : 'Siaga Aktif',
+            status: isBertugas ? 'Sedang Bertugas' : 'Siaga Aktif',
             relawan: r.nama,
-            eta: (r.status === 'sedang_bertugas' || r.status === 'dalam_misi') ? 'Menuju Lokasi' : 'Siaga Aktif',
+            eta: isBertugas ? 'Menuju Lokasi' : 'Siaga Aktif',
             lat: r.latitude,
             lng: r.longitude,
             waktu: 'Real-time GPS',
@@ -291,7 +292,7 @@ export default function PetaPemantauanPage() {
         }
       }
 
-      const isBusy = v.status === 'sedang_bertugas' || v.status === 'dalam_misi';
+      const isBusy = v.status === 'sedang_bertugas' || v.status === 'dalam_misi' || Boolean(v.misi && (v.misi.id || v.misi.id_kasus));
 
       return {
         id: v.id,
