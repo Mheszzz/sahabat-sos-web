@@ -47,7 +47,7 @@ export const s = {
   leftBody: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' },
   leftIcon: { marginBottom: '18px' },
   leftTitle: { color: '#fff', fontSize: '21px', fontWeight: '700', margin: '0 0 10px 0', letterSpacing: '-0.3px', lineHeight: '1.3' },
-  leftDesc: { color: 'rgba(255,255,255,0.65)', fontSize: '13px', lineHeight: '1.7', margin: '0 0 28px 0' },
+  leftDesc: { color: 'rgba(255,255,255,0.85)', fontSize: '13px', lineHeight: '1.7', margin: '0 0 28px 0' },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' },
   statCard: {
     backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
@@ -55,14 +55,14 @@ export const s = {
     flexDirection: 'column', alignItems: 'center', gap: '4px',
   },
   statNum: { color: '#fff', fontSize: '20px', fontWeight: '700', lineHeight: '1' },
-  statLabel: { color: 'rgba(255,255,255,0.6)', fontSize: '10px', textAlign: 'center', lineHeight: '1.3' },
+  statLabel: { color: 'rgba(255,255,255,0.85)', fontSize: '10px', textAlign: 'center', lineHeight: '1.3' },
   statusRow: {
     display: 'flex', alignItems: 'center', gap: '7px',
     backgroundColor: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.14)',
     borderRadius: '8px', padding: '9px 14px',
   },
   statusText: { color: '#6ee7b7', fontSize: '12px', fontWeight: '500' },
-  leftFooter: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '28px', lineHeight: '1.5' },
+  leftFooter: { color: 'rgba(255,255,255,0.75)', fontSize: '11px', marginTop: '28px', lineHeight: '1.5' },
 
   rightPanel: {
     flex: 1, display: 'flex', flexDirection: 'column',
@@ -117,7 +117,7 @@ export const s = {
   divider: { display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0 14px' },
   dividerLine: { flex: 1, height: '1px', backgroundColor: '#e5e7eb' },
   dividerText: {
-    fontSize: '10px', color: '#9ca3af', fontWeight: '600',
+    fontSize: '10px', color: '#475569', fontWeight: '600',
     whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.06em',
   },
   demoBox: {

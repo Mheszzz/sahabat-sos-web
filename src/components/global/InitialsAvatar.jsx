@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { getInitials } from '../../utils/theme';
+import { useState, useEffect } from 'react';
+import { getInitials, resolveStorageUrl } from '../../utils/theme';
 
 export default function InitialsAvatar({
   name,
@@ -11,11 +11,17 @@ export default function InitialsAvatar({
 }) {
   const [imgError, setImgError] = useState(false);
   const initials = getInitials(name);
+  const resolvedSrc = resolveStorageUrl(src);
 
-  if (src && !imgError) {
+  // Reset status error saat URL/path gambar berganti
+  useEffect(() => {
+    setImgError(false);
+  }, [resolvedSrc]);
+
+  if (resolvedSrc && !imgError) {
     return (
       <img
-        src={src}
+        src={resolvedSrc}
         alt={name || 'Avatar'}
         onError={() => setImgError(true)}
         className={`rounded-full object-cover flex-shrink-0 ${className}`}

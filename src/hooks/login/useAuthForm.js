@@ -12,6 +12,17 @@ export function useAuthForm() {
   const [shake, setShake] = useState(false);
   const [modalInfo, setModalInfo] = useState({ isOpen: false, title: '', message: '' });
 
+  // Konfigurasi akun demo pengujian dari environment variable
+  const demoEmail = import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'superadmin@sahabatsos.com';
+  const demoPassword = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || 'password123';
+  const isDemoEnabled =
+    import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true' ||
+    (import.meta.env.DEV && import.meta.env.VITE_SHOW_DEMO_CREDENTIALS !== 'false');
+
+  // Konfigurasi kontak posko bantuan
+  const supportEmail = import.meta.env.VITE_SUPPORT_EMAIL || 'posko@sahabatsos.com';
+  const supportPhone = import.meta.env.VITE_SUPPORT_PHONE || '0812-3456-7890';
+
   // Guest guard: jika admin sudah memiliki token aktif, langsung arahkan ke dashboard
   useEffect(() => {
     if (authService.isAuthenticated()) {
@@ -24,9 +35,15 @@ export function useAuthForm() {
     setTimeout(() => setShake(false), 500);
   };
 
-  const fillDemoCredentials = (demoEmail, demoPassword) => {
+  const handleFillDemo = () => {
     setEmail(demoEmail);
     setPassword(demoPassword);
+    setError('');
+  };
+
+  const fillDemoCredentials = (customEmail, customPassword) => {
+    setEmail(customEmail || demoEmail);
+    setPassword(customPassword || demoPassword);
     setError('');
   };
 
@@ -35,13 +52,13 @@ export function useAuthForm() {
       setModalInfo({
         isOpen: true,
         title: 'Pemulihan Kata Sandi Administrator',
-        message: 'Demi alasan keamanan operasional dan privasi data tanggap darurat, reset kata sandi akun Admin dilakukan secara terpusat oleh Superadmin atau Tim IT Posko Sahabat SOS. Silakan hubungi Superadmin atau Posko Utama untuk menerbitkan kata sandi baru.',
+        message: 'Demi alasan keamanan operasional dan privasi data tanggap darurat, reset kata sandi akun Admin dilakukan secara terpusat oleh Superadmin atau Tim IT Posko Sahabat SOS. Silakan hubungi Posko Pusat untuk menerbitkan kata sandi baru.',
       });
     } else if (type === 'contact') {
       setModalInfo({
         isOpen: true,
         title: 'Pusat Bantuan & Kontak Administrator',
-        message: 'Hubungi Posko Pusat Sahabat SOS:\n• Email: superadmin@sahabatsos.com\n• Telepon/WhatsApp Posko: 0812-3456-7890\n• Jam Operasional Posko Tanggap Darurat: 24 Jam Non-Stop.',
+        message: `Hubungi Posko Pusat Sahabat SOS:\n• Email: ${supportEmail}\n• Telepon/WhatsApp Posko: ${supportPhone}\n• Jam Operasional Posko Tanggap Darurat: 24 Jam Non-Stop.`,
       });
     }
   };
@@ -104,6 +121,10 @@ export function useAuthForm() {
     modalInfo,
     openInfoModal,
     closeModal,
+    isDemoEnabled,
+    demoEmail,
+    demoPassword,
+    handleFillDemo,
     fillDemoCredentials,
     handleSubmit
   };

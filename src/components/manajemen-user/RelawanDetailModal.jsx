@@ -110,7 +110,7 @@ export default function RelawanDetailModal({
 
             <div className="min-w-0 flex-1">
               <h3 className="text-[16px] font-bold text-slate-900 truncate">
-                {relawan.name || relawan.nama || '—'}
+                {relawan.name || relawan.nama || '-'}
               </h3>
               <p className="text-[12.5px] text-slate-500 truncate">{relawan.email || 'Email tidak tersedia'}</p>
 
@@ -189,7 +189,7 @@ export default function RelawanDetailModal({
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No. Telepon / WA</p>
-                <p className="font-semibold text-slate-900 mt-0.5">{relawan.no_telp || '—'}</p>
+                <p className="font-semibold text-slate-900 mt-0.5">{relawan.no_telp || '-'}</p>
               </div>
             </div>
 
@@ -211,7 +211,7 @@ export default function RelawanDetailModal({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alamat Domisili</p>
-                <p className="font-semibold text-slate-800 mt-0.5 leading-relaxed">{relawan.alamat || '—'}</p>
+                <p className="font-semibold text-slate-800 mt-0.5 leading-relaxed">{relawan.alamat || '-'}</p>
               </div>
             </div>
 
@@ -268,15 +268,26 @@ export default function RelawanDetailModal({
                     <p className="text-[10.5px] text-slate-400">Dokumen berkas terlampir</p>
                   </div>
                 </div>
-                <a
-                  href={relawan.dokumen_kyc.startsWith('http') ? relawan.dokumen_kyc : `/storage-file/${relawan.dokumen_kyc}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0b6f61] text-[11.5px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <span>Lihat Berkas</span>
-                  <ExternalLink size={12} />
-                </a>
+                {(() => {
+                  const isExternal = relawan.dokumen_kyc.startsWith('http://') || relawan.dokumen_kyc.startsWith('https://');
+                  const safeHref = isExternal ? null : `/storage-file/${relawan.dokumen_kyc}`;
+
+                  return safeHref ? (
+                    <a
+                      href={safeHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0b6f61] text-[11.5px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span>Lihat Berkas</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    <span className="px-2.5 py-1 text-[11px] font-semibold text-rose-600 bg-rose-50 rounded-lg">
+                      Link Eksternal Ditolak
+                    </span>
+                  );
+                })()}
               </div>
             ) : (
               <div className="p-3 bg-white rounded-xl border border-dashed border-slate-200 text-center">

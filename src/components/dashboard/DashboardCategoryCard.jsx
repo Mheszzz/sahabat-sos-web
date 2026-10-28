@@ -39,7 +39,7 @@ export default function DashboardCategoryCard({
             onClick={() => setIsDropdownOpen((prev) => !prev)}
             aria-expanded={isDropdownOpen}
             aria-haspopup="listbox"
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-2xs hover:bg-slate-50 focus:outline-hidden focus:ring-1 focus:ring-emerald-600/20 transition-colors"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-2xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 transition-colors"
           >
             <span>{activeFilter}</span>
             <ChevronDown

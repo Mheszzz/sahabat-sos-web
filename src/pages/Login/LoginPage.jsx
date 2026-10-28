@@ -17,7 +17,10 @@ export default function LoginPage() {
     modalInfo,
     openInfoModal,
     closeModal,
-    fillDemoCredentials,
+    isDemoEnabled,
+    demoEmail,
+    demoPassword,
+    handleFillDemo,
     handleSubmit,
   } = useAuthForm();
 
@@ -56,16 +59,16 @@ export default function LoginPage() {
           </p>
           <div style={s.statGrid}>
             <div style={s.statCard}>
-              <span style={s.statNum}>48</span>
-              <span style={s.statLabel}>Laporan Aktif</span>
+              <span style={s.statNum}>DIY</span>
+              <span style={s.statLabel}>Wilayah Layanan</span>
             </div>
             <div style={s.statCard}>
-              <span style={s.statNum}>15</span>
-              <span style={s.statLabel}>Sukarelawan</span>
+              <span style={s.statNum}>24/7</span>
+              <span style={s.statLabel}>Siaga Tanggap</span>
             </div>
             <div style={s.statCard}>
-              <span style={s.statNum}>142</span>
-              <span style={s.statLabel}>Terselesaikan</span>
+              <span style={s.statNum}>Inklusi</span>
+              <span style={s.statLabel}>Multi-Disabilitas</span>
             </div>
           </div>
           <div style={s.statusRow}>
@@ -75,7 +78,7 @@ export default function LoginPage() {
         </div>
 
         <p style={s.leftFooter}>
-          &copy; 2026 Sahabat SOS &mdash; Inklusi &amp; Tanggap Darurat Difabel
+          &copy; {new Date().getFullYear()} Sahabat SOS - Inklusi &amp; Tanggap Darurat Difabel
         </p>
       </div>
 
@@ -168,42 +171,46 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div style={s.divider}>
-            <div style={s.dividerLine} />
-            <span style={s.dividerText}>Akun Demo Pengujian</span>
-            <div style={s.dividerLine} />
-          </div>
+          {isDemoEnabled && (
+            <>
+              <div style={s.divider}>
+                <div style={s.dividerLine} />
+                <span style={s.dividerText}>Akun Demo Pengujian</span>
+                <div style={s.dividerLine} />
+              </div>
 
-          <div
-            style={s.demoBox}
-            className="login-demo-box"
-            onClick={() => fillDemoCredentials('superadmin@sahabatsos.com', 'password123')}
-            title="Klik untuk mengisi form otomatis"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                fillDemoCredentials('superadmin@sahabatsos.com', 'password123');
-              }
-            }}
-          >
-            <div style={s.demoHeader}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Info size={12} color="#059669" />
-                Superadmin Default
-              </span>
-              <span style={s.demoBadge}>Klik untuk Gunakan</span>
-            </div>
-            <div style={s.demoRow}>
-              <span style={s.demoKey}>Email</span>
-              <code style={s.demoVal}>superadmin@sahabatsos.com</code>
-            </div>
-            <div style={s.demoRow}>
-              <span style={s.demoKey}>Sandi</span>
-              <code style={s.demoVal}>password123</code>
-            </div>
-          </div>
+              <div
+                style={s.demoBox}
+                className="login-demo-box"
+                onClick={handleFillDemo}
+                title="Klik untuk mengisi form otomatis"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleFillDemo();
+                  }
+                }}
+              >
+                <div style={s.demoHeader}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Info size={12} color="#059669" />
+                    Superadmin Default
+                  </span>
+                  <span style={s.demoBadge}>Klik untuk Gunakan</span>
+                </div>
+                <div style={s.demoRow}>
+                  <span style={s.demoKey}>Email</span>
+                  <code style={s.demoVal}>{demoEmail}</code>
+                </div>
+                <div style={s.demoRow}>
+                  <span style={s.demoKey}>Sandi</span>
+                  <code style={s.demoVal}>{demoPassword}</code>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <p style={s.rightFooter}>

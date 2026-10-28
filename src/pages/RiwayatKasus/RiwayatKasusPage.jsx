@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, RefreshCw, Eye, ArrowUpDown, Loader2, AlertTriangle,
   Filter, ChevronLeft, ChevronRight, LayoutGrid, List,
-  MapPin, X, Calendar, ShieldCheck, Download, FileSpreadsheet
+  MapPin, X, Calendar, ShieldCheck
 } from 'lucide-react';
 import Badge from '../../components/global/Badge';
 import InitialsAvatar from '../../components/global/InitialsAvatar';
 import CustomSelect from '../../components/global/CustomSelect';
 import PaginationBar from '../../components/global/PaginationBar';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
-import { adminService } from '../../api/services/adminService';
 import { formatKasusTime, getSafeTimestamp } from '../../utils/dateHelper';
 
 const ITEMS_PER_PAGE = 10;
@@ -40,51 +39,11 @@ export default function RiwayatKasusPage() {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isExporting, setIsExporting] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportChoice, setExportChoice] = useState('semua');
 
   // Navigasi ke detail kasus (mendukung tipe 'sos' dan 'laporan')
   const onOpenDetail = (id, tipeKategori) => {
     const tipe = tipeKategori === 'SOS' ? 'sos' : 'laporan';
     navigate(`/detail-kasus/${id}?tipe=${tipe}`);
-  };
-
-  const handleDownloadCsv = async (choice = 'semua') => {
-    try {
-      setIsExporting(true);
-      let blobData = null;
-      const dateStamp = new Date().toISOString().slice(0, 10);
-      let defaultFilename = `rekap_semua_kasus_${dateStamp}.csv`;
-
-      if (choice === 'sos') {
-        blobData = await adminService.exportSosCsv();
-        defaultFilename = `rekap_kasus_sos_${dateStamp}.csv`;
-      } else if (choice === 'laporan') {
-        blobData = await adminService.exportLaporanCsv();
-        defaultFilename = `rekap_laporan_kasus_${dateStamp}.csv`;
-      } else {
-        blobData = await adminService.exportKasusCsv();
-        defaultFilename = `rekap_semua_kasus_${dateStamp}.csv`;
-      }
-
-      if (blobData) {
-        const url = window.URL.createObjectURL(new Blob([blobData], { type: 'text/csv;charset=utf-8;' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', defaultFilename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      }
-      setShowExportModal(false);
-    } catch (err) {
-      console.error('Gagal mengekspor data CSV:', err);
-      alert('Gagal mengunduh file CSV. Pastikan koneksi server backend tersedia.');
-    } finally {
-      setIsExporting(false);
-    }
   };
 
   const fetchRiwayat = async () => {
@@ -279,7 +238,7 @@ export default function RiwayatKasusPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* ── Control Bar: Tabs, Search, Filters & Actions ──────────────────────── */}
+      {/* Control Bar: Tabs, Search, Filters & Actions */}
       <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           {/* Segmented Filter Pills */}
@@ -311,18 +270,8 @@ export default function RiwayatKasusPage() {
             })}
           </div>
 
-          {/* Actions: Ekspor CSV, Refresh Data & View Mode */}
+          {/* Actions: Refresh Data & View Mode */}
           <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
-            <button
-              onClick={() => setShowExportModal(true)}
-              disabled={isExporting}
-              className="flex h-8 items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 hover:border-teal-300 px-3 text-[12px] font-semibold text-[#0b6f61] shadow-2xs transition-all cursor-pointer disabled:opacity-50"
-              title="Ekspor rekapitulasi data kasus ke CSV"
-            >
-              {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={13} />}
-              <span>Ekspor CSV</span>
-            </button>
-
             <button
               onClick={fetchRiwayat}
               disabled={loading}
@@ -441,7 +390,7 @@ export default function RiwayatKasusPage() {
         </div>
       </div>
 
-      {/* ── Content View (Table / Grid) ──────────────────────────────────────── */}
+      {/* Content View (Table / Grid) */}
       {loading && (
         <div className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center justify-center p-14 gap-3 text-slate-500 shadow-xs">
           <Loader2 size={24} className="animate-spin text-[#0b6f61]" />
@@ -465,13 +414,13 @@ export default function RiwayatKasusPage() {
       )}
 
       {!loading && !error && sortedCases.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-14 text-center text-slate-400 shadow-xs space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+        <div className="bg-white border border-slate-200 rounded-2xl p-14 text-center text-slate-500 shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
             <Search size={20} />
           </div>
           <div>
-            <p className="text-[14px] font-bold text-slate-700">Tidak ada riwayat kasus yang ditemukan</p>
-            <p className="text-[12px] text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian, rentang tanggal, atau bersihkan filter.</p>
+            <p className="text-[14px] font-bold text-slate-800">Tidak ada riwayat kasus yang ditemukan</p>
+            <p className="text-[12px] text-slate-600 mt-1">Coba sesuaikan kata kunci pencarian, rentang tanggal, atau bersihkan filter.</p>
           </div>
           {(searchQuery || filterKategori || dateFilter || activeTab !== 'semua') && (
             <button
@@ -631,7 +580,7 @@ export default function RiwayatKasusPage() {
         </div>
       )}
 
-      {/* ── Content View: Incident Cards Grid ───────────────────────────────── */}
+      {/* Content View: Incident Cards Grid */}
       {!loading && !error && sortedCases.length > 0 && viewMode === 'grid' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -726,87 +675,6 @@ export default function RiwayatKasusPage() {
               totalCount={cases.length}
               label="riwayat kasus"
             />
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal Dialog Pilihan Ekspor CSV ── */}
-      {showExportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-teal-100 text-[#0b6f61] flex items-center justify-center">
-                  <FileSpreadsheet size={16} />
-                </div>
-                <div>
-                  <h3 className="text-[15px] font-bold text-slate-900 leading-tight">Ekspor Rekapitulasi CSV</h3>
-                  <p className="text-[11.5px] text-slate-500">Unduh data kasus dalam format spreadsheet CSV</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 cursor-pointer"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <p className="text-[12.5px] text-slate-600">
-                Pilih jenis data kasus yang ingin diekspor ke dalam file CSV:
-              </p>
-
-              <div className="space-y-2">
-                {[
-                  { id: 'semua', label: 'Semua Kasus Terpadu', desc: 'Rekapitulasi gabungan kasus Darurat SOS & Laporan Masuk' },
-                  { id: 'sos', label: 'Khusus Kasus Darurat SOS', desc: 'Hanya riwayat sinyal darurat SOS dan durasi penanganannya' },
-                  { id: 'laporan', label: 'Khusus Laporan Warga', desc: 'Hanya data laporan kejadian masuk dan status penyelesaian' },
-                ].map(opt => (
-                  <label
-                    key={opt.id}
-                    onClick={() => setExportChoice(opt.id)}
-                    className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                      exportChoice === opt.id
-                        ? 'bg-teal-50/60 border-[#0b6f61] ring-1 ring-[#0b6f61]/20'
-                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="exportChoice"
-                      value={opt.id}
-                      checked={exportChoice === opt.id}
-                      onChange={() => setExportChoice(opt.id)}
-                      className="mt-0.5 text-[#0b6f61] focus:ring-[#0b6f61]"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-bold text-slate-900 leading-snug">{opt.label}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowExportModal(false)}
-                className="px-3.5 py-2 rounded-xl text-[12.5px] font-semibold text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={isExporting}
-                onClick={() => handleDownloadCsv(exportChoice)}
-                className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white bg-[#0b6f61] hover:bg-[#09594e] flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={14} />}
-                <span>{isExporting ? 'Memproses Ekspor...' : 'Unduh Berkas CSV'}</span>
-              </button>
-            </div>
           </div>
         </div>
       )}

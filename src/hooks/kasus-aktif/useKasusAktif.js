@@ -149,20 +149,35 @@ export function useKasusAktif() {
     // Handler ketika status SOS diperbarui
     const handleStatusUpdate = (data) => {
       if (!data?.id) return;
-      setCases((prev) =>
-        prev.map((c) => {
+      console.log('🔄 SOSUpdateStatus diterima di useKasusAktif:', data);
+      const st = (data.status_sos || data.status_raw || data.status || '').toLowerCase().trim();
+      const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+
+      setCases((prev) => {
+        if (isEnded) {
+          // Kasus sudah dibatalkan atau selesai -> langsung hapus seketika dari daftar Kasus Aktif
+          return prev.filter(
+            (c) => !(c._tipeKategori === 'SOS' && String(c.id) === String(data.id))
+          );
+        }
+
+        return prev.map((c) => {
           if (c._tipeKategori === 'SOS' && String(c.id) === String(data.id)) {
             return {
               ...c,
+              ...data,
               status: data.status_sos || c.status,
               status_raw: data.status_sos || c.status_raw,
-              relawan: data.relawan ?? c.relawan,
+              relawan: data.relawan !== undefined ? data.relawan : c.relawan,
               updated_at: data.updated_at || c.updated_at,
             };
           }
           return c;
-        })
-      );
+        });
+      });
+
+      // Sinkronkan ulang data dari backend secara hening untuk memperbarui KPI & paginasi
+      fetchTugasAktif();
     };
 
     // Handler ketika laporan warga baru masuk
@@ -215,7 +230,14 @@ export function useKasusAktif() {
 
     return () => {
       window.removeEventListener('kasus-updated', onLocalKasusUpdated);
-      echo.leaveChannel('command-center');
+      channel.stopListening('.SOSCreated', handleNewSOS);
+      channel.stopListening('SOSCreated', handleNewSOS);
+      channel.stopListening('.NewSOSReport', handleNewSOS);
+      channel.stopListening('NewSOSReport', handleNewSOS);
+      channel.stopListening('.SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('.LaporanCreated', handleNewLaporan);
+      channel.stopListening('LaporanCreated', handleNewLaporan);
     };
   }, [fetchTugasAktif]);
 

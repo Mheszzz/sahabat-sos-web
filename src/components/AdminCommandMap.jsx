@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Plus, Minus, Users, Eye, X, Radio, MapPin, Maximize2, Navigation, CheckCircle, Info, Activity, Layers, Filter } from 'lucide-react';
+import { Plus, Minus, Users, Eye, X, MapPin, Maximize2, Navigation, CheckCircle, Info, Activity, Layers, Filter } from 'lucide-react';
 import { adminService } from '../api/services/adminService';
 
 // Pusat Yogyakarta (Malioboro / Tugu / Depok Sleman)
@@ -1064,215 +1064,231 @@ export default function AdminCommandMap({
       </div>
 
       {/* ── Bottom Legend & Status Bar (Interaktif & Selaras dengan Marker Peta) ── */}
-      <div className="flex flex-wrap items-center justify-between border-t border-slate-100 bg-[#f8fafc]/95 px-3 py-2 text-[11px] font-semibold text-slate-600 gap-y-2 gap-x-3">
-        {/* Left: Interactive Legend Filter Buttons */}
+      <div className="flex flex-wrap items-center justify-between border-t border-slate-100 bg-[#f8fafc]/95 px-3 py-2 text-[11px] font-semibold text-slate-600 gap-2">
+        {/* Left: Interactive Legend Filter Groups */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {/* Semua Titik Button */}
           <button
             type="button"
             onClick={() => setActiveStatusFilter('all')}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer select-none border ${
               activeStatusFilter === 'all'
-                ? 'bg-slate-800 text-white shadow-xs scale-102'
-                : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
+                ? 'bg-slate-800 text-white border-slate-800 shadow-xs'
+                : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200/90 shadow-2xs'
             }`}
             title="Tampilkan semua marker di peta"
           >
-            <Layers size={12} className={activeStatusFilter === 'all' ? 'text-white' : 'text-slate-500'} />
-            <span>Semua ({mapData?.length || 0})</span>
-          </button>
-
-          <span className="hidden sm:inline-block w-px h-4 bg-slate-200" />
-
-          {/* Laporan Belum Ditangani (Orange) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('laporan_belum')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'laporan_belum'
-                ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya Laporan Belum Ditangani"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-            </div>
-            <span>Laporan Belum Ditangani</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'laporan_belum' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
+            <Layers size={13} className={activeStatusFilter === 'all' ? 'text-white' : 'text-slate-500'} />
+            <span>Semua</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+              activeStatusFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
             }`}>
-              {laporanBelumCount}
+              {mapData?.length || 0}
             </span>
           </button>
 
-          {/* Laporan Ditangani (Hijau) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('laporan_ditangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'laporan_ditangani'
-                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya Laporan Ditangani"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-            </div>
-            <span>Laporan Ditangani</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'laporan_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {laporanDitanganiCount}
+          {/* SOS Cluster */}
+          <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 border border-rose-100/80 px-1.5 py-0.5 rounded-md select-none">
+              SOS
             </span>
-          </button>
 
-          <span className="hidden md:inline-block w-px h-4 bg-slate-200" />
+            {/* SOS Belum Ditangani (Merah) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('sos_belum')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'sos_belum'
+                  ? 'bg-red-100 text-red-950 ring-2 ring-red-500 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya SOS Belum Ditangani"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#dc2626] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <span>Belum Ditangani</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'sos_belum' ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {sosBelumCount}
+              </span>
+            </button>
 
-          {/* Relawan Siaga (Hijau) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('relawan_siaga')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'relawan_siaga'
-                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-600 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya Relawan Siaga"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#059669] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            </div>
-            <span>Relawan Siaga</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'relawan_siaga' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {relawanSiagaCount}
+            {/* SOS Ditangani (Hijau) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('sos_ditangani')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'sos_ditangani'
+                  ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya SOS Ditangani"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <span>Ditangani</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'sos_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {sosDitanganiCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Laporan Cluster */}
+          <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-100/80 px-1.5 py-0.5 rounded-md select-none">
+              Laporan
             </span>
-          </button>
 
-          {/* Relawan Menangani (Orange) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('relawan_menangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'relawan_menangani'
-                ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya Relawan yang Sedang Menangani"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            </div>
-            <span>Relawan Menangani</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'relawan_menangani' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {relawanMenanganiCount}
+            {/* Laporan Belum Ditangani (Orange) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('laporan_belum')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'laporan_belum'
+                  ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya Laporan Belum Ditangani"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <span>Belum Ditangani</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'laporan_belum' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {laporanBelumCount}
+              </span>
+            </button>
+
+            {/* Laporan Ditangani (Hijau) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('laporan_ditangani')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'laporan_ditangani'
+                  ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya Laporan Ditangani"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <span>Ditangani</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'laporan_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {laporanDitanganiCount}
+              </span>
+            </button>
+          </div>
+
+          {/* Relawan Cluster */}
+          <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 border border-slate-200/80 shadow-2xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-100/80 px-1.5 py-0.5 rounded-md select-none">
+              Relawan
             </span>
-          </button>
 
-          <span className="hidden md:inline-block w-px h-4 bg-slate-200" />
+            {/* Relawan Siaga (Hijau) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('relawan_siaga')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'relawan_siaga'
+                  ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-600 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya Relawan Siaga"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#059669] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <span>Siaga</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'relawan_siaga' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {relawanSiagaCount}
+              </span>
+            </button>
 
-          {/* SOS Belum Ditangani (Merah) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('sos_belum')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'sos_belum'
-                ? 'bg-red-100 text-red-950 ring-2 ring-red-500 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya SOS Belum Ditangani"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#dc2626] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-            <span>SOS Belum Ditangani</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'sos_belum' ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {sosBelumCount}
-            </span>
-          </button>
-
-          {/* SOS Ditangani (Hijau) */}
-          <button
-            type="button"
-            onClick={() => handleToggleStatusFilter('sos_ditangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
-              activeStatusFilter === 'sos_ditangani'
-                ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
-                : activeStatusFilter !== 'all'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
-                : 'hover:bg-white hover:shadow-xs text-slate-700'
-            }`}
-            title="Klik untuk memfilter: Hanya SOS Ditangani"
-          >
-            <div className="w-5 h-5 rounded-full bg-[#10b981] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-            <span>SOS Ditangani</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              activeStatusFilter === 'sos_ditangani' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {sosDitanganiCount}
-            </span>
-          </button>
+            {/* Relawan Menangani (Orange) */}
+            <button
+              type="button"
+              onClick={() => handleToggleStatusFilter('relawan_menangani')}
+              className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+                activeStatusFilter === 'relawan_menangani'
+                  ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs'
+                  : activeStatusFilter !== 'all'
+                  ? 'opacity-40 hover:opacity-100 hover:bg-slate-50 text-slate-500'
+                  : 'hover:bg-slate-50 hover:shadow-2xs text-slate-700'
+              }`}
+              title="Klik untuk memfilter: Hanya Relawan yang Sedang Menangani"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#ea580c] border border-white shadow-xs flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+              <span>Menangani</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold min-w-[18px] text-center leading-none ${
+                activeStatusFilter === 'relawan_menangani' ? 'bg-orange-600 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {relawanMenanganiCount}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Right: Reset Filter Pill & GPS Satelit text */}
-        <div className="flex items-center gap-2 text-slate-400 text-xs shrink-0 ml-auto sm:ml-0">
-          {activeStatusFilter !== 'all' && (
+        {/* Right: Reset Filter Pill (hanya tampil jika ada filter yang aktif) */}
+        {activeStatusFilter !== 'all' && (
+          <div className="flex items-center ml-auto">
             <button
               type="button"
               onClick={() => setActiveStatusFilter('all')}
-              className="inline-flex items-center gap-1 text-[10.5px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer shadow-2xs"
               title="Reset dan tampilkan semua marker"
             >
-              <X size={11} />
+              <X size={12} />
               <span>Reset Filter</span>
             </button>
-          )}
-          <div className="flex items-center gap-1">
-            <Radio size={12} className="text-slate-400 shrink-0" />
-            <span>Pembaruan real-time</span>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

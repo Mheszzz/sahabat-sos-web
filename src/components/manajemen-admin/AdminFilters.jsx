@@ -58,7 +58,7 @@ export default function AdminFilters({
           onChange={setSortBy}
           options={[
             { value: 'terbaru', label: 'Terbaru' },
-            { value: 'nama', label: 'Nama (A–Z)' },
+            { value: 'nama', label: 'Nama (A - Z)' },
           ]}
           placeholder="Urutkan"
           icon={<ArrowUpDown size={13} />}

@@ -295,7 +295,7 @@ export const adminService = {
    * @param {Object} payload - { action, keterangan }
    */
   logAksiKritis: async (sosId, payload) => {
-    // Endpoint SOS-122 belum dirilis — gunakan mock sebagai fallback
+    // Endpoint SOS-122 belum dirilis: gunakan mock sebagai fallback
     try {
       const response = await api.post(`/admin/sos/${sosId}/log-action`, payload);
       return response.data;

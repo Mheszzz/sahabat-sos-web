@@ -95,7 +95,7 @@ export default function GlobalSearchModal({ isOpen, onClose }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari nomor kasus (SOS-001, LP-12), nama pelapor, relawan..."
-            className="flex-1 bg-transparent text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden"
+            className="flex-1 bg-transparent text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
           />
           {loading && <Loader2 size={16} className="text-emerald-600 animate-spin shrink-0" />}
           {query && !loading && (

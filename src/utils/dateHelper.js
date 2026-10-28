@@ -50,9 +50,9 @@ export function getSafeTimestamp(input) {
  * @returns {string}
  */
 export function formatDateTime(input, options = {}) {
-  if (!input) return '—';
+  if (!input) return '-';
   const d = parseSafeDate(input);
-  if (!d) return typeof input === 'string' ? input : '—';
+  if (!d) return typeof input === 'string' ? input : '-';
 
   try {
     const defaultOptions = {
@@ -76,9 +76,9 @@ export function formatDateTime(input, options = {}) {
  * @returns {string}
  */
 export function formatAuditDateTime(input) {
-  if (!input) return '—';
+  if (!input) return '-';
   const d = parseSafeDate(input);
-  if (!d) return typeof input === 'string' ? input : '—';
+  if (!d) return typeof input === 'string' ? input : '-';
 
   try {
     const timeStr = d.toLocaleTimeString('id-ID', {
@@ -103,7 +103,7 @@ export function formatAuditDateTime(input) {
  * @returns {string}
  */
 export function formatKasusTime(input) {
-  if (!input) return '—';
+  if (!input) return '-';
   if (typeof input === 'string' && input.toLowerCase().includes('lalu')) return input;
 
   const d = parseSafeDate(input);

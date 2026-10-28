@@ -11,7 +11,7 @@ const PERMISSION_CONFIG = {
 };
 
 function formatTanggal(isoString) {
-  if (!isoString) return '—';
+  if (!isoString) return '-';
   try {
     return new Date(isoString).toLocaleDateString('id-ID', {
       day: '2-digit',
@@ -29,7 +29,7 @@ export default function AdminDetailModal({ admin, isOpen, onClose }) {
   if (!isOpen || !admin) return null;
 
   const nama = admin.name || admin.nama || 'Administrator';
-  const email = admin.email || admin.accounts?.[0]?.email || '—';
+  const email = admin.email || admin.accounts?.[0]?.email || '-';
   const permissions = Array.isArray(admin.permissions) ? admin.permissions : [];
   const isSuperAdmin = (admin.role || '').toLowerCase() === 'superadmin';
   const isActive = admin.is_active !== false;
@@ -70,7 +70,7 @@ export default function AdminDetailModal({ admin, isOpen, onClose }) {
               <p className="text-[11px] font-semibold text-slate-400 uppercase">No. Telepon</p>
               <p className="font-bold text-slate-800 mt-0.5 flex items-center gap-1.5">
                 <Phone size={14} className="text-slate-400" />
-                {admin.no_telp || '—'}
+                {admin.no_telp || '-'}
               </p>
             </div>
             <div className="col-span-2">

@@ -138,6 +138,14 @@ export default function KasusTableView({
                       <InitialsAvatar name={relawan.name} src={getFotoRelawan(relawan)} size={24} bgClass="bg-emerald-700" />
                       <span className="font-semibold text-slate-800 text-[12px] whitespace-nowrap">{relawan.name}</span>
                     </div>
+                  ) : statusRaw === 'batal' || statusRaw === 'dibatalkan' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                      Tidak Ditugaskan
+                    </span>
+                  ) : statusRaw === 'selesai' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                      Selesai
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                       <Clock size={10} />

@@ -108,6 +108,14 @@ export default function KasusGridView({
                       {relawan.name}
                     </span>
                   </>
+                ) : statusRaw === 'batal' || statusRaw === 'dibatalkan' ? (
+                  <span className="text-slate-500 font-semibold flex items-center gap-1 text-[10.5px]">
+                    Tidak Ditugaskan
+                  </span>
+                ) : statusRaw === 'selesai' ? (
+                  <span className="text-slate-500 font-semibold flex items-center gap-1 text-[10.5px]">
+                    Selesai
+                  </span>
                 ) : (
                   <span className="text-amber-700 font-semibold flex items-center gap-1 text-[10.5px]">
                     <Clock size={11} />

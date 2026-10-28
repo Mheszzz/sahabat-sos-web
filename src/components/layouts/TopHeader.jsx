@@ -64,7 +64,7 @@ function getBreadcrumbs(pathname) {
   ];
 }
 
-export default function TopHeader({ onMenuToggle }) {
+export default function TopHeader({ onMenuToggle, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
   const crumbs = getBreadcrumbs(location.pathname);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -85,12 +85,23 @@ export default function TopHeader({ onMenuToggle }) {
     <>
       <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8 no-print gap-4">
         <div className="flex items-center gap-3 min-w-0">
+          {/* Mobile navigation toggle */}
           <button
             onClick={onMenuToggle}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden shrink-0"
-            aria-label="Toggle Navigation"
+            className="flex min-h-[40px] min-w-[40px] h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2 md:hidden shrink-0"
+            aria-label="Buka Menu Navigasi"
           >
             <Menu size={18} />
+          </button>
+
+          {/* Desktop collapse/expand toggle */}
+          <button
+            onClick={onToggleCollapse}
+            className="hidden md:flex min-h-[36px] min-w-[36px] h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2 shrink-0 cursor-pointer"
+            title={isCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+            aria-label={isCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+          >
+            <Menu size={16} />
           </button>
 
           <nav className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium truncate" aria-label="Breadcrumb">
@@ -103,21 +114,21 @@ export default function TopHeader({ onMenuToggle }) {
                   {crumb.to && !isLast ? (
                     <Link
                       to={crumb.to}
-                      className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-700 transition-colors truncate"
+                      className="flex items-center gap-1.5 text-slate-600 hover:text-emerald-700 transition-colors truncate focus-visible:outline-none focus-visible:underline"
                     >
-                      {IconComponent && <IconComponent size={14} className="text-slate-400 shrink-0" />}
+                      {IconComponent && <IconComponent size={14} className="text-slate-500 shrink-0" />}
                       <span className="truncate">{crumb.label}</span>
                     </Link>
                   ) : (
                     <div className="flex items-center gap-1.5 truncate">
-                      {IconComponent && <IconComponent size={14} className="text-slate-400 shrink-0" />}
-                      <span className={isLast ? "font-semibold text-slate-700 truncate" : "text-slate-400 truncate"}>
+                      {IconComponent && <IconComponent size={14} className="text-slate-500 shrink-0" />}
+                      <span className={isLast ? "font-bold text-slate-900 truncate" : "text-slate-600 truncate"}>
                         {crumb.label}
                       </span>
                     </div>
                   )}
                   {!isLast && (
-                    <ChevronRight size={12} className="text-slate-300 shrink-0" />
+                    <ChevronRight size={12} className="text-slate-400 shrink-0" />
                   )}
                 </div>
               );

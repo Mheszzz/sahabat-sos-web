@@ -48,7 +48,7 @@ export default function DashboardSosTable({
               setCurrentPage(1);
             }}
             placeholder="Cari ID, pelapor, atau insiden..."
-            className="w-full rounded-md border border-slate-200 bg-white py-1 pl-8 pr-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-hidden focus:ring-1 focus:ring-emerald-600/20 transition-colors"
+            className="w-full rounded-md border border-slate-200 bg-white py-1 pl-8 pr-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0b6f61] focus:outline-none focus:ring-2 focus:ring-[#0b6f61]/20 transition-colors"
           />
           {searchQuery && (
             <button
@@ -142,7 +142,7 @@ export default function DashboardSosTable({
                   <td className="py-2.5 pl-3.5 pr-2.5 font-mono font-semibold text-slate-900 whitespace-nowrap">
                     <button
                       onClick={() => onOpenDetail(item.id, item.tipe, item)}
-                      className="text-[#0b6f61] hover:text-[#095c52] hover:underline focus:outline-hidden"
+                      className="text-[#0b6f61] hover:text-[#095c52] hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 cursor-pointer"
                       title="Lihat detail kasus ini"
                     >
                       {item.displayId || `#SOS-${item.id}`}
@@ -224,7 +224,7 @@ export default function DashboardSosTable({
                   <td className="py-2.5 pl-2.5 pr-3.5 text-right whitespace-nowrap">
                     <button
                       onClick={() => onOpenDetail(item.id, item.tipe, item)}
-                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-600/20 active:bg-slate-100 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 active:bg-slate-100 transition-colors cursor-pointer"
                     >
                       <Eye size={11} className="text-slate-500" />
                       <span>Detail</span>

@@ -181,7 +181,7 @@ export default function AdminTable({ admins, isLoading, error, onDetail, onEdit,
                           {nama}
                         </p>
                         <p className="text-[12px] text-slate-500 truncate">
-                          {admin.email || admin.accounts?.[0]?.email || '—'}
+                          {admin.email || admin.accounts?.[0]?.email || '-'}
                         </p>
                         {/* Role & Status Badge */}
                         <div className="flex items-center gap-1.5 mt-1">

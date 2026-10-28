@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import {
   Navigation, Plus, Minus, RotateCcw, Eye, Phone,
   AlertTriangle, Shield, HeartPulse, Clock, X, Radio,
-  MessageCircle, MapPin, Layers, Users
+  MessageCircle, MapPin, Layers, Users, Loader2
 } from 'lucide-react';
 
 // Pusat Default Wilayah D.I. Yogyakarta (Tugu / Malioboro)
@@ -45,6 +45,7 @@ export default function ModernEmergencyMap({
   const [internalMapMode, setInternalMapMode] = useState('street'); // 'street' | 'satellite'
   const [internalActiveFilter, setInternalActiveFilter] = useState('semua');
   const [internalSelectedItem, setInternalSelectedItem] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   const activeFilter = controlledActiveFilter !== undefined ? controlledActiveFilter : internalActiveFilter;
   const prevFilterRef = useRef(activeFilter);
@@ -364,14 +365,18 @@ export default function ModernEmergencyMap({
 
   const handleCurrentLocation = () => {
     if (navigator.geolocation) {
+      setIsLocating(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+          setIsLocating(false);
           const { latitude, longitude } = pos.coords;
           mapInstanceRef.current?.flyTo([latitude, longitude], 15, { duration: 0.8 });
         },
         () => {
+          setIsLocating(false);
           handleResetView();
-        }
+        },
+        { timeout: 8000 }
       );
     } else {
       handleResetView();
@@ -395,12 +400,14 @@ export default function ModernEmergencyMap({
   }).length;
   const countRelawanSiaga = Math.max(0, countRelawan - countRelawanMenangani);
 
-  const controlsPosClasses = {
-    'top-right': 'top-4 right-4',
-    'top-left': 'top-20 left-4',
+  const POSITION_MAP = {
+    'top-right': fullscreen ? 'top-24 right-4' : 'top-4 right-4',
+    'top-left': fullscreen ? 'top-24 left-4' : 'top-4 left-4',
     'bottom-right': 'bottom-6 right-4',
     'bottom-left': 'bottom-16 left-4',
-  }[controlsPosition] || 'top-4 right-4';
+  };
+
+  const controlsPosClasses = POSITION_MAP[controlsPosition] || controlsPosition || 'top-4 right-4';
 
   return (
     <div className={`relative flex w-full min-w-0 flex-col overflow-hidden ${
@@ -414,30 +421,31 @@ export default function ModernEmergencyMap({
           {/* Filter Pills */}
           <div className="filter-pills flex-1 flex flex-wrap gap-1.5">
             <button
+              type="button"
               onClick={() => handleSetFilter('semua')}
-              className={`filter-pill ${activeFilter === 'semua' ? 'is-active' : ''}`}
+              className={`filter-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${activeFilter === 'semua' ? 'is-active' : ''}`}
             >
               Semua ({activeMapData.length})
             </button>
             <button
+              type="button"
               onClick={() => handleSetFilter('sos')}
-              className={`filter-pill tone-danger ${activeFilter === 'sos' ? 'is-active' : ''}`}
+              className={`filter-pill tone-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${activeFilter === 'sos' ? 'is-active' : ''}`}
             >
-              <span className="status-dot bg-red-500 animate-pulse" />
               SOS Aktif ({countSos})
             </button>
             <button
+              type="button"
               onClick={() => handleSetFilter('relawan')}
-              className={`filter-pill tone-success ${activeFilter === 'relawan' ? 'is-active' : ''}`}
+              className={`filter-pill tone-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${activeFilter === 'relawan' ? 'is-active' : ''}`}
             >
-              <span className="status-dot bg-emerald-500" />
               Relawan ({countRelawan})
             </button>
             <button
+              type="button"
               onClick={() => handleSetFilter('laporan')}
-              className={`filter-pill tone-warning ${activeFilter === 'laporan' ? 'is-active' : ''}`}
+              className={`filter-pill tone-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 ${activeFilter === 'laporan' ? 'is-active' : ''}`}
             >
-              <span className="status-dot bg-amber-500" />
               Laporan ({countLaporan})
             </button>
           </div>
@@ -445,8 +453,9 @@ export default function ModernEmergencyMap({
           {/* Segmented Button: Peta Jalan / Satelit */}
           <div className="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-600 shrink-0">
             <button
+              type="button"
               onClick={() => handleSetMapMode('street')}
-              className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`rounded-lg px-3 py-1.5 min-h-[32px] text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                 mapMode === 'street'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -455,8 +464,9 @@ export default function ModernEmergencyMap({
               Peta Jalan
             </button>
             <button
+              type="button"
               onClick={() => handleSetMapMode('satellite')}
-              className={`rounded-lg px-3 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`rounded-lg px-3 py-1.5 min-h-[32px] text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                 mapMode === 'satellite'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -478,35 +488,59 @@ export default function ModernEmergencyMap({
 
         {/* Floating Zoom & Center Controls */}
         {showControls && (
-          <div className={`absolute ${controlsPosClasses} flex flex-col bg-white/95 backdrop-blur-xs border border-slate-200/90 rounded-xl shadow-md overflow-hidden z-20`}>
-            <button
-              onClick={handleZoomIn}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-              title="Perbesar Peta"
-            >
-              <Plus size={15} />
-            </button>
-            <button
-              onClick={handleZoomOut}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-              title="Perkecil Peta"
-            >
-              <Minus size={15} />
-            </button>
-            <button
-              onClick={handleCurrentLocation}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 border-b border-slate-100 cursor-pointer transition-colors"
-              title="Lokasi Anda Sekarang"
-            >
-              <Navigation size={13} />
-            </button>
-            <button
-              onClick={handleResetView}
-              className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
-              title="Pusatkan Peta ke D.I. Yogyakarta"
-            >
-              <RotateCcw size={13} />
-            </button>
+          <div className={`absolute ${controlsPosClasses} flex flex-col gap-2 z-20 select-none`}>
+            {/* Kelompok Kontrol Zoom */}
+            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl shadow-md shadow-slate-900/5 overflow-hidden">
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                className="h-9 w-9 sm:h-[38px] sm:w-[38px] flex items-center justify-center text-slate-700 hover:bg-slate-100/80 hover:text-slate-950 active:bg-slate-200/60 active:scale-95 transition-all cursor-pointer border-b border-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-inset"
+                title="Perbesar Peta (Zoom In)"
+                aria-label="Perbesar Peta"
+              >
+                <Plus size={16} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                className="h-9 w-9 sm:h-[38px] sm:w-[38px] flex items-center justify-center text-slate-700 hover:bg-slate-100/80 hover:text-slate-950 active:bg-slate-200/60 active:scale-95 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-inset"
+                title="Perkecil Peta (Zoom Out)"
+                aria-label="Perkecil Peta"
+              >
+                <Minus size={16} strokeWidth={2.2} />
+              </button>
+            </div>
+
+            {/* Kelompok Kontrol Navigasi & Orientasi */}
+            <div className="flex flex-col bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl shadow-md shadow-slate-900/5 overflow-hidden">
+              <button
+                type="button"
+                onClick={handleCurrentLocation}
+                disabled={isLocating}
+                className={`h-9 w-9 sm:h-[38px] sm:w-[38px] flex items-center justify-center transition-all cursor-pointer border-b border-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-inset ${
+                  isLocating
+                    ? 'text-emerald-600 bg-emerald-50/70'
+                    : 'text-slate-700 hover:bg-slate-100/80 hover:text-emerald-700 active:bg-slate-200/60 active:scale-95'
+                }`}
+                title="Lokasi Anda Sekarang (GPS)"
+                aria-label="Lokasi Anda Sekarang"
+              >
+                {isLocating ? (
+                  <Loader2 size={15} className="animate-spin text-emerald-600" />
+                ) : (
+                  <Navigation size={15} strokeWidth={2} />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetView}
+                className="h-9 w-9 sm:h-[38px] sm:w-[38px] flex items-center justify-center text-slate-700 hover:bg-slate-100/80 hover:text-slate-950 active:bg-slate-200/60 active:scale-95 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-inset"
+                title="Pusatkan Peta ke D.I. Yogyakarta"
+                aria-label="Pusatkan Peta ke D.I. Yogyakarta"
+              >
+                <RotateCcw size={15} strokeWidth={2} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -549,33 +583,33 @@ export default function ModernEmergencyMap({
                 <button
                   onClick={() => handleSetSelectedItem(null)}
                   aria-label="Tutup jendela detail"
-                  className="w-6 h-6 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  className="min-h-[36px] min-w-[36px] -mr-1.5 -mt-1.5 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
 
               {/* Info Body */}
               {selectedItem.type === 'relawan' ? (
-                <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                <div className="py-2.5 text-[12px] text-slate-700 space-y-1.5">
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Nama Relawan:</span>
+                    <span className="text-slate-600 block text-[11px] font-medium">Nama Relawan:</span>
                     <strong className="text-slate-900 text-[13px]">{selectedItem.relawan || selectedItem.label}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Keahlian / Spesialisasi:</span>
-                    <span className="text-slate-700 font-medium">{selectedItem.kategori}</span>
+                    <span className="text-slate-600 block text-[11px] font-medium">Keahlian / Spesialisasi:</span>
+                    <span className="text-slate-800 font-medium">{selectedItem.kategori}</span>
                   </div>
                   <div className="flex items-start gap-1">
                     <MapPin size={13} className="text-emerald-600 shrink-0 mt-0.5" />
                     <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <span className="text-slate-500">Status Operasi:</span>
+                    <span className="text-slate-600 font-medium">Status Operasi:</span>
                     <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                       isSelectedRelawanBusy
-                        ? 'text-orange-700 bg-orange-50 border border-orange-200'
-                        : 'text-emerald-700 bg-emerald-50'
+                        ? 'text-orange-800 bg-orange-50 border border-orange-200'
+                        : 'text-emerald-800 bg-emerald-50 border border-emerald-200'
                     }`}>
                       {isSelectedRelawanBusy ? 'Sedang Bertugas' : 'Siaga Aktif'}
                     </span>
@@ -590,42 +624,42 @@ export default function ModernEmergencyMap({
                             onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
                             handleSetSelectedItem(null);
                           }}
-                          className="underline text-blue-700 hover:text-blue-900 cursor-pointer font-extrabold"
+                          className="underline text-blue-800 hover:text-blue-950 cursor-pointer font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] rounded"
                         >
                           {selectedItem.misi.id_kasus}
                         </button>
                       </div>
                       {selectedItem.misi.pelapor && (
-                        <div className="text-[10.5px] text-slate-600">
-                          Korban/Pelapor: <strong className="text-slate-800">{selectedItem.misi.pelapor}</strong>
+                        <div className="text-[10.5px] text-slate-700">
+                          Korban/Pelapor: <strong className="text-slate-900">{selectedItem.misi.pelapor}</strong>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="py-2.5 text-[12px] text-slate-600 space-y-1.5">
+                <div className="py-2.5 text-[12px] text-slate-700 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Prioritas:</span>
+                    <span className="text-slate-600 font-medium">Prioritas:</span>
                     <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                       selectedItem.prioritas === 'DARURAT' || selectedItem.type === 'sos'
-                        ? 'text-red-700 bg-red-50'
-                        : 'text-amber-700 bg-amber-50'
+                        ? 'text-red-800 bg-red-50 border border-red-200'
+                        : 'text-amber-800 bg-amber-50 border border-amber-200'
                     }`}>
                       {selectedItem.prioritas || 'Prioritas'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Nama Pelapor / Korban:</span>
-                    <strong className="text-slate-800">{selectedItem.pelapor}</strong>
+                    <span className="text-slate-600 block text-[11px] font-medium">Nama Pelapor / Korban:</span>
+                    <strong className="text-slate-900">{selectedItem.pelapor}</strong>
                   </div>
                   <div className="flex items-start gap-1">
-                    <MapPin size={13} className="text-slate-400 shrink-0 mt-0.5" />
-                    <span className="text-slate-700 text-[11px] leading-tight">{selectedItem.lokasi}</span>
+                    <MapPin size={13} className="text-slate-600 shrink-0 mt-0.5" />
+                    <span className="text-slate-800 text-[11px] leading-tight">{selectedItem.lokasi}</span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                    <span className="text-slate-500">Relawan: <strong className="text-slate-800">{selectedItem.relawan}</strong></span>
-                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                    <span className="text-slate-600 font-medium">Relawan: <strong className="text-slate-900">{selectedItem.relawan}</strong></span>
+                    <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px]">
                       ETA {selectedItem.eta}
                     </span>
                   </div>
@@ -639,20 +673,20 @@ export default function ModernEmergencyMap({
                   <div className="flex items-center gap-2">
                     <a
                       href={`tel:${selectedItem.kontak}`}
-                      className="flex-1 btn-base bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs"
+                      className="flex-1 btn-base bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                       title={`Panggil ${selectedItem.relawan || selectedItem.label}`}
                     >
-                      <Phone size={12} />
+                      <Phone size={13} />
                       <span>Telepon</span>
                     </a>
                     <a
                       href={`https://wa.me/${String(selectedItem.kontak).replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(`Halo ${selectedItem.relawan || selectedItem.label}, kami dari Command Center Sahabat SOS D.I. Yogyakarta.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 btn-base bg-teal-600 hover:bg-teal-700 text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs"
+                      className="flex-1 btn-base bg-teal-600 hover:bg-teal-700 text-white text-[11px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                       title={`WhatsApp ${selectedItem.relawan || selectedItem.label}`}
                     >
-                      <MessageCircle size={12} />
+                      <MessageCircle size={13} />
                       <span>WhatsApp</span>
                     </a>
                   </div>
@@ -669,10 +703,10 @@ export default function ModernEmergencyMap({
                             onOpenDetail?.(selectedItem.misi.id, selectedItem.misi.tipe || 'sos', selectedItem.misi);
                             handleSetSelectedItem(null);
                           }}
-                          className="flex-1 btn-base bg-[#0b6f61] hover:bg-[#095c52] text-white text-[11px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5 font-bold shadow-2xs transition-colors cursor-pointer"
+                          className="flex-1 btn-base bg-[#0b6f61] hover:bg-[#095c52] text-white text-[11px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold shadow-2xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                           title={`Buka detail kasus ${selectedItem.misi.id_kasus || 'aktif'}`}
                         >
-                          <Eye size={12} />
+                          <Eye size={13} />
                           <span className="truncate">Detail Kasus ({selectedItem.misi.id_kasus || 'Misi'})</span>
                         </button>
                         <button
@@ -681,11 +715,11 @@ export default function ModernEmergencyMap({
                             onOpenDetail?.(selectedItem.id, 'relawan', selectedItem);
                             handleSetSelectedItem(null);
                           }}
-                          className="btn-base bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[11px] py-1.5 h-8 px-2.5 rounded-lg flex items-center justify-center gap-1 font-semibold transition-colors cursor-pointer shrink-0"
+                          className="btn-base bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[11px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1 font-semibold transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                           title="Buka data relawan di halaman Kelola Relawan"
                         >
-                          <Users size={12} className="text-slate-500" />
-                          <span>Kelola Relawan</span>
+                          <Users size={13} className="text-slate-600" />
+                          <span>Kelola</span>
                         </button>
                       </>
                     ) : (
@@ -695,9 +729,9 @@ export default function ModernEmergencyMap({
                           onOpenDetail?.(selectedItem.id, 'relawan', selectedItem);
                           handleSetSelectedItem(null);
                         }}
-                        className="w-full btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5"
+                        className="w-full btn-base btn-primary text-[12px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                       >
-                        <Eye size={12} />
+                        <Eye size={13} />
                         <span>Kelola Relawan</span>
                       </button>
                     )}
@@ -709,9 +743,9 @@ export default function ModernEmergencyMap({
                       onOpenDetail?.(selectedItem.id, selectedItem.type, selectedItem);
                       handleSetSelectedItem(null);
                     }}
-                    className="w-full btn-base btn-primary text-[12px] py-1.5 h-8 rounded-lg flex items-center justify-center gap-1.5"
+                    className="w-full btn-base btn-primary text-[12px] min-h-[38px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                   >
-                    <Eye size={12} />
+                    <Eye size={13} />
                     <span>Lihat Detail</span>
                   </button>
                 )}
@@ -727,11 +761,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'laporan_belum' ? 'semua' : 'laporan_belum')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'laporan_belum'
                 ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya Laporan Belum Ditangani"
@@ -750,11 +784,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'laporan_ditangani' ? 'semua' : 'laporan_ditangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'laporan_ditangani'
                 ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya Laporan Ditangani"
@@ -775,11 +809,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'relawan_siaga' ? 'semua' : 'relawan_siaga')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'relawan_siaga'
                 ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-600 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya Relawan Siaga"
@@ -798,11 +832,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'relawan_menangani' ? 'semua' : 'relawan_menangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'relawan_menangani'
                 ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya Relawan Menangani"
@@ -823,11 +857,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'sos_belum' ? 'semua' : 'sos_belum')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'sos_belum'
                 ? 'bg-red-100 text-red-950 ring-2 ring-red-500 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya SOS Belum Ditangani"
@@ -846,11 +880,11 @@ export default function ModernEmergencyMap({
           <button
             type="button"
             onClick={() => handleSetFilter(activeFilter === 'sos_ditangani' ? 'semua' : 'sos_ditangani')}
-            className={`group inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer select-none ${
+            className={`group inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 min-h-[34px] text-[11px] font-bold transition-all cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
               activeFilter === 'sos_ditangani'
                 ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-xs scale-102'
                 : activeFilter !== 'semua'
-                ? 'opacity-40 hover:opacity-100 hover:bg-white text-slate-500'
+                ? 'opacity-60 hover:opacity-100 hover:bg-white text-slate-600'
                 : 'hover:bg-white hover:shadow-xs text-slate-700'
             }`}
             title="Klik untuk memfilter: Hanya SOS Ditangani"

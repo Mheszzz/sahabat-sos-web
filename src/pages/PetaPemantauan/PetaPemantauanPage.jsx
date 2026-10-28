@@ -44,7 +44,7 @@ function formatDistanceText(distKm) {
 }
 
 function formatEtaText(distKm) {
-  if (distKm == null || Number.isNaN(distKm)) return '—';
+  if (distKm == null || Number.isNaN(distKm)) return '-';
   // Perkiraan respon kendaraan cepat relawan di Yogyakarta: ~30 km/jam + 2 menit persiapan awal
   const minutes = Math.max(2, Math.round(distKm * 2.2 + 2));
   return `~${minutes} mnt`;
@@ -132,7 +132,7 @@ export default function PetaPemantauanPage() {
 
         // 1. Titik Darurat SOS
         rawSosList.forEach(t => {
-          let etaStr = '—';
+          let etaStr = '-';
           if (t.latitude && t.longitude) {
             let assignedVol = null;
             if (t.relawan_penangan) {
@@ -182,7 +182,7 @@ export default function PetaPemantauanPage() {
 
         // 2. Titik Laporan Aktif
         rawLaporanList.forEach(l => {
-          let etaStr = '—';
+          let etaStr = '-';
           if (l.latitude && l.longitude) {
             let assignedVol = null;
             if (l.relawan_penangan) {
@@ -329,7 +329,8 @@ export default function PetaPemantauanPage() {
     fetchMapData();
 
     const channel = echo.channel('command-center');
-    channel.listen('.RelawanLocationUpdate', (data) => {
+
+    const handleRelawanLocation = (data) => {
       if (!data?.relawan_id) return;
       const rId = data.relawan_id;
       const newLat = parseFloat(data.latitude);
@@ -351,14 +352,47 @@ export default function PetaPemantauanPage() {
             : m
         )
       );
-    });
-    channel.listen('.RelawanStatusUpdated', () => fetchMapData());
-    channel.listen('.SOSCreated', () => fetchMapData());
-    channel.listen('.SOSUpdateStatus', () => fetchMapData());
-    channel.listen('.LaporanCreated', () => fetchMapData());
+    };
+
+    const handleRelawanStatus = () => fetchMapData();
+    const handleSosCreated = () => fetchMapData();
+    const handleLaporanCreated = () => fetchMapData();
+
+    const handleSosUpdateStatus = (data) => {
+      if (data?.id) {
+        const st = (data.status_sos || data.status_raw || data.status || '').toLowerCase().trim();
+        const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+        if (isEnded) {
+          setMapData((prev) => prev.filter((m) => !(m.type === 'sos' && String(m.id) === String(data.id))));
+          setSelectedSos((prev) => (prev && String(prev.id) === String(data.id) ? null : prev));
+          setSelectedMapItem((prev) => (prev && String(prev.id) === String(data.id) ? null : prev));
+        }
+      }
+      fetchMapData();
+    };
+
+    channel.listen('.RelawanLocationUpdate', handleRelawanLocation);
+    channel.listen('RelawanLocationUpdate', handleRelawanLocation);
+    channel.listen('.RelawanStatusUpdated', handleRelawanStatus);
+    channel.listen('RelawanStatusUpdated', handleRelawanStatus);
+    channel.listen('.SOSCreated', handleSosCreated);
+    channel.listen('SOSCreated', handleSosCreated);
+    channel.listen('.SOSUpdateStatus', handleSosUpdateStatus);
+    channel.listen('SOSUpdateStatus', handleSosUpdateStatus);
+    channel.listen('.LaporanCreated', handleLaporanCreated);
+    channel.listen('LaporanCreated', handleLaporanCreated);
 
     return () => {
-      echo.leaveChannel('command-center');
+      channel.stopListening('.RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('.RelawanStatusUpdated', handleRelawanStatus);
+      channel.stopListening('RelawanStatusUpdated', handleRelawanStatus);
+      channel.stopListening('.SOSCreated', handleSosCreated);
+      channel.stopListening('SOSCreated', handleSosCreated);
+      channel.stopListening('.SOSUpdateStatus', handleSosUpdateStatus);
+      channel.stopListening('SOSUpdateStatus', handleSosUpdateStatus);
+      channel.stopListening('.LaporanCreated', handleLaporanCreated);
+      channel.stopListening('LaporanCreated', handleLaporanCreated);
     };
   }, [fetchMapData]);
 
@@ -388,7 +422,8 @@ export default function PetaPemantauanPage() {
 
     if (item.type === 'sos' || item.type === 'laporan') {
       setSelectedSos(item);
-      setSelectedMapItem(item);
+      // Mencegah duplikasi popup card di sudut kiri bawah karena drawer inspeksi lengkap di sisi kanan sudah terbuka
+      setSelectedMapItem(null);
       setVolunteerStatusFilter('siaga'); // Otomatis filter ke relawan siaga
       setVolunteerLimit(5); // Batasi 5 relawan terdekat
       setIsPanelOpen(true); // Otomatis buka drawer relawan terdekat untuk kasus ini
@@ -488,186 +523,132 @@ export default function PetaPemantauanPage() {
         mapMode={mapMode}
         onMapModeChange={setMapMode}
         mapData={mapData}
-      >
-        {/* ── Floating Bottom Legend & Status HUD ── */}
-        <div className="absolute bottom-3.5 left-3.5 z-20 pointer-events-none">
-          <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-md flex items-center gap-2 text-[11px] font-semibold text-slate-600 pointer-events-auto flex-nowrap whitespace-nowrap select-none">
-            <button
-              type="button"
-              onClick={() => setActiveFilter('semua')}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                activeFilter === 'semua' ? 'bg-slate-800 text-white shadow-2xs' : 'hover:bg-slate-100 text-slate-600'
-              }`}
-              title="Tampilkan semua marker"
-            >
-              Semua ({mapData?.length || 0})
-            </button>
+      />
 
-            <span className="w-px h-3.5 bg-slate-200" />
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter(activeFilter === 'sos' ? 'semua' : 'sos')}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                activeFilter === 'sos' ? 'bg-red-100 text-red-950 ring-2 ring-red-500 shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-              title="Filter hanya kasus darurat SOS"
-            >
-              <div className="w-4.5 h-4.5 rounded-full bg-[#ef4444] border border-white shadow-2xs flex items-center justify-center text-white">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-              <span>SOS Aktif ({sosCount})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter(activeFilter === 'relawan' ? 'semua' : 'relawan')}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                activeFilter === 'relawan' ? 'bg-emerald-100 text-emerald-950 ring-2 ring-emerald-500 shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-              title="Filter hanya relawan aktif"
-            >
-              <div className="w-4.5 h-4.5 rounded-full bg-[#059669] border border-white shadow-2xs flex items-center justify-center text-white">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
-              <span>Relawan ({relawanCount})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFilter(activeFilter === 'laporan' ? 'semua' : 'laporan')}
-              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                activeFilter === 'laporan' ? 'bg-orange-100 text-orange-950 ring-2 ring-orange-500 shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-              title="Filter hanya laporan warga"
-            >
-              <div className="w-4.5 h-4.5 rounded-full bg-[#ea580c] border border-white shadow-2xs flex items-center justify-center text-white">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              </div>
-              <span>Laporan ({laporanCount})</span>
-            </button>
-
-            <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-400 pl-2 border-l border-slate-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Live Echo Terhubung</span>
-            </div>
-          </div>
-        </div>
-      </ModernEmergencyMap>
-
-      {/* ── 2. Top Floating HUD Bar (Header & Controls) ── */}
+      {/* ── 2. Top Floating HUD Bar (Header, Filter Terpadu, & Kontrol Peta) ── */}
       <header className="absolute top-3 left-3 right-3 z-20 pointer-events-none">
         <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md rounded-2xl p-2.5 sm:p-3 px-4 flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
-          {/* Sisi Kiri: Judul & KPI Status Wilayah */}
+          {/* Sisi Kiri: Judul, Status Koneksi Real-time, & Lokasi */}
           <div className="flex items-center gap-3.5 flex-wrap">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                 <h1 className="text-[15px] font-black tracking-tight text-slate-900 leading-none">
                   Peta Pemantauan Wilayah
                 </h1>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Live Echo Terhubung</span>
+                </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
-                <MapPin size={11} className="text-emerald-600 inline" />
+              <p className="text-[11.5px] font-medium text-slate-600 mt-1 flex items-center gap-1">
+                <MapPin size={12} className="text-emerald-700 inline shrink-0" />
                 Pusat Kendali D.I. Yogyakarta &bull; Real-time Command Center
               </p>
             </div>
+          </div>
 
-            {/* Quick KPI Badges */}
-            <div className="hidden md:flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div
-                onClick={() => setActiveFilter(activeFilter === 'sos' ? 'semua' : 'sos')}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-black cursor-pointer transition-all ${
-                  activeFilter === 'sos'
-                    ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                    : 'bg-red-50/80 border-red-200/80 text-red-700 hover:bg-red-100/80'
+          {/* Sisi Tengah: Filter Terpadu (Menyatukan KPI & Filter Pill) & Mode Peta */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filter Pills Terpadu dengan Hitungan Real-time */}
+            <div className="inline-flex rounded-xl bg-slate-100/90 p-1 text-xs font-semibold text-slate-700 border border-slate-200/80 shadow-2xs" role="tablist" aria-label="Filter Tampilan Peta">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'semua'}
+                onClick={() => setActiveFilter('semua')}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  activeFilter === 'semua'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/60'
                 }`}
-                title="Filter hanya insiden SOS"
+                title="Tampilkan semua data penanda di peta"
               >
-                <span className={`w-2 h-2 rounded-full ${activeFilter === 'sos' ? 'bg-white' : 'bg-red-500'} animate-ping`} />
-                <span>{sosCount} SOS Aktif</span>
-              </div>
+                <span>Semua</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  activeFilter === 'semua' ? 'bg-slate-800 text-slate-100' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {mapData?.length || 0}
+                </span>
+              </button>
 
-              <div
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'sos'}
+                onClick={() => setActiveFilter(activeFilter === 'sos' ? 'semua' : 'sos')}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 ${
+                  activeFilter === 'sos'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'text-red-800 hover:bg-red-50'
+                }`}
+                title="Filter hanya kasus darurat SOS"
+              >
+                <span>SOS Aktif</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  activeFilter === 'sos' ? 'bg-red-700 text-white' : 'bg-red-100 text-red-800'
+                }`}>
+                  {sosCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'relawan'}
                 onClick={() => setActiveFilter(activeFilter === 'relawan' ? 'semua' : 'relawan')}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold cursor-pointer transition-all ${
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
                   activeFilter === 'relawan'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : 'bg-emerald-50/80 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100/80'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-emerald-800 hover:bg-emerald-50'
                 }`}
                 title="Filter hanya relawan aktif"
               >
-                <span className={`w-2 h-2 rounded-full ${activeFilter === 'relawan' ? 'bg-white' : 'bg-emerald-500'}`} />
-                <span>{relawanCount} Relawan</span>
-              </div>
+                <span>Relawan</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  activeFilter === 'relawan' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {relawanCount}
+                </span>
+              </button>
 
-              <div
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === 'laporan'}
                 onClick={() => setActiveFilter(activeFilter === 'laporan' ? 'semua' : 'laporan')}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold cursor-pointer transition-all ${
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 ${
                   activeFilter === 'laporan'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                    : 'bg-amber-50/80 border-amber-200/80 text-amber-800 hover:bg-amber-100/80'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-amber-800 hover:bg-amber-50'
                 }`}
                 title="Filter hanya laporan warga"
               >
-                <span className={`w-2 h-2 rounded-full ${activeFilter === 'laporan' ? 'bg-white' : 'bg-amber-500'}`} />
-                <span>{laporanCount} Laporan</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Sisi Tengah: Filter Pills & Mode Satelit */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Filter Pills */}
-            <div className="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-semibold text-slate-600">
-              <button
-                onClick={() => setActiveFilter('semua')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer ${
-                  activeFilter === 'semua' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Semua
-              </button>
-              <button
-                onClick={() => setActiveFilter('sos')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  activeFilter === 'sos' ? 'bg-red-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                SOS
-              </button>
-              <button
-                onClick={() => setActiveFilter('relawan')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  activeFilter === 'relawan' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Relawan
-              </button>
-              <button
-                onClick={() => setActiveFilter('laporan')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                  activeFilter === 'laporan' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Laporan
+                <span>Laporan</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                  activeFilter === 'laporan' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {laporanCount}
+                </span>
               </button>
             </div>
 
             {/* Segmented Map Layer Toggle */}
-            <div className="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-semibold text-slate-600 shrink-0">
+            <div className="inline-flex rounded-xl bg-slate-100/90 p-1 text-xs font-semibold text-slate-700 shrink-0 border border-slate-200/80 shadow-2xs">
               <button
+                type="button"
                 onClick={() => setMapMode('street')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  mapMode === 'street' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  mapMode === 'street' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 Peta Jalan
               </button>
               <button
+                type="button"
                 onClick={() => setMapMode('satellite')}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  mapMode === 'satellite' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all cursor-pointer min-h-[36px] whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  mapMode === 'satellite' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-700 hover:text-slate-900'
                 }`}
               >
                 Satelit
@@ -679,44 +660,48 @@ export default function PetaPemantauanPage() {
           <div className="flex items-center gap-2">
             {/* Tombol Refresh Data */}
             <button
+              type="button"
               onClick={fetchMapData}
               disabled={refreshLoading}
-              className="btn-base bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] h-8.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
-              title="Refresh data peta"
+              className="btn-base bg-slate-100 hover:bg-slate-200 text-slate-800 text-[12px] min-h-[38px] px-3.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
+              title="Segarkan data peta"
+              aria-label="Segarkan data peta"
             >
-              <RefreshCw size={13} className={refreshLoading ? 'animate-spin text-slate-500' : 'text-slate-600'} />
-              <span className="hidden xl:inline">Refresh</span>
+              <RefreshCw size={14} className={refreshLoading ? 'animate-spin text-slate-600' : 'text-slate-700'} />
+              <span className="hidden xl:inline font-bold">Refresh</span>
             </button>
 
-            {/* Tombol Relawan: Aktif membuka drawer relawan terdekat jika SOS dipilih, atau panduan jika belum */}
+            {/* Tombol Relawan: Mengatur drawer relawan terdekat */}
             {selectedSos ? (
               <button
+                type="button"
                 onClick={() => setIsPanelOpen(prev => !prev)}
-                className={`btn-base text-[12px] h-8.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all border ${
+                className={`btn-base text-[12px] min-h-[38px] px-3.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 ${
                   isPanelOpen
                     ? 'bg-red-600 text-white border-red-600 shadow-xs'
-                    : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                    : 'bg-red-50 text-red-800 border-red-200 hover:bg-red-100'
                 }`}
-                title="Tampilkan / Sembunyikan Panel Relawan Terdekat"
+                title="Tampilkan atau sembunyikan panel relawan terdekat"
               >
-                <Users size={14} className={isPanelOpen ? 'text-white' : 'text-red-600'} />
+                <Users size={14} className={isPanelOpen ? 'text-white' : 'text-red-700'} />
                 <span className="font-bold">Relawan Terdekat ({selectedSos.displayId || 'SOS'})</span>
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => {
                   setFeedback({
                     type: 'info',
-                    message: 'Klik salah satu pin darurat SOS (warna merah) di peta untuk melihat unit relawan terdekat.'
+                    message: 'Klik salah satu pin darurat SOS di peta untuk melihat unit relawan terdekat.'
                   });
                   setTimeout(() => setFeedback(null), 4500);
                   setActiveFilter('sos');
                 }}
-                className="btn-base text-[12px] h-8.5 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all border bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                className="btn-base text-[12px] min-h-[38px] px-3.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all border bg-white text-slate-800 border-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
                 title="Klik pin kasus SOS di peta untuk melihat relawan terdekat"
               >
-                <Users size={14} className="text-emerald-600" />
-                <span className="font-bold">{rawVolunteers.length} Relawan Siaga</span>
+                <Users size={14} className="text-emerald-700" />
+                <span className="font-bold">{rawVolunteers.length} Relawan Terdaftar</span>
               </button>
             )}
           </div>
@@ -730,12 +715,12 @@ export default function PetaPemantauanPage() {
           <div className="p-3.5 pb-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" />
                 <h2 className="text-[13px] font-black text-slate-900 tracking-tight leading-none">
                   Unit Relawan Terdekat
                 </h2>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11.5px] text-slate-600 mt-1">
                 Jarak &amp; rute dihitung ke <strong className="text-red-600 font-bold">{selectedSos.displayId || selectedSos.label || 'Kasus SOS'}</strong>
               </p>
             </div>
@@ -743,14 +728,13 @@ export default function PetaPemantauanPage() {
               onClick={() => {
                 setIsPanelOpen(false);
                 setSelectedSos(null);
-                if (selectedMapItem?.type === 'sos') {
-                  setSelectedMapItem(null);
-                }
+                setSelectedMapItem(null);
               }}
-              className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+              className="min-h-[36px] min-w-[36px] h-9 w-9 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
               title="Tutup Panel Relawan Terdekat"
+              aria-label="Tutup Panel Relawan Terdekat"
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
 
@@ -762,20 +746,21 @@ export default function PetaPemantauanPage() {
                   <span className="text-[11px] font-black text-red-900 tracking-tight">
                     Target: {selectedSos.displayId || selectedSos.label || 'Kasus SOS'}
                   </span>
-                  <span className="text-[10px] bg-red-100 text-red-700 border border-red-200 px-1.5 py-0.2 rounded-md font-bold uppercase">
+                  <span className="text-[10px] bg-red-100 text-red-800 border border-red-200 px-1.5 py-0.5 rounded-md font-bold uppercase">
                     {selectedSos.status || 'Aktif'}
                   </span>
                 </div>
                 <p className="text-[11px] font-bold text-red-800 line-clamp-1 mt-1">
                   {selectedSos.kategori || 'Insiden Darurat SOS'}
                 </p>
-                <p className="text-[10.5px] text-slate-600 line-clamp-1 mt-0.5 flex items-center gap-1">
-                  <MapPin size={11} className="shrink-0 text-red-500 inline" />
+                <p className="text-[11px] text-slate-700 line-clamp-1 mt-0.5 flex items-center gap-1">
+                  <MapPin size={12} className="shrink-0 text-red-600 inline" />
                   <span className="truncate">{selectedSos.lokasi || 'D.I. Yogyakarta'}</span>
                 </p>
               </div>
               <div className="shrink-0">
                 <button
+                  type="button"
                   onClick={() => {
                     if (onOpenDetail) {
                       onOpenDetail(selectedSos.id);
@@ -783,11 +768,11 @@ export default function PetaPemantauanPage() {
                       navigate(`/detail-kasus/${selectedSos.id}?tipe=sos`);
                     }
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
                   title="Buka Halaman Detail Kasus"
                 >
                   <span>Detail</span>
-                  <ExternalLink size={11} />
+                  <ExternalLink size={12} />
                 </button>
               </div>
             </div>
@@ -799,11 +784,11 @@ export default function PetaPemantauanPage() {
               const isSosHandled = sosStatusLower === 'ditangani' || sosStatusLower === 'proses' || Boolean(assignedName);
               if (!isSosHandled) return null;
               return (
-                <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-300 bg-amber-50/90 p-2 text-[10.5px] text-amber-900">
-                  <Info size={12} className="text-amber-700 shrink-0 mt-0.5" />
+                <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-300 bg-amber-50/90 p-2 text-[10.5px] text-amber-950">
+                  <Info size={13} className="text-amber-800 shrink-0 mt-0.5" />
                   <div className="leading-tight">
                     <p className="font-bold text-amber-950">Kasus Berstatus Ditangani</p>
-                    <p className="text-amber-800 text-[10px] mt-0.5">
+                    <p className="text-amber-900 text-[10.5px] mt-0.5">
                       {assignedName ? `Relawan ${assignedName} sedang ditugaskan. ` : 'Relawan sudah ditugaskan. '}
                       Untuk mengganti relawan penangan, silakan masuk ke Detail Kasus.
                     </p>
@@ -816,23 +801,23 @@ export default function PetaPemantauanPage() {
           {/* Search & Filter Relawan */}
           <div className="p-3 border-b border-slate-100 space-y-2 shrink-0 bg-slate-50/50">
             <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 placeholder="Cari nama relawan atau keahlian..."
                 value={volunteerSearch}
                 onChange={(e) => setVolunteerSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[12px] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                className="w-full pl-8 pr-3 py-1.5 min-h-[38px] bg-white border border-slate-200 rounded-xl text-[12px] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#0b6f61] focus:border-[#0b6f61] transition-all"
               />
             </div>
 
             {/* Filter Status Relawan */}
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
               <button
                 type="button"
                 onClick={() => setVolunteerStatusFilter('siaga')}
-                className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
-                  volunteerStatusFilter === 'siaga' ? 'bg-emerald-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200'
+                className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  volunteerStatusFilter === 'siaga' ? 'bg-emerald-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 Siaga ({radiusFilteredVolunteers.filter(v => !v.isBusy).length})
@@ -840,8 +825,8 @@ export default function PetaPemantauanPage() {
               <button
                 type="button"
                 onClick={() => setVolunteerStatusFilter('semua')}
-                className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
-                  volunteerStatusFilter === 'semua' ? 'bg-slate-800 text-white font-bold shadow-2xs' : 'hover:bg-slate-200'
+                className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  volunteerStatusFilter === 'semua' ? 'bg-slate-900 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 Semua ({radiusFilteredVolunteers.length})
@@ -849,8 +834,8 @@ export default function PetaPemantauanPage() {
               <button
                 type="button"
                 onClick={() => setVolunteerStatusFilter('bertugas')}
-                className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
-                  volunteerStatusFilter === 'bertugas' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200'
+                className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
+                  volunteerStatusFilter === 'bertugas' ? 'bg-blue-600 text-white font-bold shadow-2xs' : 'hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 Bertugas ({radiusFilteredVolunteers.filter(v => v.isBusy).length})
@@ -860,15 +845,15 @@ export default function PetaPemantauanPage() {
             {/* Kontrol Batas Relawan Terdekat (5 terdekat, 10 terdekat, semua) */}
             {selectedSos && (
               <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/70">
-                <span className="text-slate-500 font-medium">Batas Ditampilkan:</span>
+                <span className="text-slate-600 font-medium">Batas Ditampilkan:</span>
                 <div className="inline-flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200/80">
                   <button
                     type="button"
                     onClick={() => setVolunteerLimit(5)}
-                    className={`px-2 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer ${
+                    className={`min-h-[28px] px-2.5 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                       volunteerLimit === 5
                         ? 'bg-emerald-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-700 hover:text-slate-900'
                     }`}
                   >
                     5 Terdekat
@@ -876,10 +861,10 @@ export default function PetaPemantauanPage() {
                   <button
                     type="button"
                     onClick={() => setVolunteerLimit(10)}
-                    className={`px-2 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer ${
+                    className={`min-h-[28px] px-2.5 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                       volunteerLimit === 10
                         ? 'bg-emerald-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-700 hover:text-slate-900'
                     }`}
                   >
                     10 Terdekat
@@ -887,10 +872,10 @@ export default function PetaPemantauanPage() {
                   <button
                     type="button"
                     onClick={() => setVolunteerLimit(null)}
-                    className={`px-2 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer ${
+                    className={`min-h-[28px] px-2.5 py-0.5 rounded-md font-bold text-[10.5px] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                       volunteerLimit === null
                         ? 'bg-emerald-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-700 hover:text-slate-900'
                     }`}
                     title="Tampilkan semua relawan tanpa batas"
                   >
@@ -903,14 +888,14 @@ export default function PetaPemantauanPage() {
 
           {/* Notifikasi relawan di luar radius yang disembunyikan */}
           {selectedSos && maxRadiusKm !== 'semua' && excludedByRadiusCount > 0 && (
-            <div className="mx-3 mt-2 px-2.5 py-1.5 bg-amber-50/90 border border-amber-200/80 rounded-lg flex items-center justify-between text-[10.5px] text-amber-900 shrink-0">
+            <div className="mx-3 mt-2 px-2.5 py-1.5 bg-amber-50/90 border border-amber-200/80 rounded-lg flex items-center justify-between text-[10.5px] text-amber-950 shrink-0">
               <span className="truncate pr-1">
                 {excludedByRadiusCount} relawan berjarak &gt; {maxRadiusKm} km disaring.
               </span>
               <button
                 type="button"
                 onClick={() => setMaxRadiusKm('semua')}
-                className="font-bold text-red-600 hover:text-red-800 underline shrink-0 cursor-pointer text-[10.5px]"
+                className="font-bold text-red-700 hover:text-red-900 underline shrink-0 cursor-pointer text-[10.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 rounded"
               >
                 Tampilkan Semua
               </button>
@@ -920,7 +905,7 @@ export default function PetaPemantauanPage() {
           {/* List Kartu Relawan */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
             {displayedVolunteers.length === 0 ? (
-              <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl text-slate-400 text-[12px] space-y-2">
+              <div className="p-8 text-center border border-dashed border-slate-200 rounded-xl text-slate-600 text-[12px] space-y-2">
                 <p>
                   {volunteerStatusFilter === 'siaga'
                     ? 'Tidak ada relawan berstatus siaga di sekitar lokasi ini.'
@@ -930,204 +915,151 @@ export default function PetaPemantauanPage() {
                   <button
                     type="button"
                     onClick={() => setVolunteerStatusFilter('semua')}
-                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] rounded"
                   >
                     Lihat Semua Relawan (Termasuk yang sedang bertugas)
                   </button>
                 )}
               </div>
             ) : (
-              <>
-                {displayedVolunteers.map(vol => {
-                  const isSelected = selectedVolunteer?.id === vol.id;
-                  const cleanKontak = vol.kontak ? String(vol.kontak).replace(/[^0-9]/g, '') : '';
-                  const waUrl = cleanKontak
-                    ? `https://wa.me/${cleanKontak.startsWith('0') ? '62' + cleanKontak.slice(1) : cleanKontak}?text=${encodeURIComponent(
-                        `Halo ${vol.nama}, panggilan darurat dari Pusat Kendali Sahabat SOS D.I. Yogyakarta untuk penanganan ${selectedSos?.displayId || 'kasus SOS'} di ${selectedSos?.lokasi || 'D.I. Yogyakarta'}. Mohon segera merapat.`
-                      )}`
-                    : null;
+              displayedVolunteers.map(vol => {
+                const isSelected = selectedVolunteer?.id === vol.id;
+                const cleanKontak = vol.kontak ? String(vol.kontak).replace(/[^0-9]/g, '') : '';
+                const waUrl = cleanKontak
+                  ? `https://wa.me/${cleanKontak.startsWith('0') ? '62' + cleanKontak.slice(1) : cleanKontak}?text=${encodeURIComponent(
+                      `Halo ${vol.nama}, panggilan darurat dari Pusat Kendali Sahabat SOS D.I. Yogyakarta untuk penanganan ${selectedSos?.displayId || 'kasus SOS'} di ${selectedSos?.lokasi || 'D.I. Yogyakarta'}. Mohon segera merapat.`
+                    )}`
+                  : null;
 
-                  return (
-                    <div
-                      key={vol.id}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-emerald-500 bg-emerald-50/80 shadow-sm ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                      }`}
-                      onClick={() => handleVolunteerSelect(vol)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${vol.avatarBg} text-white shrink-0`}>
-                            {vol.avatar}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-bold text-slate-900 leading-tight truncate">{vol.nama}</p>
-                            <p className="text-[11px] text-slate-400 truncate">{vol.peran}</p>
-                          </div>
+                return (
+                  <div
+                    key={vol.id}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/80 shadow-sm ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                    }`}
+                    onClick={() => handleVolunteerSelect(vol)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${vol.avatarBg} text-white shrink-0`}>
+                          {vol.avatar}
                         </div>
-                        <Badge variant={vol.isBusy ? 'Sedang Bertugas' : 'Online'} isPill />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-slate-900 leading-tight truncate">{vol.nama}</p>
+                          <p className="text-[11px] text-slate-600 truncate">{vol.peran}</p>
+                        </div>
+                      </div>
+                      <Badge variant={vol.isBusy ? 'Sedang Bertugas' : 'Online'} isPill />
+                    </div>
+
+                    {/* Jarak, ETA & Aksi Panggilan Riil */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                      <div className="min-w-0 pr-2">
+                        {selectedSos && vol.jarak ? (
+                          <div className="truncate">
+                            <strong className="text-slate-900 font-bold">{vol.jarak}</strong> &middot;{' '}
+                            <span className="text-emerald-800 font-bold">{vol.eta}</span>
+                          </div>
+                        ) : (
+                          <div className="text-slate-600 font-medium truncate flex items-center gap-1">
+                            <MapPin size={12} className="text-slate-500 shrink-0 inline" />
+                            <span className="truncate">{vol.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Jarak, ETA & Aksi Panggilan Riil */}
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                        <div className="min-w-0 pr-2">
-                          {selectedSos && vol.jarak ? (
-                            <div className="truncate">
-                              <strong className="text-slate-800 font-bold">{vol.jarak}</strong> &middot;{' '}
-                              <span className="text-emerald-700 font-bold">{vol.eta}</span>
-                            </div>
-                          ) : (
-                            <div className="text-slate-500 font-medium truncate flex items-center gap-1">
-                              <MapPin size={11} className="text-slate-400 shrink-0 inline" />
-                              <span className="truncate">{vol.lokasi || 'Area Siaga D.I. Yogyakarta'}</span>
-                            </div>
-                          )}
-                        </div>
+                      {/* Tombol Telepon, WhatsApp, & Tugaskan Riil */}
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {selectedSos && (() => {
+                          const assignedName = selectedSos.relawan && selectedSos.relawan !== 'Menunggu Penugasan' && selectedSos.relawan !== 'Belum Ditugaskan' ? selectedSos.relawan : null;
+                          const sosStatusLower = String(selectedSos.status || '').toLowerCase().trim();
+                          const isSosHandled = sosStatusLower === 'ditangani' || sosStatusLower === 'proses' || Boolean(assignedName);
+                          const isSosFinished = sosStatusLower === 'selesai' || sosStatusLower === 'batal';
+                          const isSosLocked = isSosHandled || isSosFinished;
+                          const isThisVolAssigned = Boolean(
+                            (selectedSos.id_relawan && Number(selectedSos.id_relawan) === Number(vol.id)) ||
+                            (assignedName && vol.nama && (
+                              vol.nama.toLowerCase().includes(assignedName.toLowerCase()) ||
+                              assignedName.toLowerCase().includes(vol.nama.toLowerCase())
+                            ))
+                          );
 
-                        {/* Tombol Telepon, WhatsApp, & Tugaskan Riil */}
-                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          {selectedSos && (() => {
-                            const assignedName = selectedSos.relawan && selectedSos.relawan !== 'Menunggu Penugasan' && selectedSos.relawan !== 'Belum Ditugaskan' ? selectedSos.relawan : null;
-                            const sosStatusLower = String(selectedSos.status || '').toLowerCase().trim();
-                            const isSosHandled = sosStatusLower === 'ditangani' || sosStatusLower === 'proses' || Boolean(assignedName);
-                            const isSosFinished = sosStatusLower === 'selesai' || sosStatusLower === 'batal';
-                            const isSosLocked = isSosHandled || isSosFinished;
-                            const isThisVolAssigned = Boolean(
-                              (selectedSos.id_relawan && Number(selectedSos.id_relawan) === Number(vol.id)) ||
-                              (assignedName && vol.nama && (
-                                vol.nama.toLowerCase().includes(assignedName.toLowerCase()) ||
-                                assignedName.toLowerCase().includes(vol.nama.toLowerCase())
-                              ))
+                          if (isThisVolAssigned) {
+                            return (
+                              <span
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[34px] rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[10.5px] shrink-0"
+                                title="Relawan ini sedang bertugas menangani kasus ini"
+                              >
+                                <CheckCircle size={12} className="text-emerald-700" />
+                                <span>Ditugaskan</span>
+                              </span>
                             );
+                          }
 
-                            if (isThisVolAssigned) {
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px] shrink-0"
-                                  title="Relawan ini sedang bertugas menangani kasus ini"
-                                >
-                                  <CheckCircle size={10} className="text-emerald-700" />
-                                  <span>Ditugaskan</span>
-                                </span>
-                              );
-                            }
-
-                            if (isSosLocked) {
-                              return (
-                                <button
-                                  type="button"
-                                  disabled={true}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400 font-bold text-[10px] border border-slate-200 cursor-not-allowed opacity-60 shrink-0"
-                                  title={
-                                    isSosFinished
-                                      ? `Kasus sudah ${selectedSos.status}. Penugasan ditutup.`
-                                      : 'Kasus sudah berstatus ditangani. Untuk mengganti relawan, silakan masuk ke Detail Kasus.'
-                                  }
-                                >
-                                  <Shield size={11} />
-                                  <span>Tugaskan</span>
-                                </button>
-                              );
-                            }
-
+                          if (isSosLocked) {
                             return (
                               <button
                                 type="button"
-                                disabled={dispatchingId === vol.id || vol.isBusy}
-                                onClick={() => handleDispatchVolunteer(vol)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0b6f61] text-white hover:bg-[#095c52] font-bold transition-colors text-[11px] disabled:opacity-50 cursor-pointer shadow-2xs"
-                                title={`Tugaskan ${vol.nama} ke kasus ${selectedSos.displayId || ''}`}
+                                disabled={true}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[34px] rounded-lg bg-slate-100 text-slate-500 font-bold text-[10.5px] border border-slate-200 cursor-not-allowed opacity-60 shrink-0"
+                                title={
+                                  isSosFinished
+                                    ? `Kasus sudah ${selectedSos.status}. Penugasan ditutup.`
+                                    : 'Kasus sudah berstatus ditangani. Untuk mengganti relawan, silakan masuk ke Detail Kasus.'
+                                }
                               >
-                                <Shield size={11} />
-                                <span>{dispatchingId === vol.id ? '...' : 'Tugaskan'}</span>
+                                <Shield size={12} />
+                                <span>Tugaskan</span>
                               </button>
                             );
-                          })()}
-                          {vol.kontak ? (
-                            <>
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              disabled={dispatchingId === vol.id || vol.isBusy}
+                              onClick={() => handleDispatchVolunteer(vol)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[34px] rounded-lg bg-[#0b6f61] text-white hover:bg-[#095c52] font-bold transition-colors text-[11px] disabled:opacity-50 cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1"
+                              title={`Tugaskan ${vol.nama} ke kasus ${selectedSos.displayId || ''}`}
+                            >
+                              <Shield size={12} />
+                              <span>{dispatchingId === vol.id ? '...' : 'Tugaskan'}</span>
+                            </button>
+                          );
+                        })()}
+                        {vol.kontak ? (
+                          <>
+                            <a
+                              href={`tel:${vol.kontak}`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-[34px] rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold transition-colors text-[11px] border border-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                              title={`Panggil telepon seluler ${vol.nama}`}
+                            >
+                              <Phone size={12} />
+                              <span>Telepon</span>
+                            </a>
+                            {waUrl && (
                               <a
-                                href={`tel:${vol.kontak}`}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-bold transition-colors text-[11px]"
-                                title={`Panggil telepon seluler ${vol.nama}`}
+                                href={waUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-[34px] rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 font-bold transition-colors text-[11px] border border-teal-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1"
+                                title={`Kirim pesan WhatsApp ke ${vol.nama}`}
                               >
-                                <Phone size={11} />
-                                <span>Telepon</span>
+                                <MessageCircle size={12} />
+                                <span>WA</span>
                               </a>
-                              {waUrl && (
-                                <a
-                                  href={waUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-800 font-bold transition-colors text-[11px]"
-                                  title={`Kirim pesan WhatsApp ke ${vol.nama}`}
-                                >
-                                  <MessageCircle size={11} />
-                                  <span>WA</span>
-                                </a>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 italic">No. Telp Tidak Ada</span>
-                          )}
-                        </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 italic">No. Telp Tidak Ada</span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-
-                {/* Tombol ekspansi / kontrol jika ada relawan lainnya */}
-                {volunteerLimit === 5 && filteredVolunteers.length > 5 && (
-                  <div className="pt-1 pb-1">
-                    <button
-                      type="button"
-                      onClick={() => setVolunteerLimit(10)}
-                      className="w-full py-2 px-3 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
-                    >
-                      <ChevronDown size={14} className="text-emerald-700" />
-                      <span>
-                        Perbesar: Tampilkan 10 Relawan Terdekat ({Math.min(filteredVolunteers.length, 10)} dari {filteredVolunteers.length})
-                      </span>
-                    </button>
                   </div>
-                )}
-
-                {volunteerLimit === 10 && (
-                  <div className="pt-1 pb-1 flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setVolunteerLimit(5)}
-                      className="flex-1 py-1.5 px-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10.5px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <ChevronUp size={13} />
-                      <span>Kembali ke 5 Terdekat</span>
-                    </button>
-                    {filteredVolunteers.length > 10 && (
-                      <button
-                        type="button"
-                        onClick={() => setVolunteerLimit(null)}
-                        className="flex-1 py-1.5 px-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10.5px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <span>Semua ({filteredVolunteers.length})</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {volunteerLimit === null && filteredVolunteers.length > 5 && (
-                  <div className="pt-1 pb-1">
-                    <button
-                      type="button"
-                      onClick={() => setVolunteerLimit(5)}
-                      className="w-full py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[10.5px] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <ChevronUp size={13} />
-                      <span>Kembalikan ke 5 Relawan Terdekat</span>
-                    </button>
-                  </div>
-                )}
-              </>
+                );
+              })
             )}
           </div>
         </aside>

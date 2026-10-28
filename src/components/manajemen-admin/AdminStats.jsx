@@ -1,8 +1,8 @@
 import { Users, Shield, CheckCircle2, Calendar } from 'lucide-react';
 
 /**
- * AdminStats — Card statistik ringkas.
- * Hanya menampilkan data yang BENAR-BENAR tersedia dari endpoint GET /superadmin/admins:
+ * AdminStats: Card statistik ringkas.
+ * Hanya menampilkan data yang tersedia dari endpoint GET /superadmin/admins:
  *   - total admin
  *   - admin yang sudah punya minimal 1 permission
  *   - admin yang belum punya permission sama sekali
@@ -42,7 +42,7 @@ export default function AdminStats({ totalAdmin, adminDenganAkses, adminTanpaAks
         >
           <div>
             <p className="text-[12px] font-semibold text-slate-500 leading-none">{s.label}</p>
-            <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{s.value ?? '—'}</p>
+            <p className="text-[30px] font-black text-slate-900 leading-none mt-2">{s.value ?? '-'}</p>
           </div>
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${s.iconBg}`}>
             <s.icon size={22} className={s.iconColor} />

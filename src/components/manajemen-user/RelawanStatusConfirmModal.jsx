@@ -56,13 +56,19 @@ export default function RelawanStatusConfirmModal({
             }`}
           >
             {isActivating ? (
-              <span>
-                ✓ Relawan akan kembali siaga dan dapat menerima tawaran tugas pertolongan darurat (SOS) serta laporan posko.
-              </span>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span>
+                  Relawan akan kembali siaga dan dapat menerima tawaran tugas pertolongan darurat (SOS) serta laporan posko.
+                </span>
+              </div>
             ) : (
-              <span>
-                ⚠ Relawan tidak akan menerima notifikasi dispatch darurat baru sampai akun diaktifkan kembali oleh pengelola.
-              </span>
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <span>
+                  Relawan tidak akan menerima notifikasi dispatch darurat baru sampai akun diaktifkan kembali oleh pengelola.
+                </span>
+              </div>
             )}
           </div>
         </div>

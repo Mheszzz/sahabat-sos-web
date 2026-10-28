@@ -109,7 +109,7 @@ export function useAdminData() {
     setRoleFilter,
     sortBy,
     setSortBy,
-    // Stats — hanya dari data yang ada di backend
+    // Stats: hanya dari data yang ada di backend
     totalAdmin,
     adminDenganAkses,
     adminTanpaAkses,

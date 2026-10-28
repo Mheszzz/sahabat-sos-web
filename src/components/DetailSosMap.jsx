@@ -259,8 +259,9 @@ export default function DetailSosMap({
           <p class="font-black text-slate-900 text-[12.5px]">${relawanBertugas.name}</p>
           <p class="text-slate-500">${relawanBertugas.kompetensi || 'Relawan Tanggap Darurat'}</p>
           ${distanceText ? `
-            <div class="p-1.5 bg-orange-50/70 border border-orange-100 rounded-md text-[10px] text-orange-900 font-semibold flex items-center gap-1">
-              <span>⚡ Jarak langsung ke lokasi:</span>
+            <div class="p-1.5 bg-orange-50/70 border border-orange-100 rounded-md text-[10px] text-orange-900 font-semibold flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-orange-600 flex-shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Jarak langsung ke lokasi:</span>
               <span class="font-black">${distanceText}</span>
             </div>
           ` : ''}

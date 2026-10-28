@@ -18,7 +18,7 @@ export default function DashboardHeader({ loading, lastUpdated, onRefresh }) {
           onClick={onRefresh}
           disabled={loading}
           aria-label="Refresh data dashboard"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-600/20 active:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 active:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
         >
           <RefreshCw
             size={12}

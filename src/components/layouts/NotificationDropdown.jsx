@@ -25,8 +25,8 @@ export default function NotificationDropdown() {
       const res = await kasusAktifService.getSOS({ per_page: 10 });
       const rawSos = res?.data?.data || (Array.isArray(res?.data) ? res.data : []);
       const activeSos = rawSos.filter(s => {
-        const st = (s.status_raw || s.status || '').toLowerCase();
-        return st !== 'selesai' && st !== 'batal';
+        const st = (s.status_raw || s.status || '').toLowerCase().trim();
+        return st !== 'selesai' && st !== 'batal' && st !== 'dibatalkan';
       });
 
       const mapped = activeSos.map(s => ({
@@ -64,15 +64,32 @@ export default function NotificationDropdown() {
     fetchActiveSos();
 
     const channel = echo.channel('command-center');
-    channel.listen('.SOSCreated', () => {
+
+    const handleSosCreated = () => {
       fetchActiveSos();
-    });
-    channel.listen('.SOSUpdateStatus', () => {
+    };
+
+    const handleSosUpdateStatus = (data) => {
+      if (data?.id) {
+        const st = (data.status_sos || data.status_raw || data.status || '').toLowerCase().trim();
+        const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+        if (isEnded) {
+          setNotifications((prev) => prev.filter((n) => String(n.id) !== String(data.id)));
+        }
+      }
       fetchActiveSos();
-    });
+    };
+
+    channel.listen('.SOSCreated', handleSosCreated);
+    channel.listen('SOSCreated', handleSosCreated);
+    channel.listen('.SOSUpdateStatus', handleSosUpdateStatus);
+    channel.listen('SOSUpdateStatus', handleSosUpdateStatus);
 
     return () => {
-      echo.leaveChannel('command-center');
+      channel.stopListening('.SOSCreated', handleSosCreated);
+      channel.stopListening('SOSCreated', handleSosCreated);
+      channel.stopListening('.SOSUpdateStatus', handleSosUpdateStatus);
+      channel.stopListening('SOSUpdateStatus', handleSosUpdateStatus);
     };
   }, []);
 

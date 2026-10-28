@@ -170,7 +170,7 @@ function normaliseKasus(raw, tipe) {
     };
   }
 
-  // Fallback dari GET /laporan/{id} — Laporan Eloquent model langsung
+  // Fallback dari GET /laporan/{id}: Laporan Eloquent model langsung
   const pengguna = raw.pengguna ?? null;
   const rawKontak = Array.isArray(pengguna?.kontak_darurat ?? pengguna?.kontakDarurat)
     ? (pengguna.kontak_darurat ?? pengguna.kontakDarurat)
@@ -522,19 +522,27 @@ export function useDetailKasus() {
     channel.listen('SOSUpdateStatus', handleStatusUpdate);
 
     // Dengarkan event SOSCreated untuk mendeteksi auto-eskalasi atau mutasi darurat
-    channel.listen('.SOSCreated', () => {
+    const handleSosCreated = () => {
       fetchActivities();
-    });
-    channel.listen('SOSCreated', () => {
-      fetchActivities();
-    });
+    };
+    channel.listen('.SOSCreated', handleSosCreated);
+    channel.listen('SOSCreated', handleSosCreated);
 
-    channel.listen('.RelawanStatusUpdated', () => {
+    const handleRelawanStatus = () => {
       fetchRelawanDispatch();
-    });
+    };
+    channel.listen('.RelawanStatusUpdated', handleRelawanStatus);
+    channel.listen('RelawanStatusUpdated', handleRelawanStatus);
 
     return () => {
-      echo.leaveChannel('command-center');
+      channel.stopListening('.RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('.SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('.SOSCreated', handleSosCreated);
+      channel.stopListening('SOSCreated', handleSosCreated);
+      channel.stopListening('.RelawanStatusUpdated', handleRelawanStatus);
+      channel.stopListening('RelawanStatusUpdated', handleRelawanStatus);
     };
   }, [id, fetchActivities, fetchRelawanDispatch]);
 

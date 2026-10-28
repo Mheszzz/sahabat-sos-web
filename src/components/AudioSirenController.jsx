@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Volume2, VolumeX, Radio } from 'lucide-react';
 import echo from '../api/libs/echo';
 import { adminService } from '../api/services/adminService';
+import { kasusAktifService } from '../api/services/kasusAktifService';
 import { startPoskoSiren, stopPoskoSiren } from '../utils/audioAlert';
 
 /**
  * AudioSirenController
  * Komponen pemantauan audio darurat Command Center.
  * Mendengarkan WebSocket:
- *  - command-center: .SOSCreated
+ *  - command-center: .SOSCreated, .SOSUpdateStatus
  *  - posko-channel: .PoskoSireneTriggered
  *
  * Hanya muncul di header saat ada sirine/SOS aktif yang sedang berbunyi
@@ -45,8 +46,9 @@ export default function AudioSirenController({ className = '' }) {
   }, []);
 
   useEffect(() => {
-    // 1. Channel command-center untuk panggilan SOS baru
+    // 1. Channel command-center untuk panggilan SOS baru dan status update
     const cmdChannel = echo.channel('command-center');
+
     const handleSosCreated = (data) => {
       console.log('🚨 SOSCreated diterima di AudioSirenController:', data);
       setSirenActive(true);
@@ -54,7 +56,47 @@ export default function AudioSirenController({ className = '' }) {
       setLastMessage(`Sinyal SOS Baru Masuk: #${data?.id_kasus || data?.id || 'Darurat'}`);
       startPoskoSiren();
     };
+
+    const handleSosUpdateStatus = async (data) => {
+      console.log('🔄 SOSUpdateStatus diterima di AudioSirenController:', data);
+      const st = (data?.status_sos || data?.status_raw || data?.status || '').toLowerCase().trim();
+      const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+
+      if (isEnded) {
+        try {
+          // Periksa apakah masih ada SOS aktif lain yang belum tertangani
+          const res = await kasusAktifService.getSOS({ per_page: 5 });
+          const rawSos = res?.data?.data || (Array.isArray(res?.data) ? res.data : []);
+          const activeSos = rawSos.filter((s) => {
+            const statusStr = (s.status_raw || s.status || '').toLowerCase();
+            return statusStr !== 'selesai' && statusStr !== 'batal' && statusStr !== 'dibatalkan';
+          });
+
+          if (activeSos.length === 0) {
+            // Sudah tidak ada SOS aktif, otomatis hentikan sirine dan sembunyikan banner
+            stopPoskoSiren();
+            setSirenActive(false);
+            setIsMuted(false);
+            setLastMessage('');
+          } else {
+            // Masih ada SOS lain yang aktif
+            const nextSos = activeSos[0];
+            setLastMessage(`Sinyal SOS Aktif: #${nextSos.id_kasus || nextSos.id || 'Darurat'}`);
+          }
+        } catch {
+          // Fallback jika pemanggilan API gagal: segera hentikan sirine
+          stopPoskoSiren();
+          setSirenActive(false);
+          setIsMuted(false);
+          setLastMessage('');
+        }
+      }
+    };
+
     cmdChannel.listen('.SOSCreated', handleSosCreated);
+    cmdChannel.listen('SOSCreated', handleSosCreated);
+    cmdChannel.listen('.SOSUpdateStatus', handleSosUpdateStatus);
+    cmdChannel.listen('SOSUpdateStatus', handleSosUpdateStatus);
 
     // 2. Channel posko-channel untuk alarm sirene posko massal
     const poskoChannel = echo.channel('posko-channel');
@@ -73,13 +115,18 @@ export default function AudioSirenController({ className = '' }) {
       }
     };
     poskoChannel.listen('.PoskoSireneTriggered', handlePoskoSirene);
+    poskoChannel.listen('PoskoSireneTriggered', handlePoskoSirene);
 
     return () => {
       try {
-        echo.leaveChannel('command-center');
-        echo.leaveChannel('posko-channel');
+        cmdChannel.stopListening('.SOSCreated', handleSosCreated);
+        cmdChannel.stopListening('SOSCreated', handleSosCreated);
+        cmdChannel.stopListening('.SOSUpdateStatus', handleSosUpdateStatus);
+        cmdChannel.stopListening('SOSUpdateStatus', handleSosUpdateStatus);
+        poskoChannel.stopListening('.PoskoSireneTriggered', handlePoskoSirene);
+        poskoChannel.stopListening('PoskoSireneTriggered', handlePoskoSirene);
       } catch (err) {
-        console.warn('Gagal meninggalkan channel WebSocket:', err);
+        console.warn('Gagal membersihkan listener audio sirene:', err);
       }
       stopPoskoSiren();
     };

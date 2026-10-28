@@ -30,17 +30,18 @@ export default function PaginationBar({
           <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+            className="flex min-w-[38px] min-h-[38px] h-9.5 w-9.5 items-center justify-center rounded-lg border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 transition-colors"
             title="Halaman Sebelumnya"
+            aria-label="Halaman Sebelumnya"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={16} />
           </button>
           {pageRange.map((page, idx) => {
             if (page === '...') {
               return (
                 <span
                   key={`dots-${idx}`}
-                  className="flex h-8 w-8 items-center justify-center text-slate-400 font-bold select-none text-[13px]"
+                  className="flex min-w-[38px] min-h-[38px] h-9.5 w-9.5 items-center justify-center text-slate-500 font-bold select-none text-[13px]"
                 >
                   &hellip;
                 </span>
@@ -50,11 +51,13 @@ export default function PaginationBar({
               <button
                 key={page}
                 onClick={() => onPageChange(page)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold cursor-pointer transition-all ${
+                className={`flex min-w-[38px] min-h-[38px] h-9.5 w-9.5 items-center justify-center rounded-lg text-[13px] font-bold cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 ${
                   currentPage === page
                     ? 'bg-[#0b6f61] text-white shadow-xs'
-                    : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    : 'border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                 }`}
+                aria-label={`Halaman ${page}`}
+                aria-current={currentPage === page ? 'page' : undefined}
               >
                 {page}
               </button>
@@ -63,10 +66,11 @@ export default function PaginationBar({
           <button
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+            className="flex min-w-[38px] min-h-[38px] h-9.5 w-9.5 items-center justify-center rounded-lg border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-700 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 transition-colors"
             title="Halaman Selanjutnya"
+            aria-label="Halaman Selanjutnya"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={16} />
           </button>
         </div>
       )}

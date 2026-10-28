@@ -331,7 +331,7 @@ export function useDashboard() {
     const channel = echo.channel('command-center');
 
     // 1. Relawan Location Real-time Update
-    channel.listen('.RelawanLocationUpdate', (data) => {
+    const handleRelawanLocation = (data) => {
       if (!data.relawan_id) return;
 
       setMapMarkers((prev) => {
@@ -364,30 +364,72 @@ export function useDashboard() {
           return [...prev, updatedItem];
         }
       });
-    });
+    };
+    channel.listen('.RelawanLocationUpdate', handleRelawanLocation);
+    channel.listen('RelawanLocationUpdate', handleRelawanLocation);
 
     // 2. SOS Baru Dibuat
-    channel.listen('.SOSCreated', () => {
+    const handleSosCreated = () => {
       fetchDashboardData();
-    });
+    };
+    channel.listen('.SOSCreated', handleSosCreated);
+    channel.listen('SOSCreated', handleSosCreated);
 
-    // 3. Status SOS Diperbarui
-    channel.listen('.SOSUpdateStatus', () => {
+    // 3. Status SOS Diperbarui (Termasuk SOS Dibatalkan)
+    const handleSosUpdateStatus = (data) => {
+      if (data?.id) {
+        const st = (data.status_sos || data.status_raw || data.status || '').toLowerCase().trim();
+        const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+
+        if (isEnded) {
+          // Hapus seketika dari tabel daftar kasus aktif di dashboard
+          setCasesList((prev) => prev.filter((c) => String(c.id) !== String(data.id)));
+          // Hapus dari titik peta darurat SOS
+          setMapMarkers((prev) => prev.filter((m) => !(m.type === 'sos' && String(m.id) === String(data.id))));
+        } else {
+          setCasesList((prev) =>
+            prev.map((c) =>
+              String(c.id) === String(data.id)
+                ? {
+                    ...c,
+                    status: (data.status_sos || c.status).toLowerCase(),
+                    relawan: data.relawan?.name || c.relawan,
+                  }
+                : c
+            )
+          );
+        }
+      }
       fetchDashboardData();
-    });
+    };
+    channel.listen('.SOSUpdateStatus', handleSosUpdateStatus);
+    channel.listen('SOSUpdateStatus', handleSosUpdateStatus);
 
     // 4. Laporan Warga Baru Dibuat
-    channel.listen('.LaporanCreated', () => {
+    const handleLaporanCreated = () => {
       fetchDashboardData();
-    });
+    };
+    channel.listen('.LaporanCreated', handleLaporanCreated);
+    channel.listen('LaporanCreated', handleLaporanCreated);
 
     // 5. Status Relawan Diperbarui
-    channel.listen('.RelawanStatusUpdated', () => {
+    const handleRelawanStatusUpdated = () => {
       fetchDashboardData();
-    });
+    };
+    channel.listen('.RelawanStatusUpdated', handleRelawanStatusUpdated);
+    channel.listen('RelawanStatusUpdated', handleRelawanStatusUpdated);
 
     return () => {
-      echo.leaveChannel('command-center');
+      channel.stopListening('.RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('.SOSCreated', handleSosCreated);
+      channel.stopListening('SOSCreated', handleSosCreated);
+      channel.stopListening('.SOSUpdateStatus', handleSosUpdateStatus);
+      channel.stopListening('SOSUpdateStatus', handleSosUpdateStatus);
+      channel.stopListening('.LaporanCreated', handleLaporanCreated);
+      channel.stopListening('LaporanCreated', handleLaporanCreated);
+      channel.stopListening('.RelawanStatusUpdated', handleRelawanStatusUpdated);
+      channel.stopListening('RelawanStatusUpdated', handleRelawanStatusUpdated);
     };
   }, [fetchDashboardData]);
 
