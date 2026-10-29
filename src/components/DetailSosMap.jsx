@@ -548,11 +548,11 @@ export default function DetailSosMap({
           </div>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-[200px] w-full rounded-xl overflow-hidden border border-slate-200 mt-2 bg-slate-100">
-          <div ref={mapContainerRef} className="h-full w-full z-0" />
+        <div className="relative isolate flex-1 min-h-[200px] w-full rounded-xl overflow-hidden border border-slate-200 mt-2 bg-slate-100">
+          <div ref={mapContainerRef} className="h-full w-full relative z-0" />
 
           {/* Floating Zoom & Recenter Controls (Top Right) */}
-          <div className="absolute right-2.5 top-2.5 z-[400] flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white/95 backdrop-blur-xs shadow-md">
+          <div className="absolute right-2.5 top-2.5 z-10 flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white/95 backdrop-blur-xs shadow-md">
             <button
               type="button"
               onClick={handleZoomIn}

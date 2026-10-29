@@ -663,8 +663,8 @@ export default function AdminCommandMap({
       </div>
 
       {/* ── Map Canvas Container ── */}
-      <div className="relative w-full flex-1 min-h-[380px]" style={height ? { minHeight: height } : undefined}>
-        <div ref={mapContainerRef} className="h-full w-full z-0" />
+      <div className="relative isolate w-full flex-1 min-h-[380px]" style={height ? { minHeight: height } : undefined}>
+        <div ref={mapContainerRef} className="h-full w-full relative z-0" />
 
         {/* Floating Active Filter Banner (Top Left inside map) */}
         {activeStatusFilter !== 'all' && (

@@ -480,11 +480,11 @@ export default function ModernEmergencyMap({
 
       {/* ── Map Canvas Container ── */}
       <div
-        className="relative w-full h-full flex-1 overflow-hidden"
+        className="relative isolate w-full h-full flex-1 overflow-hidden"
         style={!fullscreen && height ? { height } : undefined}
       >
         {/* Leaflet container */}
-        <div ref={mapContainerRef} className="w-full h-full z-0" />
+        <div ref={mapContainerRef} className="w-full h-full relative z-0" />
 
         {/* Floating Zoom & Center Controls */}
         {showControls && (
