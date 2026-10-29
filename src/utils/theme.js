@@ -1,4 +1,4 @@
-/** Design tokens — single source for status colors used in JS components. */
+/** Design tokens: single source for status colors used in JS components. */
 export const colors = {
   brand: '#0a271f',
   brandSoft: '#154d3e',
@@ -17,45 +17,52 @@ export const colors = {
   muted: '#667085',
 };
 
+// Accessible amber token (contrast >= 5.8:1 for WCAG 2.1 AA on 11-12px badges)
+const AMBER_BADGE = 'bg-[#fef3c7] text-[#92400e] border-[#fcd34d]';
+const RED_BADGE = 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]';
+const GREEN_BADGE = 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]';
+const BLUE_BADGE = 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]';
+const SLATE_BADGE = 'bg-[#f8fafc] text-[#475569] border-[#e2e8f0]';
+
 export const statusClassMap = {
-  Online: 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]',
-  'Sedang Bertugas': 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]',
-  Offline: 'bg-[#f8fafc] text-[#475569] border-[#e2e8f0]',
-  Nonaktif: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'Tidak Aktif': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'Belum Ditangani': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'Belum Tertangani': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'belum ditangani': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'belum tertangani': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  Aktif: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  aktif: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  Ditangani: 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  ditangani: 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  'Sedang Ditangani': 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  'sedang ditangani': 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  'sedang_ditangani': 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  Proses: 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  proses: 'bg-[#fffbeb] text-[#d97706] border-[#fde68a]',
-  'SOS Darurat': 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'Menunggu Respon': 'bg-[#fffbeb] text-[#b45309] border-[#fde68a]',
-  Selesai: 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]',
-  selesai: 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]',
-  Teratasi: 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]',
-  Dibatalkan: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  dibatalkan: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  Batal: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  batal: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  Laporan: 'bg-[#f8fafc] text-[#475569] border-[#e2e8f0]',
-  Terverifikasi: 'bg-[#ecfdf5] text-[#047857] border-[#a7f3d0]',
-  Pending: 'bg-[#fffbeb] text-[#b45309] border-[#fde68a]',
-  'Pending Verifikasi': 'bg-[#fffbeb] text-[#b45309] border-[#fde68a]',
-  'Daksa (Kursi Roda)': 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]',
+  Online: GREEN_BADGE,
+  'Sedang Bertugas': BLUE_BADGE,
+  Offline: SLATE_BADGE,
+  Nonaktif: RED_BADGE,
+  'Tidak Aktif': RED_BADGE,
+  'Belum Ditangani': RED_BADGE,
+  'Belum Tertangani': RED_BADGE,
+  'belum ditangani': RED_BADGE,
+  'belum tertangani': RED_BADGE,
+  Aktif: RED_BADGE,
+  aktif: RED_BADGE,
+  Ditangani: AMBER_BADGE,
+  ditangani: AMBER_BADGE,
+  'Sedang Ditangani': AMBER_BADGE,
+  'sedang ditangani': AMBER_BADGE,
+  'sedang_ditangani': AMBER_BADGE,
+  Proses: AMBER_BADGE,
+  proses: AMBER_BADGE,
+  'SOS Darurat': RED_BADGE,
+  'Menunggu Respon': AMBER_BADGE,
+  Selesai: GREEN_BADGE,
+  selesai: GREEN_BADGE,
+  Teratasi: GREEN_BADGE,
+  Dibatalkan: RED_BADGE,
+  dibatalkan: RED_BADGE,
+  Batal: RED_BADGE,
+  batal: RED_BADGE,
+  Laporan: SLATE_BADGE,
+  Terverifikasi: GREEN_BADGE,
+  Pending: AMBER_BADGE,
+  'Pending Verifikasi': AMBER_BADGE,
+  'Daksa (Kursi Roda)': BLUE_BADGE,
   Tunanetra: 'bg-[#f5f3ff] text-[#6d28d9] border-[#ddd6fe]',
   'Rungu & Wicara': 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]',
   'Disabilitas Rungu': 'bg-[#fff7ed] text-[#c2410c] border-[#fed7aa]',
   Psikososial: 'bg-[#fdf2f8] text-[#be185d] border-[#fbcfe8]',
-  Epilepsi: 'bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]',
-  'Disabilitas Ganda': 'bg-[#f8fafc] text-[#475569] border-[#e2e8f0]',
+  Epilepsi: RED_BADGE,
+  'Disabilitas Ganda': SLATE_BADGE,
   default: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
@@ -97,3 +104,63 @@ export function getInitials(name = '') {
   if (!parts.length) return 'AD';
   return parts.map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 }
+
+/**
+ * Normalisasi URL gambar dari storage Laravel atau URL eksternal/blob
+ * @param {string} pathOrUrl
+ * @returns {string|null}
+ */
+export function resolveStorageUrl(pathOrUrl) {
+  if (!pathOrUrl || typeof pathOrUrl !== 'string') return null;
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed) return null;
+
+  // Blob URL (preview upload lokal) dan Base64 data URL
+  if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  const backendBase = apiUrl.replace(/\/api\/?$/, '');
+
+  // Jika URL berisi path /storage/ (baik URL absolut localhost/127.0.0.1 maupun path relatif)
+  if (trimmed.includes('/storage/')) {
+    const storageIndex = trimmed.indexOf('/storage/');
+    const pathAfterStorage = trimmed.slice(storageIndex + '/storage/'.length).replace(/^\/+/, '');
+    return `${backendBase}/storage/${pathAfterStorage}`;
+  }
+
+  // Jika URL berisi path proxy /storage-file/
+  if (trimmed.includes('/storage-file/')) {
+    const storageFileIndex = trimmed.indexOf('/storage-file/');
+    const pathAfterStorage = trimmed.slice(storageFileIndex + '/storage-file/'.length).replace(/^\/+/, '');
+    return `${backendBase}/storage/${pathAfterStorage}`;
+  }
+
+  // URL eksternal pihak ketiga (misal Google avatar, CDN eksternal)
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  const cleanPath = trimmed.replace(/^\/?storage\/?/, '').replace(/^\/+/, '');
+  return `${backendBase}/storage/${cleanPath}`;
+}
+
+/**
+ * Helper untuk mengambil URL foto avatar dari objek user/admin/relawan atau string
+ * @param {Object|string} userOrUrl
+ * @returns {string|null}
+ */
+export function getAvatarUrl(userOrUrl) {
+  if (!userOrUrl) return null;
+  if (typeof userOrUrl === 'string') {
+    return resolveStorageUrl(userOrUrl);
+  }
+  const raw =
+    userOrUrl.foto_profile_url ||
+    userOrUrl.foto_url ||
+    userOrUrl.avatar_url ||
+    userOrUrl.foto_profile;
+  return resolveStorageUrl(raw);
+}
+

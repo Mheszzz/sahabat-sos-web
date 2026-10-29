@@ -1,18 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Save, User, Shield, Camera, Loader2,
   CheckCircle, XCircle, Eye, EyeOff, Phone, MapPin, Mail, Lock,
 } from 'lucide-react';
 import { useAdminProfile } from '../../hooks/pengaturan/useAdminProfile';
+import { resolveStorageUrl } from '../../utils/theme';
 
 
-// ─── Badge Role ────────────────────────────────────────────────────────────
+// Badge Role
 function RoleBadge({ role }) {
   const map = {
     superadmin: { label: 'Superadmin', bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500' },
     admin:      { label: 'Admin',      bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   };
-  const cfg = map[role] ?? { label: role ?? '—', bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' };
+  const cfg = map[role] ?? { label: role ?? '-', bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${cfg.bg} ${cfg.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
@@ -21,15 +22,38 @@ function RoleBadge({ role }) {
   );
 }
 
-// ─── Avatar ────────────────────────────────────────────────────────────────
-function ProfileAvatar({ fotoPreview, name, onPickFile, onDelete, isDeletingFoto, fotoInputRef, handleFotoChange, hasFoto }) {
+// Profile Avatar Component
+function ProfileAvatar({
+  fotoPreview,
+  name,
+  onPickFile,
+  onDelete,
+  isDeletingFoto,
+  fotoInputRef,
+  handleFotoChange,
+  hasFoto,
+  hasPendingFoto,
+  onCancelPick,
+}) {
   const initials = (name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const [imgError, setImgError] = useState(false);
+  const resolvedPreview = resolveStorageUrl(fotoPreview);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [resolvedPreview]);
+
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2.5">
       <div className="relative group">
         <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-white shadow-md ring-2 ring-[#e2e8f0] bg-slate-100 flex items-center justify-center">
-          {fotoPreview ? (
-            <img src={fotoPreview} alt="Foto Profil" className="h-full w-full object-cover" />
+          {resolvedPreview && !imgError ? (
+            <img
+              src={resolvedPreview}
+              alt="Foto Profil"
+              className="h-full w-full object-cover"
+              onError={() => setImgError(true)}
+            />
           ) : (
             <span className="text-3xl font-bold text-slate-400">{initials}</span>
           )}
@@ -57,9 +81,20 @@ function ProfileAvatar({ fotoPreview, name, onPickFile, onDelete, isDeletingFoto
           onClick={onPickFile}
           className="text-[12px] font-semibold text-[#0b6f61] hover:underline"
         >
-          Ganti Foto
+          {hasPendingFoto ? 'Pilih Foto Lain' : 'Ganti Foto'}
         </button>
-        {hasFoto && (
+        {hasPendingFoto ? (
+          <>
+            <span className="text-slate-300">·</span>
+            <button
+              type="button"
+              onClick={onCancelPick}
+              className="text-[12px] font-semibold text-slate-500 hover:underline"
+            >
+              Batal
+            </button>
+          </>
+        ) : hasFoto ? (
           <>
             <span className="text-slate-300">·</span>
             <button
@@ -71,14 +106,20 @@ function ProfileAvatar({ fotoPreview, name, onPickFile, onDelete, isDeletingFoto
               {isDeletingFoto ? 'Menghapus...' : 'Hapus'}
             </button>
           </>
-        )}
+        ) : null}
       </div>
-      <p className="text-[11px] text-slate-400">JPG, PNG, WEBP · Maks 5MB</p>
+      {hasPendingFoto ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 animate-pulse text-center">
+          Foto baru belum disimpan (klik tombol di bawah)
+        </span>
+      ) : (
+        <p className="text-[11px] text-slate-400">JPG, PNG, WEBP · Maks 5MB</p>
+      )}
     </div>
   );
 }
 
-// ─── Field Input ───────────────────────────────────────────────────────────
+// Field Input
 function Field({ label, icon: Icon, error, children }) {
   return (
     <div className="min-w-0 space-y-1.5">
@@ -105,7 +146,7 @@ function TextInput({ value, onChange, placeholder, disabled, type = 'text' }) {
   );
 }
 
-// ─── Password Input ────────────────────────────────────────────────────────
+// Password Input
 function PasswordInput({ value, onChange, placeholder }) {
   const [show, setShow] = useState(false);
   return (
@@ -129,7 +170,7 @@ function PasswordInput({ value, onChange, placeholder }) {
   );
 }
 
-// ─── Toast ─────────────────────────────────────────────────────────────────
+// Toast
 function Toast({ toast }) {
   if (!toast) return null;
   const isSuccess = toast.type === 'success';
@@ -145,7 +186,7 @@ function Toast({ toast }) {
   );
 }
 
-// ─── Skeleton Loading ──────────────────────────────────────────────────────
+// Skeleton Loading
 function SkeletonLoader() {
   return (
     <div className="animate-pulse space-y-6">
@@ -170,12 +211,13 @@ function SkeletonLoader() {
   );
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// Main Page Component
 export default function PengaturanPage() {
   const [activeTab, setActiveTab] = useState('profil');
   const {
     profile, isLoading, error,
-    formData, setFormData, fotoPreview, fotoInputRef, handleFotoChange, handleDeleteFoto, isDeletingFoto,
+    formData, setFormData, fotoPreview, fotoFile, hasPendingFoto, fotoInputRef,
+    handleFotoChange, handleCancelFoto, handleDeleteFoto, isDeletingFoto,
     handleSubmitProfile, isSavingProfile,
     securityForm, setSecurityForm, handleSubmitSecurity, isSavingSecurity,
     toast, errors,
@@ -223,10 +265,12 @@ export default function PengaturanPage() {
                 fotoInputRef={fotoInputRef}
                 handleFotoChange={handleFotoChange}
                 hasFoto={hasFoto}
+                hasPendingFoto={hasPendingFoto}
+                onCancelPick={handleCancelFoto}
               />
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-[20px] font-bold text-slate-900">{profile?.name || '—'}</p>
-                <p className="mt-0.5 text-[13px] text-slate-500">{profile?.email || '—'}</p>
+                <p className="text-[20px] font-bold text-slate-900">{profile?.name || '-'}</p>
+                <p className="mt-0.5 text-[13px] text-slate-500">{profile?.email || '-'}</p>
                 <div className="mt-2">
                   <RoleBadge role={profile?.role} />
                 </div>

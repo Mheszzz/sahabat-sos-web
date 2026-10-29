@@ -22,12 +22,12 @@ export default function RelawanFilters({
   const sortOptions = [
     { value: 'terbaru', label: 'Terbaru Mendaftar' },
     { value: 'terlama', label: 'Terlama Mendaftar' },
-    { value: 'nama_asc', label: 'Nama (A – Z)' },
-    { value: 'nama_desc', label: 'Nama (Z – A)' },
+    { value: 'nama_asc', label: 'Nama (A - Z)' },
+    { value: 'nama_desc', label: 'Nama (Z - A)' },
   ];
 
   return (
-    <div className="bg-white border border-[#eaedf1] rounded-xl p-2.5 sm:p-3 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+    <div className="bg-white border border-[#eaedf1] rounded-2xl p-2.5 sm:p-3 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
       {/* Search Input */}
       <div className="relative flex-1 min-w-[260px] max-w-lg">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -40,7 +40,7 @@ export default function RelawanFilters({
               ? 'Cari nama, email, nomor telepon, alamat, atau keahlian...'
               : 'Cari pendaftar baru berdasarkan nama, kontak...'
           }
-          className="w-full pl-9 pr-8 h-9 rounded-lg bg-slate-50 border border-slate-200 text-[12.5px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0b6f61]/15 focus:border-[#0b6f61] transition-all"
+          className="w-full pl-9 pr-8 h-9 rounded-xl bg-slate-50 border border-slate-200 text-[12.5px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0b6f61]/15 focus:border-[#0b6f61] transition-all"
         />
         {search && (
           <button
@@ -81,7 +81,7 @@ export default function RelawanFilters({
         {hasActiveFilters && (
           <button
             onClick={onResetFilters}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-rose-200 bg-rose-50/70 text-rose-700 hover:bg-rose-100 text-[12px] font-semibold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-rose-200 bg-rose-50/80 text-rose-700 hover:bg-rose-100 text-[12px] font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
             title="Reset semua filter dan pencarian"
           >
             <RotateCcw size={12} />

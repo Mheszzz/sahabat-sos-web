@@ -1,4 +1,5 @@
-export default function DonutChart({ items, total = 683 }) {
+export default function DonutChart({ items = [], total }) {
+  const calculatedTotal = total ?? items.reduce((sum, item) => sum + (item.count || item.total || item.jumlah || 0), 0);
   const cx = 60, cy = 60, r = 44, stroke = 12;
   const circumference = 2 * Math.PI * r;
 
@@ -17,7 +18,7 @@ export default function DonutChart({ items, total = 683 }) {
   return (
     <div className="flex items-center gap-6 flex-wrap sm:flex-nowrap">
       {/* Donut SVG */}
-      <div className="relative w-[124px] h-[124px] flex-shrink-0 mx-auto sm:mx-0">
+      <div className="relative w-[124px] h-[124px] shrink-0 mx-auto sm:mx-0">
         <svg width="124" height="124" viewBox="0 0 120 120" className="transform -rotate-90">
           <circle
             cx={cx}
@@ -47,7 +48,7 @@ export default function DonutChart({ items, total = 683 }) {
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
           <span className="text-[20px] font-black text-slate-900 leading-none tracking-tight">
-            {total}
+            {calculatedTotal}
           </span>
           <span className="text-[9px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">
             Total Kasus
@@ -61,12 +62,12 @@ export default function DonutChart({ items, total = 683 }) {
           <div key={idx} className="flex items-center justify-between text-[11px] text-slate-600 gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: item.color }}
               />
               <span className="truncate">{item.label}</span>
             </div>
-            <span className="font-bold text-slate-800 flex-shrink-0">{item.pct}%</span>
+            <span className="font-bold text-slate-800 shrink-0">{item.pct}%</span>
           </div>
         ))}
       </div>

@@ -49,7 +49,7 @@ export function useAdminProfile() {
         alamat: user.alamat || '',
       });
       setSecurityForm((prev) => ({ ...prev, email: user.email || '' }));
-      setFotoPreview(user.foto_profile_url || null);
+      setFotoPreview(user.foto_profile_url || user.foto_profile || null);
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal memuat profil.');
     } finally {
@@ -73,6 +73,14 @@ export function useAdminProfile() {
     if (!file) return;
     setFotoFile(file);
     setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleCancelFoto = () => {
+    setFotoFile(null);
+    setFotoPreview(profile?.foto_profile_url || profile?.foto_profile || null);
+    if (fotoInputRef.current) {
+      fotoInputRef.current.value = '';
+    }
   };
 
   const handleDeleteFoto = async () => {
@@ -105,7 +113,7 @@ export function useAdminProfile() {
 
       const data = await adminProfileService.updateProfile(fd);
       setProfile(data.user);
-      setFotoPreview(data.user.foto_profile_url || null);
+      setFotoPreview(data.user.foto_profile_url || data.user.foto_profile || null);
       setFotoFile(null);
       showToast('success', 'Profil berhasil diperbarui!');
     } catch (err) {
@@ -164,8 +172,10 @@ export function useAdminProfile() {
     setFormData,
     fotoPreview,
     fotoFile,
+    hasPendingFoto: Boolean(fotoFile),
     fotoInputRef,
     handleFotoChange,
+    handleCancelFoto,
     handleDeleteFoto,
     isDeletingFoto,
     handleSubmitProfile,

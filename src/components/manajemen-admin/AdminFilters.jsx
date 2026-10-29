@@ -28,10 +28,12 @@ export default function AdminFilters({
           onChange={setStatusFilter}
           options={[
             { value: 'Semua', label: 'Semua Status' },
+            { value: 'Aktif', label: 'Akun Aktif' },
+            { value: 'Nonaktif', label: 'Akun Nonaktif' },
             { value: 'Punya Akses', label: 'Punya Hak Akses' },
             { value: 'Tanpa Akses', label: 'Belum Ada Akses' },
           ]}
-          placeholder="Status Hak Akses"
+          placeholder="Status Akun & Izin"
           icon={<Filter size={13} />}
           menuWidth="w-48"
         />
@@ -56,7 +58,7 @@ export default function AdminFilters({
           onChange={setSortBy}
           options={[
             { value: 'terbaru', label: 'Terbaru' },
-            { value: 'nama', label: 'Nama (A–Z)' },
+            { value: 'nama', label: 'Nama (A - Z)' },
           ]}
           placeholder="Urutkan"
           icon={<ArrowUpDown size={13} />}

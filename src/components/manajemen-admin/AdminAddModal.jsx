@@ -105,11 +105,11 @@ export default function AdminAddModal({ isOpen, onClose, onSave }) {
             <input
               type="password"
               required
-              minLength={8}
+              minLength={6}
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               className="w-full h-10 rounded-xl border border-slate-200 px-3 text-[13px] focus:outline-none focus:border-emerald-500"
-              placeholder="Minimal 8 karakter"
+              placeholder="Minimal 6 karakter"
               disabled={loading}
             />
           </div>
@@ -120,7 +120,18 @@ export default function AdminAddModal({ isOpen, onClose, onSave }) {
               value={form.no_telp}
               onChange={e => setForm({ ...form, no_telp: e.target.value })}
               className="w-full h-10 rounded-xl border border-slate-200 px-3 text-[13px] focus:outline-none focus:border-emerald-500"
-              placeholder="Opsional"
+              placeholder="08123456789 (Opsional)"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="text-[12px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Alamat Posko / Kantor</label>
+            <input
+              type="text"
+              value={form.alamat}
+              onChange={e => setForm({ ...form, alamat: e.target.value })}
+              className="w-full h-10 rounded-xl border border-slate-200 px-3 text-[13px] focus:outline-none focus:border-emerald-500"
+              placeholder="Contoh: Posko Pusat Yogyakarta (Opsional)"
               disabled={loading}
             />
           </div>

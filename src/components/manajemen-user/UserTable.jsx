@@ -6,6 +6,7 @@ import {
   RotateCcw, ChevronLeft, ChevronRight, Sparkles
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
+import { getAvatarUrl } from '../../utils/theme';
 import RelawanDetailModal from './RelawanDetailModal';
 import RelawanStatusConfirmModal from './RelawanStatusConfirmModal';
 // ── Skeleton Rows Component ───────────────────────────────────────────
@@ -175,49 +176,66 @@ export default function UserTable({
               <TableSkeleton />
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 px-4 text-center">
-                  <div className="max-w-md mx-auto space-y-2.5">
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center mx-auto text-slate-400">
+                <td colSpan={7} className="py-14 px-4 text-center">
+                  <div className="max-w-md mx-auto space-y-3.5">
+                    <div
+                      className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-2xs border ${
+                        hasActiveFilters
+                          ? 'bg-slate-50 border-slate-200 text-slate-400'
+                          : activeTab === 'pending'
+                          ? 'bg-amber-50 border-amber-200/80 text-amber-600'
+                          : 'bg-teal-50 border-teal-100/90 text-[#0b6f61]'
+                      }`}
+                    >
                       {hasActiveFilters ? (
-                        <RotateCcw size={22} />
+                        <RotateCcw size={26} className="text-slate-500" />
                       ) : activeTab === 'pending' ? (
-                        <Sparkles size={22} className="text-teal-600" />
+                        <Sparkles size={26} className="text-amber-600" />
                       ) : (
-                        <HeartHandshake size={22} />
+                        <HeartHandshake size={28} className="text-[#0b6f61]" />
                       )}
                     </div>
-                    <div>
-                      <h4 className="text-[14px] font-bold text-slate-800">
+                    <div className="space-y-1">
+                      <h4 className="text-[15.5px] font-bold text-slate-900 tracking-tight">
                         {hasActiveFilters
                           ? 'Tidak Ada Relawan yang Sesuai'
                           : activeTab === 'pending'
                           ? 'Semua Pengajuan Telah Ditinjau'
                           : 'Belum Ada Relawan Terdaftar'}
                       </h4>
-                      <p className="text-[12px] text-slate-500 mt-0.5 leading-relaxed">
+                      <p className="text-[12.5px] text-slate-500 max-w-sm mx-auto leading-relaxed">
                         {hasActiveFilters
                           ? 'Coba ubah kata kunci pencarian atau sesuaikan opsi filter yang sedang aktif.'
                           : activeTab === 'pending'
-                          ? 'Tidak ada permohonan pendaftaran relawan baru yang menunggu verifikasi saat ini.'
-                          : 'Belum ada relawan yang terdata di sistem. Anda dapat menambahkan relawan baru.'}
+                          ? 'Tidak ada permohonan pendaftaran relawan baru yang menunggu verifikasi saat ini. Posko dalam kondisi optimal.'
+                          : 'Belum ada relawan yang terdata di sistem posko. Mulai tambahkan relawan pertama untuk kesiapsiagaan operasi darurat.'}
                       </p>
                     </div>
                     {hasActiveFilters ? (
-                      <button
-                        onClick={onResetFilters}
-                        className="inline-flex items-center gap-1.5 px-3.5 h-8.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12px] font-semibold transition-colors cursor-pointer"
-                      >
-                        <RotateCcw size={12} />
-                        <span>Reset Semua Filter</span>
-                      </button>
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={onResetFilters}
+                          className="inline-flex items-center gap-1.5 px-4 h-9.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[12.5px] font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Reset Semua Filter</span>
+                        </button>
+                      </div>
                     ) : activeTab === 'relawan' && typeof onOpenAddModal === 'function' ? (
-                      <button
-                        onClick={onOpenAddModal}
-                        className="inline-flex items-center gap-1.5 px-3.5 h-8.5 rounded-lg bg-[#0b6f61] hover:bg-[#085d52] text-white text-[12px] font-semibold transition-colors shadow-xs cursor-pointer"
-                      >
-                        <UserPlus size={13} />
-                        <span>Tambah Relawan Pertama</span>
-                      </button>
+                      <div className="pt-2 flex flex-col items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={onOpenAddModal}
+                          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[42px] rounded-xl bg-[#0b6f61] hover:bg-[#085d52] active:scale-[0.98] text-white text-[13px] font-bold shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-2"
+                        >
+                          <UserPlus size={16} className="text-teal-100" />
+                          <span>+ Tambah Relawan Pertama</span>
+                        </button>
+                        <p className="text-[11.5px] text-slate-400">
+                          Data relawan baru juga tersinkronisasi otomatis dari pendaftaran aplikasi mobile
+                        </p>
+                      </div>
                     ) : null}
                   </div>
                 </td>
@@ -249,13 +267,9 @@ export default function UserTable({
                     <td className="py-2 px-3">
                       <div className="flex items-center gap-2.5">
                         <div className="relative shrink-0">
-                          {item.foto_profile ? (
+                          {getAvatarUrl(item) ? (
                             <img
-                              src={
-                                item.foto_profile.startsWith('http')
-                                  ? item.foto_profile
-                                  : `/storage-file/${item.foto_profile}`
-                              }
+                              src={getAvatarUrl(item)}
                               alt={nama}
                               className="w-8 h-8 rounded-lg object-cover border border-slate-200 shadow-2xs"
                             />
@@ -287,7 +301,24 @@ export default function UserTable({
                           >
                             {nama}
                           </p>
-                          <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">{email || '—'}</p>
+                          <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">{email || '-'}</p>
+
+                          {/* Indikator berkas KTP khusus tab pending verifikasi */}
+                          {activeTab === 'pending' && (
+                            <div className="mt-1 flex items-center gap-1">
+                              {item.dokumen_kyc ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Check size={9} />
+                                  <span>KTP Terlampir</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <X size={9} />
+                                  <span>Tanpa KTP</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -329,7 +360,7 @@ export default function UserTable({
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[11.5px] text-slate-400">—</span>
+                        <span className="text-[11.5px] text-slate-400">-</span>
                       )}
                     </td>
 
@@ -343,7 +374,7 @@ export default function UserTable({
                           </span>
                         </div>
                       ) : (
-                        <span className="text-[11.5px] text-slate-400">—</span>
+                        <span className="text-[11.5px] text-slate-400">-</span>
                       )}
                     </td>
 
@@ -387,7 +418,7 @@ export default function UserTable({
                           <button
                             type="button"
                             onClick={() => setSelectedRelawan(item)}
-                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-teal-700 hover:border-teal-300 hover:bg-teal-50 flex items-center justify-center transition-all cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-teal-700 hover:border-teal-300 hover:bg-teal-50 flex items-center justify-center transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
                             title="Tinjau Detail Berkas Pendaftaran"
                           >
                             <Eye size={13} />
@@ -398,7 +429,7 @@ export default function UserTable({
                             type="button"
                             disabled={loadingRowId === item.id}
                             onClick={() => handleRowVerify(item.id, 'terverifikasi')}
-                            className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             title="Setujui Relawan"
                           >
                             {loadingRowId === item.id ? (
@@ -413,7 +444,7 @@ export default function UserTable({
                             type="button"
                             disabled={loadingRowId === item.id}
                             onClick={() => handleRowVerify(item.id, 'ditolak')}
-                            className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                             title="Tolak Pengajuan"
                           >
                             {loadingRowId === item.id ? (
@@ -429,7 +460,7 @@ export default function UserTable({
                           <button
                             type="button"
                             onClick={() => setSelectedRelawan(item)}
-                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-[#0b6f61] hover:border-teal-300 hover:bg-teal-50 flex items-center justify-center transition-all cursor-pointer"
+                            className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-[#0b6f61] hover:border-teal-300 hover:bg-teal-50 flex items-center justify-center transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
                             title="Lihat Profil Lengkap"
                           >
                             <Eye size={13} />
@@ -439,10 +470,10 @@ export default function UserTable({
                           <button
                             type="button"
                             onClick={() => openStatusConfirm(item, !isActive)}
-                            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 ${
                               isActive
-                                ? 'bg-white border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50'
-                                : 'bg-white border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50'
+                                ? 'bg-white border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 focus-visible:ring-rose-500'
+                                : 'bg-white border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 focus-visible:ring-emerald-500'
                             }`}
                             title={isActive ? 'Nonaktifkan Akun Relawan' : 'Aktifkan Kembali Akun Relawan'}
                           >
@@ -464,7 +495,7 @@ export default function UserTable({
         <div className="px-4 py-2.5 bg-slate-50/70 border-t border-[#eaedf1] flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex flex-wrap items-center gap-3 text-[11.5px] text-slate-500">
             <p>
-              Menampilkan <span className="font-bold text-slate-800">{startIndex}</span>–<span className="font-bold text-slate-800">{endIndex}</span> dari{' '}
+              Menampilkan <span className="font-bold text-slate-800">{startIndex}</span>-<span className="font-bold text-slate-800">{endIndex}</span> dari{' '}
               <span className="font-bold text-slate-800">{totalResults}</span> relawan
             </p>
 
@@ -493,7 +524,7 @@ export default function UserTable({
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => onPageChange(currentPage - 1)}
-                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
                 title="Halaman Sebelumnya"
               >
                 <ChevronLeft size={14} />
@@ -510,7 +541,7 @@ export default function UserTable({
                       key={page}
                       type="button"
                       onClick={() => onPageChange(page)}
-                      className={`w-7 h-7 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                      className={`w-7 h-7 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] ${
                         currentPage === page
                           ? 'bg-[#0b6f61] text-white shadow-xs'
                           : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -533,7 +564,7 @@ export default function UserTable({
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => onPageChange(currentPage + 1)}
-                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61]"
                 title="Halaman Selanjutnya"
               >
                 <ChevronRight size={14} />

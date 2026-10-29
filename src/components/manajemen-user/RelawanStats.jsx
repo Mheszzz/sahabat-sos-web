@@ -77,7 +77,7 @@ export default function RelawanStats({ stats, onSelectPendingTab }) {
             </div>
 
             <div className="mt-1.5 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] leading-tight">
-              <span className="text-slate-400 truncate">{card.description}</span>
+              <span className="text-slate-600 truncate">{card.description}</span>
               {isClickable && (
                 <span className="text-amber-700 font-bold inline-flex items-center gap-0.5 hover:underline ml-1 flex-shrink-0">
                   <span>Tinjau</span>

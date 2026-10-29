@@ -11,7 +11,7 @@ export default function UserTabs({
       {/* Tab: Relawan Terdaftar */}
       <button
         onClick={() => setActiveTab('relawan')}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+        className={`flex items-center gap-2 px-3.5 h-9 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1 ${
           activeTab === 'relawan'
             ? 'bg-[#0b6f61] text-white shadow-xs'
             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -33,7 +33,7 @@ export default function UserTabs({
       {/* Tab: Pending Verifikasi */}
       <button
         onClick={() => setActiveTab('pending')}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer ${
+        className={`flex items-center gap-2 px-3.5 h-9 rounded-lg text-[12.5px] font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
           activeTab === 'pending'
             ? 'bg-amber-600 text-white shadow-xs'
             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { laporanService } from '../../api/services/laporanService';
 import { adminService } from '../../api/services/adminService';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
+import echo from '../../api/libs/echo';
 
 /**
  * Helper memformat nomor HP ke format internasional WhatsApp (62xxx)
@@ -58,10 +59,22 @@ function normaliseKasus(raw, tipe) {
 
     const userWa = pelapor?.no_telp_wa || formatWhatsAppNumber(pelapor?.no_telp);
 
+    const rawDev = (typeof raw.device_info === 'object' && raw.device_info !== null) ? raw.device_info : null;
+    const rawMobile = rawDev?.mobile ?? (rawDev && (rawDev.brand || rawDev.device_model || rawDev.model) ? rawDev : null);
+    const rawTuya = rawDev?.tuya ?? null;
+    const rawSmartwatch = rawDev?.smartwatch ?? null;
+
+    const batLevel = rawMobile?.battery_level ?? raw.battery_level ?? rawDev?.battery_level ?? null;
+    const sigStrength = rawMobile?.signal_strength ?? raw.signal_strength ?? rawDev?.signal_strength ?? null;
+    const isOnline = rawDev?.is_online ?? rawMobile?.is_online ?? null;
+
     const hasSosTelemetry = tipe === 'sos' && (
-      raw.battery_level != null ||
-      raw.signal_strength != null ||
-      (typeof raw.device_info === 'object' && raw.device_info !== null)
+      batLevel != null ||
+      sigStrength != null ||
+      isOnline != null ||
+      rawTuya != null ||
+      rawSmartwatch != null ||
+      Boolean(rawMobile && (rawMobile.brand || rawMobile.model || rawMobile.device_model))
     );
 
     return {
@@ -102,44 +115,62 @@ function normaliseKasus(raw, tipe) {
         longitude: raw.relawan.longitude !== null && raw.relawan.longitude !== undefined ? Number(raw.relawan.longitude) : null,
       } : null,
       device_info: hasSosTelemetry ? (() => {
-        const rawDev = (typeof raw.device_info === 'object' && raw.device_info !== null) ? raw.device_info : {};
-        const mobile = rawDev.mobile || {
-          brand: rawDev.brand || 'Perangkat Mobile',
-          model: rawDev.device_model || rawDev.model || 'Ponsel Korban',
-          os_version: rawDev.os_version || 'Android/iOS',
-          battery_level: raw.battery_level ?? rawDev.battery_level ?? 85,
-          battery_status: rawDev.battery_status || ((raw.battery_level ?? 85) < 20 ? 'Kritis' : 'Baik'),
-          is_charging: rawDev.is_charging ?? false,
-          battery_state: rawDev.battery_state ?? 'discharging',
-          signal_strength: raw.signal_strength ?? rawDev.signal_strength ?? '4G / Kuat',
-          gps_accuracy: rawDev.gps_accuracy ?? null,
-          device_id: rawDev.device_id ?? raw.device_id ?? null,
-        };
-        const tuya = rawDev.tuya ?? null;
-        const triggerSource = rawDev.trigger_source || (tuya ? 'tuya_physical_button' : 'app_button');
-        const batLevel = mobile.battery_level ?? raw.battery_level ?? null;
+        const mobile = rawMobile ? {
+          brand: rawMobile.brand ?? rawDev?.brand ?? null,
+          model: rawMobile.model ?? rawMobile.device_model ?? rawDev?.device_model ?? rawDev?.model ?? null,
+          os_version: rawMobile.os_version ?? rawDev?.os_version ?? null,
+          battery_level: batLevel,
+          battery_status: rawMobile.battery_status || (batLevel != null ? (batLevel < 20 ? 'Kritis' : 'Baik') : null),
+          is_charging: rawMobile.is_charging ?? rawDev?.is_charging ?? false,
+          battery_state: rawMobile.battery_state ?? rawDev?.battery_state ?? null,
+          signal_strength: sigStrength,
+          gps_accuracy: rawMobile.gps_accuracy ?? rawDev?.gps_accuracy ?? null,
+          device_id: rawMobile.device_id ?? rawDev?.device_id ?? raw.device_id ?? null,
+          is_online: isOnline,
+        } : (batLevel != null || sigStrength != null) ? {
+          brand: rawDev?.brand ?? null,
+          model: rawDev?.device_model ?? rawDev?.model ?? null,
+          os_version: rawDev?.os_version ?? null,
+          battery_level: batLevel,
+          battery_status: batLevel != null ? (batLevel < 20 ? 'Kritis' : 'Baik') : null,
+          is_charging: rawDev?.is_charging ?? false,
+          battery_state: rawDev?.battery_state ?? null,
+          signal_strength: sigStrength,
+          gps_accuracy: rawDev?.gps_accuracy ?? null,
+          device_id: rawDev?.device_id ?? raw.device_id ?? null,
+          is_online: isOnline,
+        } : null;
+
+        const tuya = rawTuya;
+        const smartwatch = rawSmartwatch;
+        const triggerSource = rawDev?.trigger_source || (
+          tuya ? 'tuya_physical_button' : (
+            smartwatch ? (smartwatch.fall_detected ? 'smartwatch_fall_detection' : 'smartwatch_button') : (rawDev ? 'app_button' : null)
+          )
+        );
 
         return {
           battery_level:       batLevel,
-          battery_status:      mobile.battery_status,
-          signal_strength:     mobile.signal_strength ?? raw.signal_strength ?? null,
-          is_online:           rawDev.is_online ?? true,
-          device_id:           mobile.device_id ?? rawDev.device_id ?? raw.device_id ?? null,
-          device_model:        mobile.model ? `${mobile.brand || ''} ${mobile.model}`.trim() : (rawDev.device_model || 'Ponsel Korban'),
-          last_seen:           raw.last_seen ?? rawDev.last_seen ?? null,
-          location_updated_at: raw.location_updated_at ?? rawDev.location_updated_at ?? null,
+          battery_status:      mobile?.battery_status ?? (batLevel != null ? (batLevel < 20 ? 'Kritis' : 'Baik') : null),
+          signal_strength:     sigStrength,
+          is_online:           isOnline,
+          device_id:           mobile?.device_id ?? rawDev?.device_id ?? raw.device_id ?? null,
+          device_model:        mobile?.model ? `${mobile.brand || ''} ${mobile.model}`.trim() : (rawDev?.device_model || null),
+          last_seen:           raw.last_seen ?? rawDev?.last_seen ?? null,
+          location_updated_at: raw.location_updated_at ?? rawDev?.location_updated_at ?? null,
           trigger_source:      triggerSource,
-          is_warning:          (batLevel != null && batLevel < 20) || (tuya && tuya.is_battery_low),
+          is_warning:          (batLevel != null && batLevel < 20) || Boolean(tuya && tuya.is_battery_low) || Boolean(smartwatch && smartwatch.is_battery_low),
           mobile,
           tuya,
-          ...rawDev,
+          smartwatch,
+          ...(rawDev || {}),
         };
       })() : null,
       _tipe: tipe,
     };
   }
 
-  // Fallback dari GET /laporan/{id} — Laporan Eloquent model langsung
+  // Fallback dari GET /laporan/{id}: Laporan Eloquent model langsung
   const pengguna = raw.pengguna ?? null;
   const rawKontak = Array.isArray(pengguna?.kontak_darurat ?? pengguna?.kontakDarurat)
     ? (pengguna.kontak_darurat ?? pengguna.kontakDarurat)
@@ -237,9 +268,14 @@ export function useDetailKasus() {
     setTimeout(() => setFeedback(null), 4000);
   };
 
-  // ─── Fetch Activities ──────────────────────────────────────────────────
+  // Pengambilan data aktivitas kasus
   const fetchActivities = useCallback(async () => {
     if (!id) return;
+    // Audit timeline s_o_s_activities khusus kasus SOS (bukan Laporan)
+    if (tipe !== 'sos') {
+      setActivities([]);
+      return;
+    }
     try {
       setLoadingActivities(true);
       const res = await adminService.getSosActivities(id);
@@ -251,9 +287,9 @@ export function useDetailKasus() {
     } finally {
       setLoadingActivities(false);
     }
-  }, [id]);
+  }, [id, tipe]);
 
-  // ─── Fetch Relawan untuk Dispatch & Peta ──────────────────────────────
+  // Pengambilan data relawan terdekat untuk dispatch dan peta
   const fetchRelawanDispatch = useCallback(async (customLat, customLng) => {
     try {
       setLoadingRelawan(true);
@@ -276,7 +312,7 @@ export function useDetailKasus() {
     }
   }, [id, tipe]);
 
-  // ─── Fetch Detail Kasus ────────────────────────────────────────────────
+  // Pengambilan detail kasus dari backend
   const fetchKasus = useCallback(async (options = {}) => {
     if (!id) return;
     const isSilent = typeof options === 'boolean' ? options : Boolean(options?.silent);
@@ -315,7 +351,7 @@ export function useDetailKasus() {
     }
   }, [id, tipe, fetchActivities, fetchRelawanDispatch]);
 
-  // ─── Action: Dispatch Relawan ──────────────────────────────────────────
+  // Penugasan relawan
   const handleDispatch = async () => {
     if (!selectedRelawanId) return;
     try {
@@ -335,7 +371,7 @@ export function useDetailKasus() {
     }
   };
 
-  // ─── Action: Ambil Alih / Tangani Kasus ─────────────────────────────────
+  // Ambil alih / penanganan kasus langsung oleh admin
   const handleTanganiKasus = async (catatan = null) => {
     try {
       setLoadingTangani(true);
@@ -352,7 +388,7 @@ export function useDetailKasus() {
     }
   };
 
-  // ─── Action: Selesaikan Kasus ──────────────────────────────────────────
+  // Penyelesaian kasus
   const handleSelesai = async () => {
     try {
       setLoadingSelesai(true);
@@ -375,7 +411,7 @@ export function useDetailKasus() {
     }
   };
 
-  // ─── Action: Log Aksi Kritis ───────────────────────────────────────────
+  // Pencatatan log aksi kritis
   const handleLogAksi = async (actionType) => {
     try {
       await adminService.logAksiKritis(id, { action: actionType });
@@ -387,7 +423,7 @@ export function useDetailKasus() {
     }
   };
 
-  // ─── Action: Update Status Laporan ────────────────────────────────────
+  // Perbaruan status laporan warga
   const handleUpdateStatusLaporan = async (status) => {
     try {
       setLoadingSelesai(true);
@@ -403,7 +439,7 @@ export function useDetailKasus() {
     }
   };
 
-  // ─── Toggle Dispatch Panel ─────────────────────────────────────────────
+  // Buka panel penugasan relawan
   const handleOpenDispatchPanel = () => {
     setShowDispatchPanel(true);
     fetchRelawanDispatch();
@@ -412,6 +448,103 @@ export function useDetailKasus() {
   useEffect(() => {
     fetchKasus();
   }, [fetchKasus]);
+
+  // Listener WebSocket real-time untuk command center
+  useEffect(() => {
+    if (!id) return;
+    const channel = echo.channel('command-center');
+
+    // 1. Sinkronisasi pergerakan relawan secara real-time
+    const handleRelawanLocation = (data) => {
+      if (!data?.relawan_id) return;
+
+      setKasus((prev) => {
+        if (!prev) return prev;
+        const isAssigned = prev.relawan && String(prev.relawan.id) === String(data.relawan_id);
+        const matchesSos = data.sos_id && String(data.sos_id) === String(prev.id);
+
+        if (isAssigned || matchesSos) {
+          return {
+            ...prev,
+            relawan: {
+              ...(prev.relawan || {}),
+              id: data.relawan_id,
+              name: data.nama || prev.relawan?.name,
+              latitude: parseFloat(data.latitude),
+              longitude: parseFloat(data.longitude),
+            },
+          };
+        }
+        return prev;
+      });
+
+      // Perbarui juga data relawan di daftar dispatch dan peta sekitar
+      setRelawanList((prev) =>
+        prev.map((r) => {
+          if (String(r.id) === String(data.relawan_id)) {
+            return {
+              ...r,
+              latitude: parseFloat(data.latitude),
+              longitude: parseFloat(data.longitude),
+              status: data.status || r.status,
+              jarak_km: data.distance != null ? Number(data.distance).toFixed(1) : r.jarak_km,
+              jarak_text: data.distance != null ? `${Number(data.distance).toFixed(1)} km` : r.jarak_text,
+            };
+          }
+          return r;
+        })
+      );
+    };
+
+    // 2. Sinkronisasi status kasus SOS
+    const handleStatusUpdate = (data) => {
+      if (!data?.id || String(data.id) !== String(id)) return;
+
+      setKasus((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: data.status_sos || prev.status,
+          status_raw: data.status_sos || prev.status_raw,
+          relawan: data.relawan ?? prev.relawan,
+          updated_at: data.updated_at || prev.updated_at,
+        };
+      });
+
+      // Muat ulang aktivitas linimasa secara hening (silent)
+      fetchActivities();
+    };
+
+    channel.listen('.RelawanLocationUpdate', handleRelawanLocation);
+    channel.listen('RelawanLocationUpdate', handleRelawanLocation);
+
+    channel.listen('.SOSUpdateStatus', handleStatusUpdate);
+    channel.listen('SOSUpdateStatus', handleStatusUpdate);
+
+    // Dengarkan event SOSCreated untuk mendeteksi auto-eskalasi atau mutasi darurat
+    const handleSosCreated = () => {
+      fetchActivities();
+    };
+    channel.listen('.SOSCreated', handleSosCreated);
+    channel.listen('SOSCreated', handleSosCreated);
+
+    const handleRelawanStatus = () => {
+      fetchRelawanDispatch();
+    };
+    channel.listen('.RelawanStatusUpdated', handleRelawanStatus);
+    channel.listen('RelawanStatusUpdated', handleRelawanStatus);
+
+    return () => {
+      channel.stopListening('.RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('RelawanLocationUpdate', handleRelawanLocation);
+      channel.stopListening('.SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('SOSUpdateStatus', handleStatusUpdate);
+      channel.stopListening('.SOSCreated', handleSosCreated);
+      channel.stopListening('SOSCreated', handleSosCreated);
+      channel.stopListening('.RelawanStatusUpdated', handleRelawanStatus);
+      channel.stopListening('RelawanStatusUpdated', handleRelawanStatus);
+    };
+  }, [id, fetchActivities, fetchRelawanDispatch]);
 
   return {
     id,

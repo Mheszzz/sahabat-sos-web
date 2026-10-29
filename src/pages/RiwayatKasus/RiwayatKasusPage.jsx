@@ -8,7 +8,9 @@ import {
 import Badge from '../../components/global/Badge';
 import InitialsAvatar from '../../components/global/InitialsAvatar';
 import CustomSelect from '../../components/global/CustomSelect';
+import PaginationBar from '../../components/global/PaginationBar';
 import { kasusAktifService } from '../../api/services/kasusAktifService';
+import { formatKasusTime, getSafeTimestamp } from '../../utils/dateHelper';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,22 +18,7 @@ const ITEMS_PER_PAGE = 10;
  * Helper format tanggal dan jam lokal Indonesia
  */
 function formatDateRow(dt) {
-  if (!dt) return '—';
-  if (typeof dt === 'string' && dt.includes('lalu')) return dt;
-  try {
-    const d = new Date(dt);
-    if (isNaN(d.getTime())) return String(dt);
-    const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(':', '.');
-    const isCurrentYear = d.getFullYear() === new Date().getFullYear();
-    const dateStr = d.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      ...(isCurrentYear ? {} : { year: 'numeric' }),
-    });
-    return `${timeStr}, ${dateStr}`;
-  } catch {
-    return String(dt);
-  }
+  return formatKasusTime(dt);
 }
 
 /**
@@ -125,9 +112,7 @@ export default function RiwayatKasusPage() {
 
   const getRawTimestamp = (c) => {
     const raw = c.waktu ?? c.waktu_laporan ?? c.waktu_sos ?? c.updated_at ?? c.created_at;
-    if (!raw) return 0;
-    const t = new Date(raw).getTime();
-    return isNaN(t) ? 0 : t;
+    return getSafeTimestamp(raw);
   };
 
   // Kategori unik untuk dropdown filter
@@ -253,7 +238,7 @@ export default function RiwayatKasusPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* ── Control Bar: Tabs, Search, Filters & Actions ──────────────────────── */}
+      {/* Control Bar: Tabs, Search, Filters & Actions */}
       <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           {/* Segmented Filter Pills */}
@@ -285,16 +270,16 @@ export default function RiwayatKasusPage() {
             })}
           </div>
 
-          {/* Actions: Sinkronkan Data & View Mode */}
+          {/* Actions: Refresh Data & View Mode */}
           <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
             <button
               onClick={fetchRiwayat}
               disabled={loading}
               className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 px-3 text-[12px] font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer"
-              title="Muat ulang seluruh data riwayat"
+              title="Refresh seluruh data riwayat"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin text-[#0b6f61]' : ''} />
-              <span>Sinkronkan Data</span>
+              <span>Refresh</span>
             </button>
 
             <div className="h-4 w-px bg-slate-200 hidden sm:block" />
@@ -405,7 +390,7 @@ export default function RiwayatKasusPage() {
         </div>
       </div>
 
-      {/* ── Content View (Table / Grid) ──────────────────────────────────────── */}
+      {/* Content View (Table / Grid) */}
       {loading && (
         <div className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center justify-center p-14 gap-3 text-slate-500 shadow-xs">
           <Loader2 size={24} className="animate-spin text-[#0b6f61]" />
@@ -429,13 +414,13 @@ export default function RiwayatKasusPage() {
       )}
 
       {!loading && !error && sortedCases.length === 0 && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-14 text-center text-slate-400 shadow-xs space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+        <div className="bg-white border border-slate-200 rounded-2xl p-14 text-center text-slate-500 shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
             <Search size={20} />
           </div>
           <div>
-            <p className="text-[14px] font-bold text-slate-700">Tidak ada riwayat kasus yang ditemukan</p>
-            <p className="text-[12px] text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian, rentang tanggal, atau bersihkan filter.</p>
+            <p className="text-[14px] font-bold text-slate-800">Tidak ada riwayat kasus yang ditemukan</p>
+            <p className="text-[12px] text-slate-600 mt-1">Coba sesuaikan kata kunci pencarian, rentang tanggal, atau bersihkan filter.</p>
           </div>
           {(searchQuery || filterKategori || dateFilter || activeTab !== 'semua') && (
             <button
@@ -583,48 +568,19 @@ export default function RiwayatKasusPage() {
           </div>
 
           {/* Pagination Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500 gap-3">
-            <span>
-              Menampilkan <strong>{paginatedCases.length}</strong> dari <strong>{sortedCases.length}</strong> riwayat kasus (Total: {cases.length})
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Sebelumnya"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold cursor-pointer transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-[#0b6f61] text-white shadow-xs'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Selanjutnya"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-          </div>
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            showingCount={paginatedCases.length}
+            filteredCount={sortedCases.length}
+            totalCount={cases.length}
+            label="riwayat kasus"
+          />
         </div>
       )}
 
-      {/* ── Content View: Incident Cards Grid ───────────────────────────────── */}
+      {/* Content View: Incident Cards Grid */}
       {!loading && !error && sortedCases.length > 0 && viewMode === 'grid' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -709,43 +665,16 @@ export default function RiwayatKasusPage() {
           </div>
 
           {/* Pagination Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500 gap-3 bg-white rounded-2xl border border-slate-200">
-            <span>
-              Menampilkan <strong>{paginatedCases.length}</strong> dari <strong>{sortedCases.length}</strong> riwayat kasus
-            </span>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Sebelumnya"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold cursor-pointer transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-[#0b6f61] text-white shadow-xs'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  title="Halaman Selanjutnya"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showingCount={paginatedCases.length}
+              filteredCount={sortedCases.length}
+              totalCount={cases.length}
+              label="riwayat kasus"
+            />
           </div>
         </div>
       )}

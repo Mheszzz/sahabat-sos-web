@@ -31,10 +31,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If unauthorized, clear token and redirect to login
-      localStorage.removeItem('admin_access_token');
-      localStorage.removeItem('admin_user');
-      window.location.href = '/login';
+      const isAuthEndpoint = error.config?.url?.includes('/auth/');
+      // Jangan lakukan hard-redirect jika error 401 berasal dari endpoint login itu sendiri
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('admin_access_token');
+        localStorage.removeItem('admin_user_data');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
     }
     return Promise.reject(error);
   }

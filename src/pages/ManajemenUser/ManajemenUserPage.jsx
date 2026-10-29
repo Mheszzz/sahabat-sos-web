@@ -60,7 +60,7 @@ export default function ManajemenUserPage() {
           <Lock size={30} />
         </div>
         <div>
-          <h1 className="text-[24px] font-black text-slate-900">403 — Akses Ditolak</h1>
+          <h1 className="text-[24px] font-black text-slate-900">403: Akses Ditolak</h1>
           <p className="text-[13px] text-slate-500 mt-2 leading-relaxed">
             Anda memerlukan izin khusus &quot;verifikasi_relawan&quot; atau hak akses Super Admin untuk membuka halaman manajemen relawan.
           </p>
@@ -125,23 +125,23 @@ export default function ManajemenUserPage() {
             type="button"
             onClick={refreshAll}
             disabled={isRefreshing || isLoading}
-            className="h-8.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-[12.5px] font-semibold transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-60 cursor-pointer"
-            title="Perbarui data dari server"
+            className="h-9 px-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 text-[12.5px] font-semibold transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-60 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1"
+            title="Refresh data dari server"
           >
             <RefreshCw
-              size={13}
+              size={13.5}
               className={`text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`}
             />
-            <span className="hidden sm:inline">Perbarui</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
           {/* + Tambah Relawan Primary Button */}
           <button
             type="button"
             onClick={() => setIsAddRelawanOpen(true)}
-            className="h-8.5 px-3.5 rounded-lg bg-[#0b6f61] hover:bg-[#085d52] text-white text-[12.5px] font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="h-9 px-4 rounded-xl bg-[#0b6f61] hover:bg-[#085d52] active:scale-[0.98] text-white text-[12.5px] font-bold transition-all flex items-center gap-1.5 shadow-xs hover:shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0b6f61] focus-visible:ring-offset-1"
           >
-            <UserPlus size={14} />
+            <UserPlus size={14.5} />
             <span>+ Tambah Relawan</span>
           </button>
         </div>
