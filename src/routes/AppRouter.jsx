@@ -11,6 +11,7 @@ import ManajemenAdminPage from '../pages/ManajemenAdmin/ManajemenAdminPage';
 import ManajemenUserPage from '../pages/ManajemenUser/ManajemenUserPage';
 import DetailKasusPage from '../pages/DetailKasus/DetailKasusPage';
 import MasterDataPage from '../pages/MasterData/MasterDataPage';
+import DownloadPage from '../pages/Download/DownloadPage';
 
 function RouteErrorFallback() {
   const error = useRouteError();
@@ -60,6 +61,19 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
     errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/download',
+    element: <DownloadPage />,
+    errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/unduh',
+    element: <Navigate to="/download" replace />,
+  },
+  {
+    path: '/app',
+    element: <Navigate to="/download" replace />,
   },
   {
     path: '/',

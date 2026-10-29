@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
   Home, AlertTriangle, Clock, MapPin, Settings,
-  LogOut, UserCog, Users, ChevronRight, ChevronLeft, Database
+  LogOut, UserCog, Users, ChevronRight, ChevronLeft, Database, Smartphone
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
 import { adminService } from '../../api/services/adminService';
@@ -295,6 +295,30 @@ export default function Sidebar({ isOpen, onToggle, isCollapsed = false, onToggl
               </div>
             </div>
           )}
+
+          {/* Quick link to Mobile APK Download Page */}
+          <div className="mt-4 pt-3 border-t border-white/[0.08]">
+            <Link
+              to="/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`
+                w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'} rounded-xl text-[12px] font-semibold
+                bg-white/[0.06] text-white/80 hover:bg-white/[0.12] hover:text-white transition-all
+              `}
+              title="Halaman Unduh APK Mobile"
+            >
+              <span className="w-[28px] h-[28px] rounded-lg bg-[#dc2626] text-white flex items-center justify-center flex-shrink-0">
+                <Smartphone size={14} />
+              </span>
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1 truncate">
+                  <p className="truncate text-white font-bold leading-tight">Unduh APK Mobile</p>
+                  <p className="text-[10px] text-emerald-300/80 truncate">v0.1.0 Android</p>
+                </div>
+              )}
+            </Link>
+          </div>
 
           <div className="flex-1" />
         </div>

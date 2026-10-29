@@ -167,7 +167,7 @@ export default function NotificationDropdown() {
 
       {/* ── Pop-up Dropdown (Inspired by YouTube's Notification Pop-up) ── */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2.5 w-[360px] sm:w-[410px] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden z-[1000] animate-in fade-in zoom-in-95 duration-150 flex flex-col font-sans">
+        <div className="absolute right-0 top-full mt-2.5 w-[360px] sm:w-[410px] rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 flex flex-col font-sans">
           {/* ════ Header Bar ════ */}
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5 bg-white">
             <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
-import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, Activity, Info, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, Activity, Info, X, Smartphone } from 'lucide-react';
 import { useAuthForm } from '../../hooks/login/useAuthForm';
 import { s } from './LoginStyles';
 
@@ -223,6 +224,29 @@ export default function LoginPage() {
             Hubungi Administrator
           </button>
         </p>
+
+        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Link
+            to="/download"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '9px 16px',
+              backgroundColor: '#eaf8f5',
+              border: '1px solid #c2ece2',
+              borderRadius: '12px',
+              color: '#0b6f61',
+              fontSize: '12px',
+              fontWeight: '600',
+              textDecoration: 'none',
+              boxShadow: '0 1px 2px rgba(11,111,97,0.06)',
+            }}
+          >
+            <Smartphone size={14} color="#0b6f61" />
+            <span>Unduh Aplikasi Mobile (APK Android)</span>
+          </Link>
+        </div>
       </div>
 
       {/* Modal Bantuan / Info */}

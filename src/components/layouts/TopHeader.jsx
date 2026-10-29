@@ -83,7 +83,7 @@ export default function TopHeader({ onMenuToggle, isCollapsed, onToggleCollapse 
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8 no-print gap-4">
+      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur-sm lg:px-8 no-print gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {/* Mobile navigation toggle */}
           <button

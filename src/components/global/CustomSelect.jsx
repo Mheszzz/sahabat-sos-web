@@ -146,7 +146,7 @@ export default function CustomSelect({
         <div
           role="listbox"
           tabIndex={-1}
-          className={`absolute top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 p-1 outline-none animate-in fade-in zoom-in-95 duration-100 ${menuWidth} ${
+          className={`absolute top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 p-1 outline-none animate-in fade-in zoom-in-95 duration-100 ${menuWidth} ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
