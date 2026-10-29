@@ -251,10 +251,11 @@ export const adminService = {
 
   /**
    * Mengambil daftar seluruh Relawan (Admin & Superadmin)
+   * @param {Object} [params] - Query params (status_verifikasi, per_page, dll)
    * @returns {Promise} Response data { data: [...] }
    */
-  getRelawanSuperadmin: async () => {
-    const response = await api.get('/admin/relawan');
+  getRelawanSuperadmin: async (params = { status_verifikasi: 'terverifikasi' }) => {
+    const response = await api.get('/admin/relawan', { params });
     return response.data;
   },
 

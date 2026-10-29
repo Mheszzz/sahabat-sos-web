@@ -130,6 +130,13 @@ export function resolveStorageUrl(pathOrUrl) {
     return `${backendBase}/storage/${pathAfterStorage}`;
   }
 
+  // Jika URL berisi path proxy /storage-file/
+  if (trimmed.includes('/storage-file/')) {
+    const storageFileIndex = trimmed.indexOf('/storage-file/');
+    const pathAfterStorage = trimmed.slice(storageFileIndex + '/storage-file/'.length).replace(/^\/+/, '');
+    return `${backendBase}/storage/${pathAfterStorage}`;
+  }
+
   // URL eksternal pihak ketiga (misal Google avatar, CDN eksternal)
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;

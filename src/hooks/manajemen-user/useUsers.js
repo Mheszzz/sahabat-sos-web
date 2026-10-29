@@ -54,14 +54,17 @@ export function useUsers() {
   const fetchRelawan = useCallback(async () => {
     setIsLoadingRelawan(true);
     try {
-      const res = await adminService.getRelawanSuperadmin();
+      const res = await adminService.getRelawanSuperadmin({ status_verifikasi: 'terverifikasi' });
       // Backend: { status, data: { data: [...], current_page, total, ... } } (paginated)
       const list = res?.data?.data ?? res?.data ?? res ?? [];
-      setRelawan(Array.isArray(list) ? list : []);
+      const verifiedList = Array.isArray(list)
+        ? list.filter((r) => !r.status_verifikasi || r.status_verifikasi === 'terverifikasi')
+        : [];
+      setRelawan(verifiedList);
       if (typeof res?.data?.total === 'number') {
         setTotalRelawanBackend(res.data.total);
-      } else if (Array.isArray(list)) {
-        setTotalRelawanBackend(list.length);
+      } else {
+        setTotalRelawanBackend(verifiedList.length);
       }
     } catch (error) {
       console.error('Gagal mengambil data relawan:', error);
@@ -109,17 +112,20 @@ export function useUsers() {
       setIsLoadingPending(true);
       try {
         const [resRelawan, resPending] = await Promise.allSettled([
-          adminService.getRelawanSuperadmin(),
+          adminService.getRelawanSuperadmin({ status_verifikasi: 'terverifikasi' }),
           adminService.getPendingRelawan(),
         ]);
         if (!mounted) return;
         if (resRelawan.status === 'fulfilled') {
           const list = resRelawan.value?.data?.data ?? resRelawan.value?.data ?? resRelawan.value ?? [];
-          setRelawan(Array.isArray(list) ? list : []);
+          const verifiedList = Array.isArray(list)
+            ? list.filter((r) => !r.status_verifikasi || r.status_verifikasi === 'terverifikasi')
+            : [];
+          setRelawan(verifiedList);
           if (typeof resRelawan.value?.data?.total === 'number') {
             setTotalRelawanBackend(resRelawan.value.data.total);
-          } else if (Array.isArray(list)) {
-            setTotalRelawanBackend(list.length);
+          } else {
+            setTotalRelawanBackend(verifiedList.length);
           }
         } else if (resRelawan.status === 'rejected') {
           console.error('Gagal mengambil data relawan saat inisialisasi:', resRelawan.reason);
@@ -207,9 +213,10 @@ export function useUsers() {
 
   // ─── Statistics Calculation ───────────────────────────────────────────
   const stats = useMemo(() => {
-    const totalRelawan = Math.max(relawan.length, totalRelawanBackend);
-    const relawanAktif = relawan.filter((r) => r.is_active === true || r.is_active === 1).length;
-    const relawanNonaktif = relawan.filter((r) => r.is_active === false || r.is_active === 0).length;
+    const verifiedList = relawan.filter((r) => !r.status_verifikasi || r.status_verifikasi === 'terverifikasi');
+    const totalRelawan = Math.max(verifiedList.length, totalRelawanBackend);
+    const relawanAktif = verifiedList.filter((r) => r.is_active === true || r.is_active === 1).length;
+    const relawanNonaktif = verifiedList.filter((r) => r.is_active === false || r.is_active === 0).length;
     const totalPending = pendingRelawans.length;
 
     return {
@@ -221,7 +228,12 @@ export function useUsers() {
   }, [relawan, totalRelawanBackend, pendingRelawans]);
 
   // ─── Filter & Sort Data ───────────────────────────────────────────────
-  const currentSource = activeTab === 'relawan' ? relawan : pendingRelawans;
+  const currentSource = useMemo(() => {
+    if (activeTab === 'pending') {
+      return pendingRelawans;
+    }
+    return relawan.filter((r) => !r.status_verifikasi || r.status_verifikasi === 'terverifikasi');
+  }, [activeTab, relawan, pendingRelawans]);
 
   const filteredData = useMemo(() => {
     return currentSource.filter((item) => {

@@ -6,6 +6,7 @@ import {
   RotateCcw, ChevronLeft, ChevronRight, Sparkles
 } from 'lucide-react';
 import InitialsAvatar from '../global/InitialsAvatar';
+import { getAvatarUrl } from '../../utils/theme';
 import RelawanDetailModal from './RelawanDetailModal';
 import RelawanStatusConfirmModal from './RelawanStatusConfirmModal';
 // ── Skeleton Rows Component ───────────────────────────────────────────
@@ -266,13 +267,9 @@ export default function UserTable({
                     <td className="py-2 px-3">
                       <div className="flex items-center gap-2.5">
                         <div className="relative shrink-0">
-                          {item.foto_profile ? (
+                          {getAvatarUrl(item) ? (
                             <img
-                              src={
-                                item.foto_profile.startsWith('http')
-                                  ? item.foto_profile
-                                  : `/storage-file/${item.foto_profile}`
-                              }
+                              src={getAvatarUrl(item)}
                               alt={nama}
                               className="w-8 h-8 rounded-lg object-cover border border-slate-200 shadow-2xs"
                             />
@@ -305,6 +302,23 @@ export default function UserTable({
                             {nama}
                           </p>
                           <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">{email || '-'}</p>
+
+                          {/* Indikator berkas KTP khusus tab pending verifikasi */}
+                          {activeTab === 'pending' && (
+                            <div className="mt-1 flex items-center gap-1">
+                              {item.dokumen_kyc ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Check size={9} />
+                                  <span>KTP Terlampir</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <X size={9} />
+                                  <span>Tanpa KTP</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
