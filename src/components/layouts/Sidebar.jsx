@@ -314,7 +314,7 @@ export default function Sidebar({ isOpen, onToggle, isCollapsed = false, onToggl
               {!isCollapsed && (
                 <div className="min-w-0 flex-1 truncate">
                   <p className="truncate text-white font-bold leading-tight">Unduh APK Mobile</p>
-                  <p className="text-[10px] text-emerald-300/80 truncate">v0.1.0 Android</p>
+                  <p className="text-[10px] text-emerald-300/80 truncate">v1.0.0 Android</p>
                 </div>
               )}
             </Link>
