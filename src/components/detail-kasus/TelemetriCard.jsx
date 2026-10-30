@@ -50,10 +50,15 @@ export default function TelemetriCard({
             <AlertTriangle size={10} className="text-rose-600" />
             Deteksi Jatuh Smartwatch
           </span>
+        ) : deviceInfo.trigger_source === 'smartband_heart_rate' || (deviceInfo.smartwatch?.heart_rate != null && deviceInfo.trigger_source?.includes('heart_rate')) ? (
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200">
+            <HeartPulse size={10} className="text-rose-600" />
+            Sensor Detak Jantung
+          </span>
         ) : deviceInfo.trigger_source === 'smartwatch_button' || deviceInfo.smartwatch ? (
           <span className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">
             <Watch size={10} className="text-sky-700" />
-            Smartwatch Terhubung
+            Smartwatch / Smartband
           </span>
         ) : deviceInfo.tuya ? (
           <span className="inline-flex items-center gap-1 text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -230,11 +235,11 @@ export default function TelemetriCard({
           <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-600 flex items-center justify-between">
             <span className="flex items-center gap-1">
               <Watch size={10} className="text-sky-600" />
-              {deviceInfo.tuya ? '3.' : '2.'} Smartwatch &amp; Biometrik
+              {deviceInfo.tuya ? '3.' : '2.'} Smartwatch / Smartband &amp; Biometrik
             </span>
             <span className="text-[8.5px] font-normal text-slate-600">
               Pemicu: <strong className={deviceInfo.smartwatch.fall_detected ? 'text-rose-700 font-bold' : 'text-sky-800'}>
-                {deviceInfo.smartwatch.trigger_type || (deviceInfo.smartwatch.fall_detected ? 'Deteksi Jatuh Jam' : 'Tombol SOS Jam')}
+                {deviceInfo.smartwatch.trigger_type || (deviceInfo.smartwatch.fall_detected ? 'Deteksi Jatuh Jam' : (deviceInfo.smartwatch.heart_rate != null ? 'Sensor Detak Jantung' : 'Tombol SOS Jam'))}
               </strong>
             </span>
           </span>
@@ -277,20 +282,20 @@ export default function TelemetriCard({
 
             {/* Baterai Jam */}
             <div className={`p-1.5 rounded-xl border flex items-center gap-1.5 ${
-              (deviceInfo.smartwatch.battery_level ?? 100) < 20
+              deviceInfo.smartwatch.battery_level != null && deviceInfo.smartwatch.battery_level < 20
                 ? 'bg-amber-50 border-amber-200 text-amber-900'
                 : 'bg-emerald-50/50 border-emerald-100 text-slate-800'
             }`}>
               <Battery size={14} className={
-                (deviceInfo.smartwatch.battery_level ?? 100) < 20 ? 'text-amber-600 shrink-0' : 'text-sky-600 shrink-0'
+                deviceInfo.smartwatch.battery_level != null && deviceInfo.smartwatch.battery_level < 20 ? 'text-amber-600 shrink-0' : 'text-sky-600 shrink-0'
               } />
               <div className="min-w-0">
                 <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none">Baterai Jam</span>
                 <span className="font-black text-[11px] leading-tight block">
-                  {deviceInfo.smartwatch.battery_level != null ? `${deviceInfo.smartwatch.battery_level}%` : 'N/A'}
+                  {deviceInfo.smartwatch.battery_level != null ? `${deviceInfo.smartwatch.battery_level}%` : 'Normal'}
                 </span>
                 <span className="text-[8px] font-semibold text-slate-600 leading-none truncate block">
-                  {deviceInfo.smartwatch.battery_status || 'Normal'}
+                  {deviceInfo.smartwatch.battery_status || (deviceInfo.smartwatch.battery_level != null ? 'Normal' : 'Terhubung')}
                 </span>
               </div>
             </div>
@@ -299,7 +304,7 @@ export default function TelemetriCard({
             <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
               <span className="text-[8px] font-bold text-slate-500 block uppercase leading-none mb-0.5">Model Jam</span>
               <span className="font-bold text-slate-800 truncate block text-[10px] leading-tight" title={deviceInfo.smartwatch.device_name}>
-                {deviceInfo.smartwatch.device_model || deviceInfo.smartwatch.device_name || 'Smartwatch'}
+                {deviceInfo.smartwatch.device_model || deviceInfo.smartwatch.device_name || 'Smartband'}
               </span>
               <span className="text-[7.5px] font-semibold text-sky-700 truncate block leading-none mt-0.5">
                 BLE / Health Connect

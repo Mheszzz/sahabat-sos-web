@@ -62,7 +62,23 @@ function normaliseKasus(raw, tipe) {
     const rawDev = (typeof raw.device_info === 'object' && raw.device_info !== null) ? raw.device_info : null;
     const rawMobile = rawDev?.mobile ?? (rawDev && (rawDev.brand || rawDev.device_model || rawDev.model) ? rawDev : null);
     const rawTuya = rawDev?.tuya ?? null;
-    const rawSmartwatch = rawDev?.smartwatch ?? null;
+
+    const rawWatchSource = rawDev?.smartwatch ?? rawDev?.smartband ?? (
+      (rawDev?.heart_rate != null || raw?.heart_rate != null || rawDev?.bpm != null) ? {
+        heart_rate: rawDev?.heart_rate ?? raw?.heart_rate ?? rawDev?.bpm,
+        device_name: 'Smartband / Health Connect',
+      } : null
+    );
+
+    const rawSmartwatch = rawWatchSource ? {
+      ...rawWatchSource,
+      heart_rate: rawWatchSource.heart_rate ?? rawWatchSource.bpm ?? rawWatchSource.heart_rate_bpm ?? rawDev?.heart_rate ?? raw?.heart_rate ?? null,
+      device_model: rawWatchSource.device_model ?? rawWatchSource.device_name ?? rawWatchSource.type ?? 'Smartband / Smartwatch',
+      device_name: rawWatchSource.device_name ?? rawWatchSource.device_model ?? 'Smartband (Health Connect)',
+      battery_level: rawWatchSource.battery_level ?? null,
+      fall_detected: Boolean(rawWatchSource.fall_detected),
+      trigger_type: rawWatchSource.trigger_type ?? (rawWatchSource.fall_detected ? 'Deteksi Jatuh Jam' : 'Sensor Detak Jantung'),
+    } : null;
 
     const batLevel = rawMobile?.battery_level ?? raw.battery_level ?? rawDev?.battery_level ?? null;
     const sigStrength = rawMobile?.signal_strength ?? raw.signal_strength ?? rawDev?.signal_strength ?? null;
@@ -143,9 +159,9 @@ function normaliseKasus(raw, tipe) {
 
         const tuya = rawTuya;
         const smartwatch = rawSmartwatch;
-        const triggerSource = rawDev?.trigger_source || (
+        const triggerSource = raw.trigger_source || rawDev?.trigger_source || (
           tuya ? 'tuya_physical_button' : (
-            smartwatch ? (smartwatch.fall_detected ? 'smartwatch_fall_detection' : 'smartwatch_button') : (rawDev ? 'app_button' : null)
+            smartwatch ? (smartwatch.fall_detected ? 'smartwatch_fall_detection' : (smartwatch.heart_rate != null ? 'smartband_heart_rate' : 'smartwatch_button')) : (rawDev ? 'app_button' : null)
           )
         );
 
