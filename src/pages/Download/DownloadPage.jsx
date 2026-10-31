@@ -4,6 +4,7 @@ import {
   Download,
   Smartphone,
   ShieldCheck,
+  CheckCircle2,
   AlertTriangle,
   Radio,
   MapPin,
@@ -24,11 +25,7 @@ import {
   Home,
   User,
   RotateCw,
-  Copy,
-  Check,
-  Play,
-  CheckCircle2,
-  Share2
+  Play
 } from 'lucide-react';
 
 export default function DownloadPage() {
@@ -44,39 +41,10 @@ export default function DownloadPage() {
   // Guide & Verification State
   const [activeGuideStep, setActiveGuideStep] = useState(1);
   const [allowUnknownSourcesToggle, setAllowUnknownSourcesToggle] = useState(true);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedHash, setCopiedHash] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   const apkSizeFormatted = '98.9 MB';
   const apkPackageId = 'com.sahabatsos.mobile';
   const apkDownloadPath = '/SahabatSOS.apk';
-  const sha256Checksum = '15e00fadcbe05da797f413e61e90beadf498d92c6d3b988823181cbd9ec9e812';
-
-  const handleCopyUrl = () => {
-    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${apkDownloadPath}` : apkDownloadPath;
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(fullUrl);
-      setCopiedUrl(true);
-      setToastMessage('Tautan unduhan berhasil disalin');
-      setTimeout(() => {
-        setCopiedUrl(false);
-        setToastMessage('');
-      }, 3000);
-    }
-  };
-
-  const handleCopyHash = () => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(sha256Checksum);
-      setCopiedHash(true);
-      setToastMessage('Hash SHA-256 berhasil disalin');
-      setTimeout(() => {
-        setCopiedHash(false);
-        setToastMessage('');
-      }, 3000);
-    }
-  };
 
   // Trigger SOS Simulation Sequence
   const triggerSosSimulation = useCallback(() => {
@@ -196,27 +164,9 @@ export default function DownloadPage() {
                 <Download size={18} className="group-hover:translate-y-0.5 transition-transform shrink-0" />
                 <span>Unduh SahabatSOS.apk (98.9 MB)</span>
               </a>
-
-              <button
-                type="button"
-                onClick={handleCopyUrl}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm border border-white/20 transition-all hover:border-emerald-400/50 cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
-              >
-                {copiedUrl ? (
-                  <>
-                    <Check size={16} className="text-emerald-400 shrink-0" />
-                    <span className="whitespace-nowrap">Tautan Tersalin!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 size={16} className="text-[#34d399] shrink-0" />
-                    <span className="whitespace-nowrap">Salin Tautan</span>
-                  </>
-                )}
-              </button>
             </div>
 
-            {/* Spesifikasi Teknis & Integritas Berkas */}
+            {/* Spesifikasi Teknis */}
             <div className="pt-2 sm:pt-3 max-w-lg">
               <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden text-xs">
                 {/* Specs row */}
@@ -234,37 +184,6 @@ export default function DownloadPage() {
                     <dd className="font-bold text-[#34d399] text-xs sm:text-sm mt-0.5">Bebas Biaya / Inklusif</dd>
                   </div>
                 </dl>
-
-                {/* SHA-256 Checksum Row */}
-                <div className="bg-black/20 border-t border-white/10 px-3 sm:px-3.5 py-2.5 flex flex-col xs:flex-row xs:items-center justify-between gap-2">
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#34d399]">
-                      <ShieldCheck size={13} className="shrink-0" />
-                      <span>SHA-256 Terverifikasi</span>
-                    </div>
-                    <p className="font-mono text-[10px] sm:text-[11px] text-white/70 truncate select-all">
-                      {sha256Checksum}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyHash}
-                    className="self-start xs:self-center inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-medium shrink-0 transition-colors cursor-pointer"
-                    aria-label="Salin hash SHA-256 berkas APK"
-                  >
-                    {copiedHash ? (
-                      <>
-                        <Check size={12} className="text-emerald-400" />
-                        <span>Tersalin</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={12} />
-                        <span>Salin Hash</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -1024,14 +943,6 @@ export default function DownloadPage() {
           </div>
         </div>
       </footer>
-
-      {/* ── TOAST NOTIFICATION ── */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#062c26] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 border border-emerald-400/30 anim-toast">
-          <CheckCircle2 size={16} className="text-[#34d399]" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
 
       {/* ── PURPOSEFUL ANIMATION KEYFRAMES ── */}
       <style>{`
