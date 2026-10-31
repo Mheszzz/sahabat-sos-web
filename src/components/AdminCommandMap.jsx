@@ -233,6 +233,7 @@ export default function AdminCommandMap({
       } : null));
 
       onDispatchSuccess?.();
+      window.dispatchEvent(new CustomEvent('kasus-updated'));
       setTimeout(() => setDispatchSuccess(null), 4000);
     } catch (err) {
       console.error('Gagal dispatch relawan:', err);

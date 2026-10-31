@@ -90,6 +90,7 @@ export default function PetaPemantauanPage() {
         id_relawan: vol.id,
       } : null));
       fetchMapData();
+      window.dispatchEvent(new CustomEvent('kasus-updated'));
       setTimeout(() => setFeedback(null), 5000);
     } catch (err) {
       setFeedback({

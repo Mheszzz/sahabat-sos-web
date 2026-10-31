@@ -57,41 +57,69 @@ export default function AudioSirenController({ className = '' }) {
       startPoskoSiren();
     };
 
-    const handleSosUpdateStatus = async (data) => {
-      console.log('🔄 SOSUpdateStatus diterima di AudioSirenController:', data);
-      const st = (data?.status_sos || data?.status_raw || data?.status || '').toLowerCase().trim();
-      const isEnded = ['batal', 'dibatalkan', 'selesai'].includes(st);
+    const checkAndSyncSirenStatus = async () => {
+      try {
+        // Periksa apakah masih ada SOS aktif lain yang BELUM ditangani
+        const res = await kasusAktifService.getSOS({ status: 'belum ditangani', per_page: 5 });
+        const rawSos = res?.data?.data || (Array.isArray(res?.data) ? res.data : []);
+        const unhandledSos = rawSos.filter((s) => {
+          const statusStr = (s.status_raw || s.status || '').toLowerCase().trim();
+          return [
+            'belum ditangani',
+            'belum_ditangani',
+            'belum tertangani',
+            'belum_tertangani',
+            'aktif',
+            'pending',
+            'menunggu',
+          ].includes(statusStr);
+        });
 
-      if (isEnded) {
-        try {
-          // Periksa apakah masih ada SOS aktif lain yang belum tertangani
-          const res = await kasusAktifService.getSOS({ per_page: 5 });
-          const rawSos = res?.data?.data || (Array.isArray(res?.data) ? res.data : []);
-          const activeSos = rawSos.filter((s) => {
-            const statusStr = (s.status_raw || s.status || '').toLowerCase();
-            return statusStr !== 'selesai' && statusStr !== 'batal' && statusStr !== 'dibatalkan';
-          });
-
-          if (activeSos.length === 0) {
-            // Sudah tidak ada SOS aktif, otomatis hentikan sirine dan sembunyikan banner
-            stopPoskoSiren();
-            setSirenActive(false);
-            setIsMuted(false);
-            setLastMessage('');
-          } else {
-            // Masih ada SOS lain yang aktif
-            const nextSos = activeSos[0];
-            setLastMessage(`Sinyal SOS Aktif: #${nextSos.id_kasus || nextSos.id || 'Darurat'}`);
-          }
-        } catch {
-          // Fallback jika pemanggilan API gagal: segera hentikan sirine
+        if (unhandledSos.length === 0) {
+          // Sudah tidak ada SOS yang belum ditangani (semua sudah ditangani / selesai / batal),
+          // otomatis hentikan sirine dan sembunyikan banner
           stopPoskoSiren();
           setSirenActive(false);
           setIsMuted(false);
           setLastMessage('');
+        } else {
+          // Masih ada SOS lain yang belum ditangani
+          const nextSos = unhandledSos[0];
+          setLastMessage(`Sinyal SOS Belum Ditangani: #${nextSos.id_kasus || nextSos.id || 'Darurat'}`);
         }
+      } catch (err) {
+        // Fallback jika pemanggilan API gagal: segera hentikan sirine
+        console.warn('Gagal sinkronisasi status SOS belum ditangani:', err);
+        stopPoskoSiren();
+        setSirenActive(false);
+        setIsMuted(false);
+        setLastMessage('');
       }
     };
+
+    const handleSosUpdateStatus = async (data) => {
+      console.log('🔄 SOSUpdateStatus diterima di AudioSirenController:', data);
+      const st = (data?.status_sos || data?.status_raw || data?.status || '').toLowerCase().trim();
+      // Status yang menandakan kasus SOS telah ditangani atau diakhiri
+      const isHandledOrEnded = [
+        'ditangani',
+        'proses',
+        'dalam penanganan',
+        'selesai',
+        'batal',
+        'dibatalkan',
+      ].includes(st);
+
+      if (isHandledOrEnded) {
+        await checkAndSyncSirenStatus();
+      }
+    };
+
+    // Sinkronkan juga saat ada pembaruan kasus lokal dari antarmuka web
+    const onLocalKasusUpdated = () => {
+      checkAndSyncSirenStatus();
+    };
+    window.addEventListener('kasus-updated', onLocalKasusUpdated);
 
     cmdChannel.listen('.SOSCreated', handleSosCreated);
     cmdChannel.listen('SOSCreated', handleSosCreated);
@@ -118,6 +146,7 @@ export default function AudioSirenController({ className = '' }) {
     poskoChannel.listen('PoskoSireneTriggered', handlePoskoSirene);
 
     return () => {
+      window.removeEventListener('kasus-updated', onLocalKasusUpdated);
       try {
         cmdChannel.stopListening('.SOSCreated', handleSosCreated);
         cmdChannel.stopListening('SOSCreated', handleSosCreated);

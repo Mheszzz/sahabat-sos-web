@@ -24,10 +24,8 @@ import {
   Home,
   User,
   RotateCw,
-  QrCode,
   Copy,
   Check,
-  X,
   Play,
   CheckCircle2,
   Share2
@@ -46,14 +44,39 @@ export default function DownloadPage() {
   // Guide & Verification State
   const [activeGuideStep, setActiveGuideStep] = useState(1);
   const [allowUnknownSourcesToggle, setAllowUnknownSourcesToggle] = useState(true);
-  const [showQrModal, setShowQrModal] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const apkSha256 = '15e00fadcbe05da797f413e61e90beadf498d92c6d3b988823181cbd9ec9e812';
   const apkSizeFormatted = '98.9 MB';
   const apkPackageId = 'com.sahabatsos.mobile';
   const apkDownloadPath = '/SahabatSOS.apk';
+  const sha256Checksum = '15e00fadcbe05da797f413e61e90beadf498d92c6d3b988823181cbd9ec9e812';
+
+  const handleCopyUrl = () => {
+    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${apkDownloadPath}` : apkDownloadPath;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(fullUrl);
+      setCopiedUrl(true);
+      setToastMessage('Tautan unduhan berhasil disalin');
+      setTimeout(() => {
+        setCopiedUrl(false);
+        setToastMessage('');
+      }, 3000);
+    }
+  };
+
+  const handleCopyHash = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(sha256Checksum);
+      setCopiedHash(true);
+      setToastMessage('Hash SHA-256 berhasil disalin');
+      setTimeout(() => {
+        setCopiedHash(false);
+        setToastMessage('');
+      }, 3000);
+    }
+  };
 
   // Trigger SOS Simulation Sequence
   const triggerSosSimulation = useCallback(() => {
@@ -103,62 +126,11 @@ export default function DownloadPage() {
     }, 2500);
   };
 
-  // Copy SHA-256 Hash
-  const handleCopyHash = () => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(apkSha256).then(() => {
-        setCopiedHash(true);
-        showToast('Hash SHA-256 berhasil disalin ke papan klip');
-        setTimeout(() => setCopiedHash(false), 3000);
-      });
-    } else {
-      showToast('SHA-256: ' + apkSha256);
-    }
-  };
-
-  // Copy Download URL
-  const handleCopyDownloadUrl = () => {
-    const fullUrl = window.location.origin + apkDownloadPath;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(fullUrl).then(() => {
-        showToast('Tautan unduhan berhasil disalin');
-      });
-    } else {
-      showToast(fullUrl);
-    }
-  };
-
-  // Show Toast
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage('');
-    }, 3200);
-  };
-
-  // Close QR modal on Escape
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && showQrModal) {
-        setShowQrModal(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showQrModal]);
-
   return (
-    <div className="min-h-screen bg-[#f8faf9] text-[#0f172a] font-['Plus_Jakarta_Sans',sans-serif] selection:bg-emerald-200 selection:text-emerald-950 flex flex-col antialiased">
+    <div className="min-h-screen bg-[#f8faf9] text-[#0f172a] font-['Plus_Jakarta_Sans',sans-serif] selection:bg-emerald-200 selection:text-emerald-950 flex flex-col antialiased overflow-x-hidden">
 
-      {/* ── UNIFIED COMMAND HERO HEADER (Rich Forest Emerald with Rescue Coordinate Radar) ── */}
+      {/* ── UNIFIED COMMAND HERO HEADER (Rich Forest Emerald) ── */}
       <section className="relative overflow-hidden bg-[#062c26] text-white pb-20 pt-2">
-        {/* Subtle rescue radar sweep animation */}
-        <div className="absolute inset-0 pointer-events-none opacity-25">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full border border-emerald-400/20 anim-radar-ring" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full border border-emerald-400/30 anim-radar-ring-2" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-emerald-400/40" />
-        </div>
-
         {/* Ambient deep gradient */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -167,162 +139,144 @@ export default function DownloadPage() {
           }}
         />
 
-        {/* Tactical dot coordinate grid */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.12) 1.25px, transparent 1.25px)',
-            backgroundSize: '24px 24px',
-            backgroundPosition: '0 0'
-          }}
-        />
-
         {/* ── NAVBAR ── */}
-        <header className="relative z-40 text-white border-b border-white/10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-3 group focus-visible:outline-2 focus-visible:outline-emerald-400 rounded-xl">
-              <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
+        <header className="relative z-40 text-white">
+          <div className="max-w-6xl mx-auto px-3.5 sm:px-6 h-16 sm:h-18 flex items-center justify-between gap-2.5 sm:gap-4">
+            <Link to="/" className="min-w-0 shrink flex items-center gap-2.5 sm:gap-3 group focus-visible:outline-2 focus-visible:outline-emerald-400 rounded-xl">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
                 <img src="/logo.png" alt="Logo Sahabat SOS" className="w-full h-full object-contain" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-base tracking-tight text-white group-hover:text-emerald-300 transition-colors">
-                    Sahabat SOS
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#0b6f61] text-[#6ee7b7] border border-emerald-400/30">
-                    Mobile Client
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-200/80 font-medium">Distribusi Resmi Berkas APK Android</p>
-              </div>
+              <span className="font-extrabold text-base sm:text-lg tracking-tight text-white group-hover:text-emerald-300 transition-colors whitespace-nowrap">
+                Sahabat SOS
+              </span>
             </Link>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                onClick={() => setShowQrModal(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
-                aria-label="Pindai kode QR untuk unduh di ponsel"
-              >
-                <QrCode size={14} className="text-[#34d399]" />
-                <span>Pindai QR</span>
-              </button>
-
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold text-white/90 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
               >
-                <Lock size={13} className="text-[#34d399]" />
-                <span>Portal Posko</span>
+                <Lock size={13} className="text-[#34d399] shrink-0" />
+                <span className="hidden xs:inline">Portal </span>
+                <span>Posko</span>
               </Link>
 
               <a
                 href={apkDownloadPath}
                 download="SahabatSOS.apk"
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] rounded-xl shadow-md transition-all hover:shadow-red-600/30 active:scale-95 cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-white bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] rounded-xl shadow-md transition-all hover:shadow-red-600/30 active:scale-95 cursor-pointer whitespace-nowrap focus-visible:outline-2 focus-visible:outline-white"
               >
-                <Download size={14} />
-                <span>Unduh APK</span>
+                <Download size={13} className="shrink-0" />
+                <span>Unduh<span className="hidden xs:inline"> APK</span></span>
               </a>
             </div>
           </div>
         </header>
 
         {/* ── HERO & INTERACTIVE SIMULATOR GRID ── */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-8 sm:pb-12 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 items-center">
           {/* Left Column: Information, Verification, Direct CTA */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-medium text-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-              <span>Rilis Stabil Android Versi 1.0.0 (Build Produksi)</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.15] text-white">
-              Aplikasi Tanggap Darurat <br />
+          <div className="lg:col-span-7 space-y-4 sm:space-y-6">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-[1.15] text-white">
+              Aplikasi Tanggap Darurat <br className="hidden sm:inline" />
               <span className="text-[#34d399]">Sahabat SOS</span> Mobile
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-xl">
+            <p className="text-xs xs:text-sm sm:text-base text-slate-200 leading-relaxed max-w-xl">
               Platform respons darurat terintegrasi untuk rekan penyandang disabilitas, relawan siaga lapangan, dan operator posko induk. Dilengkapi tombol panik aksesibel, navigasi GPS Haversine, dan integrasi tombol IoT Tuya.
             </p>
 
             {/* Action buttons */}
-            <div className="pt-1 flex flex-wrap items-center gap-3">
+            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
               <a
                 href={apkDownloadPath}
                 download="SahabatSOS.apk"
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-sm shadow-lg shadow-red-900/30 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-white group"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-5 sm:px-6 py-3.5 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-sm shadow-lg shadow-red-900/30 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-white group text-center"
               >
-                <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
+                <Download size={18} className="group-hover:translate-y-0.5 transition-transform shrink-0" />
                 <span>Unduh SahabatSOS.apk (98.9 MB)</span>
               </a>
 
               <button
                 type="button"
-                onClick={() => setShowQrModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/20 transition-all hover:border-emerald-400/50 cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
+                onClick={handleCopyUrl}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs sm:text-sm border border-white/20 transition-all hover:border-emerald-400/50 cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
               >
-                <QrCode size={17} className="text-[#34d399]" />
-                <span>Pindai QR Ponsel</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopyDownloadUrl}
-                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/20 transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
-                title="Salin tautan berkas langsung"
-              >
-                <Copy size={16} />
-                <span>Salin Tautan</span>
+                {copiedUrl ? (
+                  <>
+                    <Check size={16} className="text-emerald-400 shrink-0" />
+                    <span className="whitespace-nowrap">Tautan Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 size={16} className="text-[#34d399] shrink-0" />
+                    <span className="whitespace-nowrap">Salin Tautan</span>
+                  </>
+                )}
               </button>
             </div>
 
-            {/* Real Hardware & Technical File Spec Strip (Zero fabricated stats) */}
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/15 max-w-lg text-xs">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
-                <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">Format Berkas</span>
-                <span className="font-bold text-white text-xs sm:text-sm">APK Android (ARM64/v7a)</span>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
-                <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">Persyaratan Sistem</span>
-                <span className="font-bold text-white text-xs sm:text-sm">Android 8.0 ke atas</span>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/10 transition-colors">
-                <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">Distribusi</span>
-                <span className="font-bold text-[#34d399] text-xs sm:text-sm">Bebas Biaya / Inklusif</span>
-              </div>
-            </div>
+            {/* Spesifikasi Teknis & Integritas Berkas */}
+            <div className="pt-2 sm:pt-3 max-w-lg">
+              <div className="bg-white/[0.04] border border-white/10 rounded-2xl overflow-hidden text-xs">
+                {/* Specs row */}
+                <dl className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/10 p-3 sm:p-3.5 gap-2 sm:gap-0">
+                  <div className="sm:px-3 sm:first:pl-0">
+                    <dt className="text-white/60 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold">Format Berkas</dt>
+                    <dd className="font-bold text-white text-xs sm:text-sm mt-0.5">APK Android (ARM64/v7a)</dd>
+                  </div>
+                  <div className="sm:px-3 pt-2 sm:pt-0">
+                    <dt className="text-white/60 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold">Persyaratan Sistem</dt>
+                    <dd className="font-bold text-white text-xs sm:text-sm mt-0.5">Android 8.0 ke atas</dd>
+                  </div>
+                  <div className="sm:px-3 sm:last:pr-0 pt-2 sm:pt-0">
+                    <dt className="text-white/60 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold">Distribusi</dt>
+                    <dd className="font-bold text-[#34d399] text-xs sm:text-sm mt-0.5">Bebas Biaya / Inklusif</dd>
+                  </div>
+                </dl>
 
-            {/* Cryptographic SHA-256 Checksum Transparency Bar */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-3 max-w-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-white/90">
-                  <ShieldCheck size={14} className="text-[#34d399]" />
-                  <span>Integritas Berkas SHA-256 Terverifikasi</span>
+                {/* SHA-256 Checksum Row */}
+                <div className="bg-black/20 border-t border-white/10 px-3 sm:px-3.5 py-2.5 flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#34d399]">
+                      <ShieldCheck size={13} className="shrink-0" />
+                      <span>SHA-256 Terverifikasi</span>
+                    </div>
+                    <p className="font-mono text-[10px] sm:text-[11px] text-white/70 truncate select-all">
+                      {sha256Checksum}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyHash}
+                    className="self-start xs:self-center inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-medium shrink-0 transition-colors cursor-pointer"
+                    aria-label="Salin hash SHA-256 berkas APK"
+                  >
+                    {copiedHash ? (
+                      <>
+                        <Check size={12} className="text-emerald-400" />
+                        <span>Tersalin</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>Salin Hash</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-                <p className="font-mono text-[10px] text-emerald-200/70 truncate mt-0.5">
-                  {apkSha256}
-                </p>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyHash}
-                className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold border border-white/15 shrink-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
-              >
-                {copiedHash ? <Check size={12} className="text-emerald-300" /> : <Copy size={12} />}
-                <span>{copiedHash ? 'Tersalin' : 'Salin Hash'}</span>
-              </button>
             </div>
           </div>
 
           {/* Right Column: Interactive Phone Mockup Simulator */}
           <div className="lg:col-span-5 flex flex-col items-center">
             {/* Interactive Role Switcher */}
-            <div className="mb-3 w-full max-w-[340px] flex items-center justify-center gap-1.5 p-1 bg-black/30 rounded-xl border border-white/15 backdrop-blur-xs text-xs">
+            <div className="mb-3 w-full max-w-[340px] flex items-center justify-center gap-1 p-1 bg-black/30 rounded-xl border border-white/15 backdrop-blur-xs text-xs">
               <button
                 type="button"
                 onClick={() => setActiveRole('difabel')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                className={`flex-1 text-center py-2 px-1 xs:px-2 rounded-lg font-bold text-[10px] xs:text-[11px] transition-all cursor-pointer ${
                   activeRole === 'difabel'
                     ? 'bg-[#0b6f61] text-white shadow-sm'
                     : 'text-white/70 hover:text-white'
@@ -333,7 +287,7 @@ export default function DownloadPage() {
               <button
                 type="button"
                 onClick={() => setActiveRole('relawan')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                className={`flex-1 text-center py-2 px-1 xs:px-2 rounded-lg font-bold text-[10px] xs:text-[11px] transition-all cursor-pointer ${
                   activeRole === 'relawan'
                     ? 'bg-[#0b6f61] text-white shadow-sm'
                     : 'text-white/70 hover:text-white'
@@ -344,7 +298,7 @@ export default function DownloadPage() {
               <button
                 type="button"
                 onClick={() => setActiveRole('posko')}
-                className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                className={`flex-1 text-center py-2 px-1 xs:px-2 rounded-lg font-bold text-[10px] xs:text-[11px] transition-all cursor-pointer ${
                   activeRole === 'posko'
                     ? 'bg-[#0b6f61] text-white shadow-sm'
                     : 'text-white/70 hover:text-white'
@@ -357,7 +311,7 @@ export default function DownloadPage() {
             {/* Tactile Smartphone Container */}
             <div className="relative w-full max-w-[340px] bg-white rounded-3xl p-3 shadow-2xl border-4 border-[#0b6f61]/80 transition-all duration-300">
               {/* Badge: Live Simulator Indicator */}
-              <div className="absolute -top-2.5 -right-2.5 z-20 bg-[#dc2626] text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1.5">
+              <div className="absolute -top-2.5 right-2 sm:-right-2.5 z-20 bg-[#dc2626] text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
                 <span>Simulasi Interaktif</span>
               </div>
@@ -627,7 +581,7 @@ export default function DownloadPage() {
       </section>
 
       {/* ── SECTION: 3 ARSITEKTUR PERAN TERINTEGRASI (Difabel, Relawan, Posko) ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 relative z-20 w-full">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10 lg:-mt-8 relative z-20 w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Card 1: Difabel */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-emerald-500 hover:shadow-lg transition-all duration-300">
@@ -884,11 +838,11 @@ export default function DownloadPage() {
             </div>
 
             {/* Step Switcher Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setActiveGuideStep(1)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial text-center px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   activeGuideStep === 1 ? 'bg-white text-[#062c26] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -897,7 +851,7 @@ export default function DownloadPage() {
               <button
                 type="button"
                 onClick={() => setActiveGuideStep(2)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial text-center px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   activeGuideStep === 2 ? 'bg-white text-[#062c26] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -906,7 +860,7 @@ export default function DownloadPage() {
               <button
                 type="button"
                 onClick={() => setActiveGuideStep(3)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`flex-1 sm:flex-initial text-center px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   activeGuideStep === 3 ? 'bg-white text-[#062c26] shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -1030,21 +984,21 @@ export default function DownloadPage() {
               Akses cepat bantuan darurat untuk rekan disabilitas serta media penugasan terpadu bagi relawan kemanusiaan.
             </p>
 
-            <div className="pt-2 flex flex-wrap justify-center items-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
               <a
                 href={apkDownloadPath}
                 download="SahabatSOS.apk"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-sm shadow-md transition-all hover:shadow-red-600/30 hover:-translate-y-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-white group"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-sm shadow-md transition-all hover:shadow-red-600/30 hover:-translate-y-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-white group text-center"
               >
-                <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
+                <Download size={18} className="group-hover:translate-y-0.5 transition-transform shrink-0" />
                 <span>Unduh SahabatSOS.apk (98.9 MB)</span>
               </a>
 
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-5 py-3.5 rounded-xl bg-white text-[#062c26] hover:bg-slate-100 font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-white text-[#062c26] hover:bg-slate-100 font-bold text-sm shadow-sm transition-all hover:-translate-y-0.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-400 text-center"
               >
-                <Lock size={15} />
+                <Lock size={15} className="shrink-0" />
                 <span>Portal Posko Induk</span>
               </Link>
             </div>
@@ -1054,14 +1008,14 @@ export default function DownloadPage() {
 
       {/* ── FOOTER ── */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-6 px-4 sm:px-6 text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <img src="/logo.png" alt="Logo Sahabat SOS" className="w-5 h-5 object-contain" />
             <span className="font-bold text-slate-800">Sahabat SOS</span>
             <span>&copy; {new Date().getFullYear()} Inklusi &amp; Tanggap Darurat Difabel Indonesia.</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center gap-4">
             <Link to="/login" className="hover:text-emerald-700 font-medium transition-colors">
               Masuk Admin Posko
             </Link>
@@ -1070,111 +1024,6 @@ export default function DownloadPage() {
           </div>
         </div>
       </footer>
-
-      {/* ── MODAL: SCAN QR CODE UNTUK UNDUH DI PONSEL ── */}
-      {showQrModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs anim-fade-in"
-          onClick={() => setShowQrModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Pindai QR Code untuk mengunduh berkas APK"
-        >
-          <div
-            className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-200 relative text-center space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              aria-label="Tutup modal"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0b6f61]">
-                Unduh Langsung di Ponsel
-              </span>
-              <h3 className="text-lg font-extrabold text-slate-900">
-                Pindai Kode QR
-              </h3>
-              <p className="text-xs text-slate-500">
-                Arahkan kamera ponsel Android Anda ke kode ini untuk langsung mengunduh berkas APK.
-              </p>
-            </div>
-
-            {/* SVG QR Code with Laser Scan Animation */}
-            <div className="relative mx-auto w-56 h-56 bg-white p-3 rounded-2xl border-2 border-emerald-500/40 shadow-inner flex items-center justify-center overflow-hidden">
-              {/* Animated laser scanning line */}
-              <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_8px_#10b981] anim-scan-laser pointer-events-none" />
-
-              {/* Crisp SVG QR Code Representation */}
-              <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
-                {/* Corner markers */}
-                <rect x="5" y="5" width="28" height="28" rx="4" fill="#062c26" />
-                <rect x="9" y="9" width="20" height="20" rx="2" fill="#ffffff" />
-                <rect x="13" y="13" width="12" height="12" rx="2" fill="#062c26" />
-
-                <rect x="67" y="5" width="28" height="28" rx="4" fill="#062c26" />
-                <rect x="71" y="9" width="20" height="20" rx="2" fill="#ffffff" />
-                <rect x="75" y="13" width="12" height="12" rx="2" fill="#062c26" />
-
-                <rect x="5" y="67" width="28" height="28" rx="4" fill="#062c26" />
-                <rect x="9" y="71" width="20" height="20" rx="2" fill="#ffffff" />
-                <rect x="13" y="75" width="12" height="12" rx="2" fill="#062c26" />
-
-                {/* Pattern Data Bits */}
-                <rect x="38" y="8" width="6" height="6" fill="#0b6f61" />
-                <rect x="48" y="8" width="6" height="6" fill="#062c26" />
-                <rect x="58" y="8" width="6" height="6" fill="#0b6f61" />
-
-                <rect x="38" y="18" width="6" height="6" fill="#062c26" />
-                <rect x="48" y="24" width="6" height="6" fill="#0b6f61" />
-                <rect x="58" y="18" width="6" height="6" fill="#062c26" />
-
-                <rect x="8" y="38" width="6" height="6" fill="#0b6f61" />
-                <rect x="18" y="38" width="6" height="6" fill="#062c26" />
-                <rect x="28" y="44" width="6" height="6" fill="#0b6f61" />
-                <rect x="38" y="38" width="6" height="6" fill="#062c26" />
-                <rect x="48" y="44" width="6" height="6" fill="#0b6f61" />
-                <rect x="58" y="38" width="6" height="6" fill="#062c26" />
-                <rect x="68" y="38" width="6" height="6" fill="#0b6f61" />
-                <rect x="78" y="44" width="6" height="6" fill="#062c26" />
-                <rect x="88" y="38" width="6" height="6" fill="#0b6f61" />
-
-                <rect x="38" y="58" width="6" height="6" fill="#062c26" />
-                <rect x="48" y="58" width="6" height="6" fill="#0b6f61" />
-                <rect x="58" y="64" width="6" height="6" fill="#062c26" />
-
-                <rect x="68" y="68" width="6" height="6" fill="#062c26" />
-                <rect x="78" y="68" width="6" height="6" fill="#0b6f61" />
-                <rect x="88" y="78" width="6" height="6" fill="#062c26" />
-                <rect x="68" y="88" width="6" height="6" fill="#0b6f61" />
-                <rect x="78" y="88" width="6" height="6" fill="#062c26" />
-                <rect x="88" y="88" width="6" height="6" fill="#0b6f61" />
-
-                {/* Center SOS Badge in QR */}
-                <rect x="42" y="42" width="16" height="16" rx="3" fill="#dc2626" />
-                <text x="50" y="53" fill="#ffffff" fontSize="6.5" fontWeight="900" textAnchor="middle" fontFamily="sans-serif">SOS</text>
-              </svg>
-            </div>
-
-            <p className="text-[11px] text-slate-500">
-              Tautan unduhan: <span className="font-mono text-slate-700">{apkDownloadPath}</span> ({apkSizeFormatted})
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setShowQrModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── TOAST NOTIFICATION ── */}
       {toastMessage && (
